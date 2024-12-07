@@ -9,4 +9,4 @@
 ### Panagiotis (user: )
 
 # RESEARCH / EXPERIMENTAL PHASE
-[a link](https://github.com/VIVA-LA-VIDA-Hellas/VIVA-LA-VIDA/tree/main/Robot%20Photos/Original%20module)
+[Original module photos](https://github.com/VIVA-LA-VIDA-Hellas/VIVA-LA-VIDA/tree/main/Robot%20Photos/Original%20module)
