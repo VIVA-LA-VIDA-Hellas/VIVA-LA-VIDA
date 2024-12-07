@@ -10,3 +10,7 @@
 
 # RESEARCH / EXPERIMENTAL PHASE
 [Original module photos](https://github.com/VIVA-LA-VIDA-Hellas/VIVA-LA-VIDA/tree/main/Robot%20Photos/Original%20module)
+
+Using colour dropping to find approximate HSV values of obstacles
+![image](https://github.com/user-attachments/assets/05425a54-8f90-4c7b-affd-47eaf2952324)
+[Colour picker used](https://pinetools.com/image-color-picker)
