@@ -85,7 +85,6 @@ while True:
 
             # Check for sharp turns (if needed in future)
             if (right_avg - left_avg) < 50:  # Threshold for sharp turn indication
-                # Optional: Draw edges for indication (removed in final version)
                 pass
 
     # Show edges with path lines drawn
