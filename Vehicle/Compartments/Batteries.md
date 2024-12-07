@@ -4,7 +4,7 @@ Firstly, we compared the characteristics of Lithium, Lithium-Ion, Lipo and Alkal
 
 
 ### Lithium batteries
-Lithium batteries are one of the most commonly used battery types. They offer the highest energy density of any other battery cell, meaning they store more energy than other batteries, such as alkaline. Lithium batteries are only sold in AA, AAA, and 9V sizes; however, their mAh ratings exceed every other non-rechargeable battery. One AA lithium battery ranges from 2,700-3,400 mAh, and will last a long time, even under heavy-use.
+>Lithium batteries are one of the most commonly used battery types. They offer the highest energy density of any other battery cell, meaning they store more energy than other batteries, such as alkaline. Lithium batteries are only sold in AA, AAA, and 9V sizes; however, their mAh ratings exceed every other non-rechargeable battery. One AA lithium battery ranges from 2,700-3,400 mAh, and will last a long time, even under heavy-use.
 <ins> Pros </ins>
 <ins>**Last up to 4x longer compared to other battery types
 Light-weight for portable devices
