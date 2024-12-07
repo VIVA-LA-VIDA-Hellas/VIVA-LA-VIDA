@@ -34,7 +34,19 @@ Using the data, we created a range where an object is detected as red or green. 
     green_lower = np.array([45, 160, 0])
     green_upper = np.array([100, 255, 150])
 ```
-Then, we applied a HSV mask to separate the objects of each colour from the rest of the feed
+Then, we applied a HSV mask to separate the objects of each colour from the rest of the feed and added an outline around the detected objects
+Mask:
+```python
+mask_red1 = cv2.inRange(imgHSV, red_lower, red_upper)
+```
+Outline:
+```python
+    img_contours = img.copy()
+    for contour in contours_red:
+        x, y, w, h = cv2.boundingRect(contour)
+        cv2.rectangle(img_contours, (x, y), (x + w, y + h), (0, 0, 255), 2)  # Red rectangle
+```
+Same for green.
 > ### Green:
 
 ![image](https://github.com/user-attachments/assets/2dd7592b-8040-411a-b24d-54446ca6187f)
