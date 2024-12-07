@@ -13,7 +13,7 @@
 
 ### Creating [red/green colour detection](https://github.com/VIVA-LA-VIDA-Hellas/VIVA-LA-VIDA/blob/main/Code%20files/Python%20files/R_G_cannyoutlineWORKING.py)
 Using opencv we created a program that detects red and green objects and outputs what the computer sees in the prossess.
-To do this, firstly we used colour dropping to find approximate <ins> HSV values <ins/> of obstacles and edit the ranges in our code
+To do this, firstly we used colour dropping to <ins> find approximate HSV values  of obstacles and edit the ranges in our code </ins>
 
 > ### Red:
 
