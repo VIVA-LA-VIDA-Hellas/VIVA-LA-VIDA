@@ -1,6 +1,7 @@
 # VIVA ΛA VIΔA
 # FUTURE-ENGINEERS-2025
-![LOGO](https://github.com/user-attachments/assets/114cf361-8d25-45c8-a695-3e772ee09006|width=100)
+![Logo_300x300](https://github.com/user-attachments/assets/de5ed7a3-1561-42ec-b1af-bc5b49da4225)
+
 TEAM MEMBERS:
   Nikol Vasilopoulou (user: Quart0xe)
   Panagiotis (user: )
