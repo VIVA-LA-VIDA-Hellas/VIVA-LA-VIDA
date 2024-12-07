@@ -34,7 +34,7 @@ Using the data, we created a range where an object is detected as red or green. 
     green_lower = np.array([45, 160, 0])
     green_upper = np.array([100, 255, 150])
 ```
-Then, we applied a HSV mask to separate the objects of each colour from the rest of the feed and added an outline around the detected objects
+Then, we applied a HSV mask to separate the objects of each colour from the rest of the feed and used imgcanny to find the corners of the objects detected, using that to add an outline according to their colour (red/green)
 Mask:
 ```python
 mask_red1 = cv2.inRange(imgHSV, red_lower, red_upper)
@@ -55,4 +55,6 @@ Same for green.
 ![image](https://github.com/user-attachments/assets/cb52d939-d804-4d5f-a009-c82977a3d9f6)
 
 Notice how it even detects the pile of red objects on the floor **~3m away**
+
+Next, we
 
