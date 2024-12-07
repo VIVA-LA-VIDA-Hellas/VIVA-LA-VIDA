@@ -17,11 +17,11 @@ Much more expensive than other battery types
 Don’t come in bigger battery sizes like C or D**</ins>
 
 ### Lithium-ion batteries 
- Lithium-ion batteries (Li-ion) are <ins>**highly efficient, with a long cycle life, high energy and power density, and fast discharge capabilities**</ins>, making them ideal for portable electronics. They can last up to 15 years, significantly longer than lead-acid batteries, reducing replacement costs. These batteries typically offer 500-7000 discharge cycles before needing replacement, depending on the chemistry used. The specific energy of Li-ion batteries ranges from 100–265 Wh/kg, with an energy density of 250–693 Wh/L. Characterizing the state of charge involves extensive experiments to evaluate parameters like voltage, current, temperature, capacity, and impedance. Li-ion batteries consist of four main components: cathode, anode, electrolyte, and separator, all essential for their function. Unlike lithium cells, <ins>**Li-ion cells are rechargeable, with lifespans averaging 2-3 years or 300-500 charge cycles.** </ins>
+> Lithium-ion batteries (Li-ion) are <ins>**highly efficient, with a long cycle life, high energy and power density, and fast discharge capabilities**</ins>, making them ideal for portable electronics. They can last up to 15 years, significantly longer than lead-acid batteries, reducing replacement costs. These batteries typically offer 500-7000 discharge cycles before needing replacement, depending on the chemistry used. The specific energy of Li-ion batteries ranges from 100–265 Wh/kg, with an energy density of 250–693 Wh/L. Characterizing the state of charge involves extensive experiments to evaluate parameters like voltage, current, temperature, capacity, and impedance. Li-ion batteries consist of four main components: cathode, anode, electrolyte, and separator, all essential for their function. Unlike lithium cells, <ins>**Li-ion cells are rechargeable, with lifespans averaging 2-3 years or 300-500 charge cycles.** </ins>
 
 
 ### Lipo batteries
-The advantages of Lipo batteries are<ins> **small volume, huge capacity, light weight, non-pollution, high voltage of single cell, low self-discharging rate, more cycle times**</ins>, but its price is comparatively high.
+>The advantages of Lipo batteries are<ins> **small volume, huge capacity, light weight, non-pollution, high voltage of single cell, low self-discharging rate, more cycle times**</ins>, but its price is comparatively high.
 A Lipo battery is constructed from separate cells, all connected to form the specific battery. One Lipo cell has a nominal voltage of 3.7V. When connecting these in series, the voltage increases, meaning you get 7.4V for a 2 cell battery, 11.1V for a 3 cell battery, 14.8V for a 4 cell battery etc.
 Enhanced Power Density: LiPo batteries offer a slightly higher power density, which means they can deliver a burst of power more quickly. This characteristic is valuable in scenarios where immediate, high-energy output is necessary.
 How long does a 5,000mAh LiPo battery last? About 25–30 minutes on full discharge. Depending on what you are using it for. A batter such as this on a remote RC car being pushed at full throttle will last about 25 minutes.
@@ -29,7 +29,7 @@ How long does a 5,000mAh LiPo battery last? About 25–30 minutes on full discha
 It is commonly accepted that the preferred way to dispose of a model LiPo pack is to immerse it in a container of salt water for an extended period 
 
 ### Alkaline batteries
-Alkaline batteries are economical, easy to dispose of, and extremely popular. They normally have a<ins> **capacity rating of over 2,500 mAh**</ins>, great for moderate to heavy-use devices. Unlike lithium batteries, almost every standard size battery offers an alkaline construction, making it perfect for most devices.
+>Alkaline batteries are economical, easy to dispose of, and extremely popular. They normally have a<ins> **capacity rating of over 2,500 mAh**</ins>, great for moderate to heavy-use devices. Unlike lithium batteries, almost every standard size battery offers an alkaline construction, making it perfect for most devices.
 <ins> Pros </ins>
 Great price for quality
 <ins>**Last longer due to potassium hydroxide construction**</ins>
