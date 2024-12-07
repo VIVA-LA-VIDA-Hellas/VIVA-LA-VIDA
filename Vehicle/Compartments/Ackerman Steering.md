@@ -1,6 +1,7 @@
 # Use of ackerman steering
 
 ## Defining Ackermann Steering
+### Info from: [racecar-engineering.com](https://www.racecar-engineering.com) 
 
 ### Consider a low-speed cornering manoeuvre, where all tyres are in pure rolling condition, and there is no vehicle sliding present. As the vehicle travels along a curved path, all four tyres follow unique trajectories around a shared turn centre, as defined by the blue arcs in Figure 1. 
 
