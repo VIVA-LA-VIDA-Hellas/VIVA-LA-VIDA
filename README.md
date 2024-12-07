@@ -23,3 +23,12 @@ we used colour dropping to find approximate HSV values of obstacles and edit the
 
 ### [Colour picker used](https://pinetools.com/image-color-picker)
 
+Using the data, we created a range where an object is detected as red or green
+```python
+    red_lower = np.array([0, 120, 70])
+    red_upper = np.array([10, 255, 255])
+```
+```python
+    green_lower = np.array([45, 160, 0])
+    green_upper = np.array([100, 255, 150])
+```
