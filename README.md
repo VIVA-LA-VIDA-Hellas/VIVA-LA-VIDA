@@ -63,7 +63,7 @@ From this process, instead of outlining the walls found, we used the line they f
 
 ### Output image
 ![image](https://github.com/user-attachments/assets/417dd036-7add-4786-abe6-badace10178b)
-### <ins>When we moved the inner square walls, the path to follow moved too</ins>
+### When we moved the inner square walls, <ins>the path to follow (middle lane) moved too</ins>
 ![image](https://github.com/user-attachments/assets/95e8c7f5-c216-4cda-be64-c463440ad920)
 
 
