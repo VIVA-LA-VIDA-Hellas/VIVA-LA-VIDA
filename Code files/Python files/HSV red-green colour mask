@@ -1,4 +1,6 @@
+
 ```
+
 import cv2
 import numpy as np
 
@@ -95,5 +97,6 @@ while True:
 # Release the video capture object and close windows
 cap.release()
 cv2.destroyAllWindows()
-'''
+
+```
 
