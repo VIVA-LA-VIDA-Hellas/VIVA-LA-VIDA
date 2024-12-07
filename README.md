@@ -15,3 +15,5 @@ we used colour dropping to find approximate HSV values of obstacles and edit the
 
 ![image](https://github.com/user-attachments/assets/05425a54-8f90-4c7b-affd-47eaf2952324)
 [Colour picker used](https://pinetools.com/image-color-picker)
+![image](https://github.com/user-attachments/assets/e6422d6a-328f-4d72-94b2-b9dd87e88be7)
+
