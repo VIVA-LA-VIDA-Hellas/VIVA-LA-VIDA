@@ -11,7 +11,9 @@
 # RESEARCH / EXPERIMENTAL PHASE
 [Original module photos](https://github.com/VIVA-LA-VIDA-Hellas/VIVA-LA-VIDA/tree/main/Robot%20Photos/Original%20module)
 
-we used colour dropping to find approximate HSV values of obstacles and edit them into our code
+###Creating [red/green colour detection](https://github.com/VIVA-LA-VIDA-Hellas/VIVA-LA-VIDA/blob/main/Code%20files/Python%20files/R_G_cannyoutlineWORKING.py)
+Using opencv we created a program that detects red and green objects and outputs what the computer sees in the prossess.
+To do this, firstly we used colour dropping to find approximate HSV values of obstacles and edit the ranges in our code
 
 > ### Red:
 
@@ -32,3 +34,4 @@ Using the data, we created a range where an object is detected as red or green. 
     green_lower = np.array([45, 160, 0])
     green_upper = np.array([100, 255, 150])
 ```
+Then, we applied a HSV mask to separate the objects of each colour from the rest of the feed
