@@ -14,6 +14,9 @@
 >### 3) The difference in front-wheel steer angle as a function of the input steer angle is known as Dynamic Toe. If the vehicle dimensions are known, it is possible to construct a curve of the desired toe change for the full range of expected turn radii, such as the example in Figure 2. 
 >![image](https://github.com/user-attachments/assets/4e09d414-3713-42d7-85e9-3ca277c7485d)
 
+## The ackerman examples we used:
 
 ![image](https://github.com/user-attachments/assets/93462283-1435-4ad8-8532-79a6c38ec198)
+
+![image](https://github.com/user-attachments/assets/5dd46d34-687b-40c4-ad60-1204302e7bfb)
 
