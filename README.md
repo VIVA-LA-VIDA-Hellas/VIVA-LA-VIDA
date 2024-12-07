@@ -60,9 +60,10 @@ Notice how it even detects the pile of red objects on the floor **~3m away**
 We applied the same code from the previous program, this time switching green and red with white and black in order to diffrentiate the (white) floor from the (black) walls.
 From this process, instead of outlining the walls found, we used the line they formed from edge detection on each side and <ins> calculated the middle point between the two to create a path for the robot to follow </ins>
 [You can see the output we got here](https://github.com/VIVA-LA-VIDA-Hellas/VIVA-LA-VIDA/blob/main/Videos/MIDDLE_LANE_VIDEO_COMPRESSED.mp4)
-Output image
+
+### Output image
 ![image](https://github.com/user-attachments/assets/417dd036-7add-4786-abe6-badace10178b)
-When we moved the inner square walls, the path to follow moved too
+### <ins>When we moved the inner square walls, the path to follow moved too</ins>
 ![image](https://github.com/user-attachments/assets/95e8c7f5-c216-4cda-be64-c463440ad920)
 
 
