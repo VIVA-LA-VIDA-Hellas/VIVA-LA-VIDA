@@ -59,6 +59,19 @@ Notice how it even detects the pile of red objects on the floor **~3m away**
 ### Next, we created the [Middle_Lane_Canny](https://github.com/VIVA-LA-VIDA-Hellas/VIVA-LA-VIDA/blob/main/Code%20files/Python%20files/Middle_Lane_Canny_WORKING.py)
 We applied the same code from the previous program, this time switching green and red with white and black in order to diffrentiate the (white) floor from the (black) walls.
 From this process, instead of outlining the walls found, we used the line they formed from edge detection on each side and <ins> calculated the middle point between the two to create a path for the robot to follow </ins>
+```python
+for i in range(height):
+        left_avg = left_edges[i]
+        right_avg = right_edges[i]
+
+        if left_avg is not None and right_avg is not None:
+            # Calculate the midpoint and draw the path
+            middle_line = (left_avg + right_avg) // 2
+
+            # Draw the path line (white) with increased thickness
+            cv2.line(edges_black, (middle_line, i), (middle_line, i), (255, 255, 255), 3)  # Increased thickness
+```
+
 [You can see the output we got here](https://github.com/VIVA-LA-VIDA-Hellas/VIVA-LA-VIDA/blob/main/Videos/MIDDLE_LANE_VIDEO_COMPRESSED.mp4)
 
 ### Output image
