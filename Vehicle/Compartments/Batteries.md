@@ -11,7 +11,7 @@ Light-weight for portable devices
 Ideal for heavy-use
 Function well even in extreme temperatures, working well in outdoor devices like flashlights
 Shelf life is 10-12 years; great for use in emergency devices, as the batteries will not leak or explode
-Cons
+<ins> Cons </ins>
 Much more expensive than other battery types
 Highly flammable; require special disposal at specified locations and cannot be thrown away
 Don’t come in bigger battery sizes like C or D
@@ -35,14 +35,13 @@ The Li-Ion car battery is highly susceptible to too much heat. The overheating o
 
 ### Alkaline batteries
 >Alkaline batteries are economical, easy to dispose of, and extremely popular. They normally have a capacity rating of over 2,500 mAh, great for moderate to heavy-use devices. Unlike lithium batteries, almost every standard size battery offers an alkaline construction, making it perfect for most devices.
-
-Pros
+<ins> Pros </ins>
 Great price for quality
 Last longer due to potassium hydroxide construction
 Shelf life is 5-10 years
 Function well even in extreme temperatures, working well in outdoor devices like flashlights
 Lead, mercury, and cadmium-free is good for the environment, and the batteries don't need to be disposed of in a specific way
-Cons
+<ins> Cons </ins>
 Heavy and bulky, without additional voltage
 May not work well in high drain devices
 Will sometimes leak, causing the device to become unusable
