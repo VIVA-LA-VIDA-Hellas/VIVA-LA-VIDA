@@ -40,3 +40,7 @@ Lead, mercury, and cadmium-free is good for the environment, and the batteries d
 <ins>**Heavy and bulky, without additional voltage
 May not work well in high drain devices
 Will sometimes leak, causing the device to become unusable**</ins>
+
+### In the end we found that:
+### If you are looking for the highest voltage under load (punch or top speed) then choose a LiPo. If you are looking for the highest capacity for the weight (energy density), choose Li-ion. If safety is a big concern, then choose Li-ion.
+## And therefore we chose <ins>Li-ion</ins> for our vehicle.
