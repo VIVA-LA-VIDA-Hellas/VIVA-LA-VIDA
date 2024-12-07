@@ -1,5 +1,11 @@
 # Use of ackerman steering
 
+## Defining Ackermann Steering
+
+### Consider a low-speed cornering manoeuvre, where all tyres are in pure rolling condition, and there is no vehicle sliding present. As the vehicle travels along a curved path, all four tyres follow unique trajectories around a shared turn centre, as defined by the blue arcs in Figure 1. 
+
+![image](https://github.com/user-attachments/assets/ef736211-94b5-4135-bb38-6958dffdc4e4)
+
 ### 1)The different curvature radii mean that to avoid sliding, the steering geometry must steer the inside front tire at a larger angle than the outside front. Ackermann Steering refers to the geometric configuration that allows both front wheels to be steered at the appropriate angle to avoid tire sliding.
 
 ### 2)For a given turn radius R, wheelbase L, and track width T, engineers calculate the required front steering angles (δ_(f, in) and (δ_(f, out)) with the following expressions:
