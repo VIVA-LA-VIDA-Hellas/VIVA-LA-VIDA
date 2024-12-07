@@ -1,0 +1,96 @@
+import cv2
+import numpy as np
+
+
+def empty(x):
+    pass
+
+
+# Initial values for HSV trackbars
+h_min, h_max = 3, 18
+s_min, s_max = 220, 255
+v_min, v_max = 0, 255
+
+
+# Capture video from file or webcam
+cap = cv2.VideoCapture(1)
+
+if not cap.isOpened():
+    print("Error: Could not open video.")
+    exit()
+
+while True:
+    ret, img = cap.read()
+    if not ret:
+        print("Error: Could not read frame.")
+        break
+
+    # Print HSV values (optional, can be commented out)
+    print(h_min, h_max, s_min, s_max, v_min, v_max)
+
+    # Convert the image to HSV
+
+    imgHSV = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
+
+    # Create a mask based on the HSV range values
+
+    lower = np.array([h_min, s_min, v_min])
+    upper = np.array([h_max, s_max, v_max])
+    mask = cv2.inRange(imgHSV, lower, upper)
+
+    # Separate masks for Red, Green, Blue
+    #Best red values so far:
+    #Low Half: lo 0, 120, 70 / up 10, 255, 255
+    #Higher Half: lo 170, 120, 70 / up 180, 255, 255
+
+    red_lower = np.array([0, 120, 70])
+    red_upper = np.array([10, 255, 255])
+    mask_red1 = cv2.inRange(imgHSV, red_lower, red_upper)
+    #red_lower = np.array([170, 120, 70])
+    #red_upper = np.array([180, 255, 255])
+    #mask_red2 = cv2.inRange(imgHSV, red_lower, red_upper)
+    mask_red = mask_red1 #| mask_red2
+
+    green_lower = np.array([45, 160, 0])
+    green_upper = np.array([100, 255, 150])
+    mask_green = cv2.inRange(imgHSV, green_lower, green_upper)
+
+    blue_lower = np.array([94, 80, 2])
+    blue_upper = np.array([126, 255, 255])
+    mask_blue = cv2.inRange(imgHSV, blue_lower, blue_upper)
+
+    # Display the original image and masks
+    cv2.imshow("Red Mask", mask_red)
+    cv2.imshow("Green Mask", mask_green)
+
+    # Edge detection on masks
+    edges_red = cv2.Canny(mask_red, 100, 100)
+    cv2.imshow('Red Edges', edges_red)
+    edges_green = cv2.Canny(mask_green, 100, 100)
+    cv2.imshow('Green Edges', edges_green)
+
+    # Find contours for red and green edges
+    contours_red, _ = cv2.findContours(edges_red, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    contours_green, _ = cv2.findContours(edges_green, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+
+    # Draw bounding rectangles around contours on the original image
+    img_contours = img.copy()
+    for contour in contours_red:
+        x, y, w, h = cv2.boundingRect(contour)
+        cv2.rectangle(img_contours, (x, y), (x + w, y + h), (0, 0, 255), 2)  # Red rectangle
+
+    for contour in contours_green:
+        x, y, w, h = cv2.boundingRect(contour)
+        cv2.rectangle(img_contours, (x, y), (x + w, y + h), (0, 255, 0), 2)  # Green rectangle
+
+    # Display image with contours
+    cv2.imshow('Contours', img_contours)
+
+    # Break the loop when 'q' or 'Esc' is pressed
+    key = cv2.waitKey(5)
+    if key == ord('q') or key == 27:
+        break
+
+# Release the video capture object and close windows
+cap.release()
+cv2.destroyAllWindows()
