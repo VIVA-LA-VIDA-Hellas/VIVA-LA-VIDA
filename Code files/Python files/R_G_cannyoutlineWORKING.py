@@ -1,5 +1,8 @@
-#THIS CODE DETECTS RED AND GREEN OBJECTS AND OUTLINES THEM USING A HSV MASK
-#IT THEN OUTPUTS THE LIVE FEED OF THE SELECTED CAMERA, RED AND GREEN MASK AND RED AND GREEN IMG CANNY SHOWING OUTLINES
+'''
+This code detects red and green objects and outlines them
+using a HSV mask. It then outputs the live feed of the selected camera,
+red and green mask and reed/green img canny showing outlines
+'''
 
 import cv2
 import numpy as np
