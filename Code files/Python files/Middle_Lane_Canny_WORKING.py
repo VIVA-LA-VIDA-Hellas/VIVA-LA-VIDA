@@ -1,6 +1,8 @@
-# This code detects black and white using a hsv mask and img canny
-# It then outputs a line in the middle of the walls it detects on each side of the vehicle, showing the path it needs to follow.
-
+'''
+This code detects black and white using a hsv mask and img canny
+It then outputs a line in the middle of the walls it detects on
+each side of the vehicle, showing the path it needs to follow.
+'''
 import cv2
 import numpy as np
 
