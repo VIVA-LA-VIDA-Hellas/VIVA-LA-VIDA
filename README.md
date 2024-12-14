@@ -6,7 +6,7 @@
 
 ## TEAM MEMBERS:
 ### Nikol Vasilopoulou (user: Quart0xe)
-### Panagiotis (user: )
+### Panagiotis Mourmouris (user: Panos1431)
 
 # RESEARCH / EXPERIMENTAL PHASE
 [Original module photos](https://github.com/VIVA-LA-VIDA-Hellas/VIVA-LA-VIDA/tree/main/Robot%20Photos/Original%20module)
