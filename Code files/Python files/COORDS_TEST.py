@@ -1,6 +1,10 @@
-#This code uses the output from R_G_cannyoutline_WORKING and adds finds the coordinates of the corners from the largest green and red object detected from the feed
-#It then creats a line connecting the top-bottom (left for green, right for red) corners so the vehicle can use them to then choose how to steer.
-
+'''
+This code uses the output from R_G_cannyoutline_WORKING and adds finds the coordinates of the corners
+from the largest green and red object detected from the feed
+It then creats a line connecting the top-bottom (left for green, 
+right for red) corners so the vehicle can use them to then choose how to steer.
+'''
+                                                 
 import cv2
 import numpy as np
 
