@@ -1,2 +1,2 @@
 # Arduino code files
-> ## These programs where written in aruino IDE
+> ## These programs were written in aruino IDE
