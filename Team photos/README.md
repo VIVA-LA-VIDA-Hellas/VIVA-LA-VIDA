@@ -1,1 +1,1 @@
-# Here you can find photos of our team during the competition preperation phase!!
+## Here you can find photos of our team during the competition preperation phase!!
