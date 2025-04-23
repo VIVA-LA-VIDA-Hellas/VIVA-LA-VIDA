@@ -1,0 +1,23 @@
+# Updates:
+
+## Nikol -
+Worked with Thanos to test out the combination of the middle_lane_canny with the movement of the
+servo motors in an attempt to begin trials for the first challenge. 
+We all Tested the robot on the track, experimenting with different cameras as well as using diy 
+solutions to fix conectivityissues such as taping down wires and using extra screws to stabilise
+the camera even further.
+
+## Panagiotis -
+
+
+
+## Thanos -
+
+
+
+# Photos
+![1745435960482](https://github.com/user-attachments/assets/3a5d8abe-cbcb-48c7-86e7-5d00cac91c05)
+![1745435960551](https://github.com/user-attachments/assets/93e7f60d-a6c9-4958-b116-1906a4134dea)
+![1745435960624](https://github.com/user-attachments/assets/8fc0146a-ef01-498c-8837-4e828022a2ac)
+![1745435960692](https://github.com/user-attachments/assets/7e7654fa-3267-42be-9bb8-7eca7624e00e)
+![1745435960745](https://github.com/user-attachments/assets/a4a18370-c09b-4390-a7a0-bf5bb17e2751)
