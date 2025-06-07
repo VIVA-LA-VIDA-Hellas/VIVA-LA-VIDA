@@ -1,0 +1,4 @@
+front = pin27
+left = pin17
+right = pin22
+Mosfet as switch = pin5 
