@@ -15,6 +15,7 @@ def empty(x):
 TRIG = 17
 ECHO = 18
 i=0
+direction = "null"
 
 GPIO.setmode(GPIO.BCM) 
 GPIO.setup(TRIG,GPIO.OUT)
@@ -25,6 +26,63 @@ GPIO.setup(ECHO,GPIO.IN)
 h_min, h_max = 3, 18
 s_min, s_max = 220, 255
 v_min, v_max = 0, 255
+
+img = picam2.capture_array()
+
+orange_lower = np.array([5, 140, 100])
+orange_upper = np.array([15, 235, 255])
+mask_orange= cv2.inRange(imgHSV, orange_lower, orange_upper)
+
+blue_lower = np.array([100, 160, 110])
+blue_upper = np.array([170, 255, 160])
+mask_blue = cv2.inRange(imgHSV, blue_lower, blue_upper)
+
+contours_orange, _ = cv2.findContours(edges_orange, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+contours_blue, _ = cv2.findContours(edges_blue, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+
+# Draw bounding rectangles around contours on the original image
+img_contours = img.copy()
+for contour in contours_orange:
+    x, y, w, h = cv2.boundingRect(contour)
+    cv2.rectangle(img_contours, (x, y), (x + w, y + h), (0, 165, 255), 2)  # Orange rectangle
+
+for contour in contours_blue:
+    x, y, w, h = cv2.boundingRect(contour)
+    cv2.rectangle(img_contours, (x, y), (x + w, y + h), (255, 0, 0), 2)  # Blue rectangle
+
+height, width = frame.shape[:2]
+
+# Define the horizontal range for "middle" section (e.g. middle 20%)
+middle_start = int(width * 0.4)
+middle_end = int(width * 0.6)
+
+def filter_middle_contours(contours, middle_start, middle_end):
+    return [
+        c for c in contours
+        if middle_start <= (cv2.boundingRect(c)[0] + cv2.boundingRect(c)[2] // 2) <= middle_end
+    ]
+
+# Filter contours to those in the horizontal middle zone
+middle_orange_contours = filter_middle_contours(contours_orange, middle_start, middle_end)
+middle_blue_contours = filter_middle_contours(contours_blue, middle_start, middle_end)
+
+# Get the lowest Y positions from the filtered contours
+lowest_orange = max([cv2.boundingRect(c)[1] + cv2.boundingRect(c)[3] for c in middle_orange_contours], default=0)
+lowest_blue = max([cv2.boundingRect(c)[1] + cv2.boundingRect(c)[3] for c in middle_blue_contours], default=0)
+
+
+# Compare which one appears lower in the frame
+if lowest_orange > lowest_blue:
+    print("Orange first")
+    direction = "Right"
+elif lowest_blue > lowest_orange:
+    print("Blue first")
+    direction = "Left"
+else:
+    print("No colours detected")
+    direction = "null"
+
+print("Direction:", direction)
 
 # Initialize Picamera2 for capturing frames
 picam2 = Picamera2()
@@ -60,45 +118,12 @@ while True:
     black_upper = np.array([255, 255, 40])
     mask_black = cv2.inRange(imgHSV, black_lower, black_upper)
 
-    orange_lower = np.array([5, 140, 100])
-    orange_upper = np.array([15, 235, 255])
-    mask_orange= cv2.inRange(imgHSV, orange_lower, orange_upper)
-
-    blue_lower = np.array([100, 160, 110])
-    blue_upper = np.array([170, 255, 160])
-    mask_blue = cv2.inRange(imgHSV, blue_lower, blue_upper)
+    
     # Edge detection on masks
     edges_white = cv2.Canny(mask_white, 100, 100)
     edges_black = cv2.Canny(mask_black, 100, 100)
     edges_orange = cv2.Canny(mask_orange, 100, 100)
     edges_blue = cv2.Canny(mask_blue, 100, 100) 
-
-    contours_orange, _ = cv2.findContours(edges_orange, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-    contours_blue, _ = cv2.findContours(edges_blue, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-
-    # Draw bounding rectangles around contours on the original image
-    img_contours = img.copy()
-    for contour in contours_orange:
-        x, y, w, h = cv2.boundingRect(contour)
-        cv2.rectangle(img_contours, (x, y), (x + w, y + h), (0, 165, 255), 2)  # Orange rectangle
-
-    for contour in contours_blue:
-        x, y, w, h = cv2.boundingRect(contour)
-        cv2.rectangle(img_contours, (x, y), (x + w, y + h), (255, 0, 0), 2)  # Blue rectangle
-
-    # Get lowest Y position (bottom) for orange
-    lowest_orange = max([cv2.boundingRect(c)[1] + cv2.boundingRect(c)[3] for c in contours_orange], default=0)
-
-    # Get lowest Y position (bottom) for blue
-    lowest_blue = max([cv2.boundingRect(c)[1] + cv2.boundingRect(c)[3] for c in contours_blue], default=0)
-
-    # Compare which one appears lower in the frame
-    if lowest_orange > lowest_blue:
-        print("Orange first")
-    elif lowest_blue > lowest_orange:
-        print("Blue first")
-    else:
-        print("No colours detected")
 
 
     # Initialize variables for lane tracking
