@@ -1,23 +1,28 @@
-'Improved version of MIDDLE_LANE_CANNY also using picamera library'
-
+Improved version of MIDDLE_LANE_CANNY also using picamera library'
+import board
+import busio
+import digitalio
 import cv2
 import numpy as np
 from picamera2 import Picamera2
 import time
 import RPi.GPIO as GPIO
+from adafruit_servokit import ServoKit
+
 
 def empty(x):
     pass
-
-GPIO.setmode(GPIO.BOARD)
 
 TRIG = 17
 ECHO = 18
 i=0
 
+GPIO.setmode(GPIO.BCM) 
 GPIO.setup(TRIG,GPIO.OUT)
 GPIO.setup(ECHO,GPIO.IN)
+
 # Initial values for HSV trackbars
+ 
 h_min, h_max = 3, 18
 s_min, s_max = 220, 255
 v_min, v_max = 0, 255
@@ -25,6 +30,8 @@ v_min, v_max = 0, 255
 # Initialize Picamera2 for capturing frames
 picam2 = Picamera2()
 picam2.start()
+
+kit = ServoKit(channels=8, i2c=i2c, address=0x40)
 
 # Give the camera a moment to adjust settings
 time.sleep(2)
@@ -80,6 +87,7 @@ while True:
 
     if distance<=100:
         print("distance:",distance,"cm", "Hitting the wall")
+        kit.servo[0].angle = 45
         i=1
         
     else:
