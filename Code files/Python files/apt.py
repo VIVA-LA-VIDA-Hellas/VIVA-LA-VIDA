@@ -64,8 +64,8 @@ while True:
     orange_upper = np.array([15, 235, 255])
     mask_orange= cv2.inRange(imgHSV, orange_lower, orange_upper)
 
-    blue_lower = np.array([200, 0, 0])
-    blue_upper = np.array([250, 255, 220])
+    blue_lower = np.array([100, 160, 110])
+    blue_upper = np.array([170, 255, 160])
     mask_blue = cv2.inRange(imgHSV, blue_lower, blue_upper)
     # Edge detection on masks
     edges_white = cv2.Canny(mask_white, 100, 100)
