@@ -3,6 +3,7 @@ import busio
 import time
 import adafruit_tcs34725
 from adafruit_servokit import ServoKit
+from adafruit_motorkit import MotorKit
 import adafruit_hcsr04
 
 turns_completed = 0
@@ -66,8 +67,24 @@ KD = 2.0
 integral = 0
 last_error = 0
 
+kit_motor = MotorKit()
+
+# Motor control functions
+def rotate_motor_forward(): 
+    print("Rotating motor forward")
+    kit_motor.motor3.throttle = 0.7#speed forward
+
+def rotate_motor_backward():
+    print("Rotating motor backward")
+    kit_motor.motor3.throttle = -0.7#speed backward
+
+def stop_motor():
+    print("Stopping motor")
+    kit_motor.motor3.throttle = 0.0  # Stop the motor
+
 while True:
     distance = get_distance(side_sensor)
+    rotate_motor_forward()
     if distance is not None:
         if distance > 100:
             # Wall lost: sharp left turn until wall is found again
