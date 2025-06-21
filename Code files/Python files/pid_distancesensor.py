@@ -59,16 +59,12 @@ print("Using distance sensors with direction:", direction)
 
 # --- PID Constants ---
 TARGET_DISTANCE = 15.0  # cm
-KP = 3.0
+KP = 0.5
 KI = 0.0
 KD = 2.0
 
 integral = 0
 last_error = 0
-
-# --- Main logic ---
-direction = detect_direction()
-print("Using distance sensors with direction:", direction)
 
 while True:
     distance = get_distance(side_sensor)
@@ -76,18 +72,16 @@ while True:
         if distance > 100:
             # Wall lost: sharp left turn until wall is found again
             print("Wall lost! Making sharp left turn...")
-            kit.servo[0].angle = 60  # Sharp left
+            kit.servo[0].angle = 45  # Sharp left
             time.sleep(0.1)
             turns_completed += 1
+            print(f"Turns completed: {turns_completed}")
+            if turns_completed >= 12:
+                print("12 turns completed. Stopping all motors and exiting.")
+                kit.servo[0].angle = 90  # Center/stop steering
+                # Add code to stop drive motors here if needed
+                break
             continue  # Skip PID for this cycle
-
-        #if distance < TARGET_DISTANCE:
-                # Too close to wall: sharp right turn until safe distance
-                print("Too close to wall! Making sharp right turn...")
-                kit.servo[0].angle = 120  # Sharp right
-                time.sleep(0.1)
-                continue  # Skip PID for this cycle
-
 
         error = TARGET_DISTANCE - distance
         integral += error
@@ -105,5 +99,11 @@ while True:
         last_error = error
     else:
         print("Sensor error, skipping this cycle.")
+
+    if turns_completed >= 12:
+        print("12 turns completed. Stopping all motors and exiting.")
+        kit.servo[0].angle = 90  # Center/stop steering
+        # Add code to stop drive motors here if needed
+        break
 
     time.sleep(0.1)
