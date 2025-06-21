@@ -21,8 +21,9 @@ kit = ServoKit(channels=8, i2c=i2c, address=0x40)
 kit.servo[0].angle = 90
 
 # --- Ultrasonic Sensors Setup ---
-front_sensor = adafruit_hcsr04.HCSR04(trigger_pin=board.D17, echo_pin=board.D18)
-left_sensor = adafruit_hcsr04.HCSR04(trigger_pin=board.D22, echo_pin=board.D23)
+front_sensor = adafruit_hcsr04.HCSR04(trigger_pin=board.D17, echo_pin=board.D27)
+left_sensor = adafruit_hcsr04.HCSR04(trigger_pin=board.D5, echo_pin=board.D6)
+right_sensor = adafruit_hcsr04.HCSR04(trigger_pin=board.D22, echo_pin=board.D23)
 
 # --- Color Classification ---
 def classify_color(r, g, b):
@@ -46,7 +47,7 @@ kit_motor = MotorKit()
 # Motor control functions
 def slow_start():
     print("Starting motor slowly")
-    kit_motor.motor3.throttle = 0.5  # Slow start
+    kit_motor.motor3.throttle = 0.7  # Slow start
 
 def rotate_motor_forward(): 
     print("Rotating motor forward")
@@ -88,26 +89,32 @@ def get_distance(sensor):
         return None
 
 #move forward slowly, get and print colour value to determine direction
-detect_direction()
+direction = detect_direction()
 print("Using distance sensors with direction:", direction)
 
+if direction == "left":
+    side_sensor = left_sensor
+elif direction == "right":
+    side_sensor = right_sensor
+else:
+    print("Direction not set correctly. Exiting.")
+    exit()
+
 while True:
-    distance = get_distance(left_sensor)
+    distance = get_distance(side_sensor)
     rotate_motor_forward()
     if distance is not None:
         if distance > 100:
-            # Wall lost: sharp left turn until wall is found again
-            print("Wall lost! Making sharp left turn...")
-            kit.servo[0].angle = 45  # Sharp left
+            if direction == "left":
+                print("Wall lost! Making sharp left turn...")
+                kit.servo[0].angle = 45  # Sharp left
+            else:  # direction == "right"
+                print("Wall lost! Making sharp right turn...")
+                kit.servo[0].angle = 135  # Sharp right (mirror)
             time.sleep(0.1)
             turns_completed += 1
             print(f"Turns completed: {turns_completed}")
-            '''if turns_completed >= 12:
-                print("12 turns completed. Stopping all motors and exiting.")
-                kit.servo[0].angle = 90  # Center/stop steering
-                # Add code to stop drive motors here if needed
-                break
-            continue  # Skip PID for this cycle'''
+            continue  # Skip PID for this cycle
 
         error = TARGET_DISTANCE - distance
         integral += error
@@ -117,7 +124,10 @@ while True:
         output = KP * error + KI * integral + KD * derivative
 
         # Clamp servo angle between 60 and 120 degrees (adjust as needed)
-        new_angle = max(60, min(120, 90 + output))
+        if direction == "left":
+            new_angle = max(60, min(120, 90 + output))
+        else:  # direction == "right"
+            new_angle = max(60, min(120, 90 - output))  # Mirror for right wall
         kit.servo[0].angle = new_angle
 
         print(f"Distance: {distance} cm | Error: {error:.2f} | Servo: {new_angle:.1f}")
@@ -125,11 +135,5 @@ while True:
         last_error = error
     else:
         print("Sensor error, skipping this cycle.")
-
-    #if turns_completed >= 12:
-     #   print("12 turns completed. Stopping all motors and exiting.")
-     #   kit.servo[0].angle = 90  # Center/stop steering
-      #  # Add code to stop drive motors here if needed
-      #  break
 
     time.sleep(0.1)
