@@ -58,8 +58,8 @@ def get_distance(sensor):
 print("Using distance sensors with direction:", direction)'''
 
 # --- PID Constants ---
-TARGET_DISTANCE = 10.0  # cm
-KP = 0.5
+TARGET_DISTANCE = 15.0  # cm
+KP = 1.0
 KI = 0.0
 KD = 2.0
 
@@ -72,16 +72,16 @@ while True:
         if distance > 100:
             # Wall lost: sharp left turn until wall is found again
             print("Wall lost! Making sharp left turn...")
-            kit.servo[0].angle = 45  # Sharp left
+            kit.servo[0].angle = 35  # Sharp left
             time.sleep(0.1)
             turns_completed += 1
             print(f"Turns completed: {turns_completed}")
-            if turns_completed >= 12:
+            '''if turns_completed >= 12:
                 print("12 turns completed. Stopping all motors and exiting.")
                 kit.servo[0].angle = 90  # Center/stop steering
                 # Add code to stop drive motors here if needed
                 break
-            continue  # Skip PID for this cycle
+            continue  # Skip PID for this cycle'''
 
         error = TARGET_DISTANCE - distance
         integral += error
