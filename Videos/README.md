@@ -7,4 +7,4 @@
 > ### https://youtube.com/shorts/2Z2sEL-jba4?feature=share
 
 > ## First mission (first trial)
-> ### 
+> ### https://youtube.com/shorts/GeQqc4MKFQo?feature=share
