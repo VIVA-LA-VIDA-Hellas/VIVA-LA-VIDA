@@ -72,11 +72,11 @@ kit_motor = MotorKit()
 # Motor control functions
 def rotate_motor_forward(): 
     print("Rotating motor forward")
-    kit_motor.motor3.throttle = 0.7#speed forward
+    kit_motor.motor3.throttle = 0.9#speed forward
 
 def rotate_motor_backward():
     print("Rotating motor backward")
-    kit_motor.motor3.throttle = -0.7#speed backward
+    kit_motor.motor3.throttle = -0.9#speed backward
 
 def stop_motor():
     print("Stopping motor")
@@ -89,7 +89,7 @@ while True:
         if distance > 100:
             # Wall lost: sharp left turn until wall is found again
             print("Wall lost! Making sharp left turn...")
-            kit.servo[0].angle = 35  # Sharp left
+            kit.servo[0].angle = 45  # Sharp left
             time.sleep(0.1)
             turns_completed += 1
             print(f"Turns completed: {turns_completed}")
