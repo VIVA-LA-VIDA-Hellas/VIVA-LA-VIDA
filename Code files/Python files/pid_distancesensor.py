@@ -58,7 +58,7 @@ def get_distance(sensor):
 print("Using distance sensors with direction:", direction)'''
 
 # --- PID Constants ---
-TARGET_DISTANCE = 15.0  # cm
+TARGET_DISTANCE = 10.0  # cm
 KP = 0.5
 KI = 0.0
 KD = 2.0
