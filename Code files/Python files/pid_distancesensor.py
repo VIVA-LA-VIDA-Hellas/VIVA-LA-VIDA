@@ -5,6 +5,7 @@ import adafruit_tcs34725
 from adafruit_servokit import ServoKit
 import adafruit_hcsr04
 
+turns_completed = 0
 # --- Initialize I2C ---
 i2c = busio.I2C(board.SCL, board.SDA)
 
@@ -58,9 +59,9 @@ print("Using distance sensors with direction:", direction)
 
 # --- PID Constants ---
 TARGET_DISTANCE = 15.0  # cm
-KP = 2.0
+KP = 3.0
 KI = 0.0
-KD = 1.0
+KD = 2.0
 
 integral = 0
 last_error = 0
@@ -72,6 +73,22 @@ print("Using distance sensors with direction:", direction)
 while True:
     distance = get_distance(side_sensor)
     if distance is not None:
+        if distance > 100:
+            # Wall lost: sharp left turn until wall is found again
+            print("Wall lost! Making sharp left turn...")
+            kit.servo[0].angle = 60  # Sharp left
+            time.sleep(0.1)
+            turns_completed += 1
+            continue  # Skip PID for this cycle
+
+        #if distance < TARGET_DISTANCE:
+                # Too close to wall: sharp right turn until safe distance
+                print("Too close to wall! Making sharp right turn...")
+                kit.servo[0].angle = 120  # Sharp right
+                time.sleep(0.1)
+                continue  # Skip PID for this cycle
+
+
         error = TARGET_DISTANCE - distance
         integral += error
         derivative = error - last_error
@@ -84,7 +101,7 @@ while True:
         kit.servo[0].angle = new_angle
 
         print(f"Distance: {distance} cm | Error: {error:.2f} | Servo: {new_angle:.1f}")
-
+        print(f"Turns completed: {turns_completed}")
         last_error = error
     else:
         print("Sensor error, skipping this cycle.")
