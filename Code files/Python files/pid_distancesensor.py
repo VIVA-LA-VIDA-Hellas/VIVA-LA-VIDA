@@ -31,7 +31,7 @@ def classify_color(r, g, b):
     return "Unknown"
 
 
-def detect_direction():
+'''def detect_direction():
     print("Detecting color for initial direction...")
     while True:
         r, g, b, c = sensor_color.color_raw
@@ -45,7 +45,7 @@ def detect_direction():
             print("Initial direction set: RIGHT")
             return "right"
 
-        time.sleep(0.1)
+        time.sleep(0.1)'''
 
 def get_distance(sensor):
     try:
@@ -54,8 +54,8 @@ def get_distance(sensor):
         return None
 
 # --- Main logic ---
-direction = detect_direction()
-print("Using distance sensors with direction:", direction)
+'''direction = detect_direction()
+print("Using distance sensors with direction:", direction)'''
 
 # --- PID Constants ---
 TARGET_DISTANCE = 15.0  # cm
@@ -100,10 +100,10 @@ while True:
     else:
         print("Sensor error, skipping this cycle.")
 
-    if turns_completed >= 12:
-        print("12 turns completed. Stopping all motors and exiting.")
-        kit.servo[0].angle = 90  # Center/stop steering
-        # Add code to stop drive motors here if needed
-        break
+    #if turns_completed >= 12:
+     #   print("12 turns completed. Stopping all motors and exiting.")
+     #   kit.servo[0].angle = 90  # Center/stop steering
+      #  # Add code to stop drive motors here if needed
+      #  break
 
     time.sleep(0.1)
