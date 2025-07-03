@@ -1,4 +1,4 @@
-### VIVA ΛΑ VΙΔΑ
+# **V I V A  Λ Α  V Ι Δ Α**
 
 ## Our name is essentially a word play on the famously known phrase *Viva La Vida*
 > ### Meaning to "Live life"
