@@ -8,7 +8,7 @@
 </div>
 
 
-### When we began creating our team shirts and searching for sponsors, we decided it was time for an upgrade to a more wearable, minimalistic design that would still encapsulate our teams name "VIVA ΛΑ VIΔΑ", with emphasis on the combination of the greek and english alphabet aswell as the wordplay on VΙΔΑ (Vida), which in greek -literally means- screw.
+### When we began creating our team shirts and searching for sponsors, we decided it was time to upgrade our logo to a more wearable, minimalistic design that would still encapsulate our teams name "VIVA ΛΑ VIΔΑ", with emphasis on the combination of the greek and english alphabet aswell as the wordplay on VΙΔΑ (Vida), which in greek -literally means- screw.
 
 ### Here are some of the first rough sketches on paper
 
