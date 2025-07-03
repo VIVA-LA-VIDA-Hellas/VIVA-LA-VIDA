@@ -2,7 +2,7 @@
 
 ### The first designs came along pretty quickly, one version advanced to the next when we cooperated to find the best design that we could all agree upon. We then seeked help from proffessionals in printing on clothes and fabrics to reach our final designs. All original designs where made using canva combined with free online source designs, and then altered with special software by the experts.
 
-## SHIRTS
+# *SHIRTS*
 > ### design process from first to last design (Left is front, Right is back)
 
 <img src="https://github.com/user-attachments/assets/0cfdb368-ceaa-4a1d-8a91-6e3df02d6590" width="500">
