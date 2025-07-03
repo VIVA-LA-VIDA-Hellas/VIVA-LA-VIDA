@@ -9,6 +9,10 @@
 
 <img src="https://github.com/user-attachments/assets/211cb9b5-aad7-4c94-9f00-d06d4c0bd7a7" width="500">
 
+<img src="https://github.com/user-attachments/assets/01452ff2-dfa0-4888-adf0-d04526f6f314" width="500">
+
+<img src="https://github.com/user-attachments/assets/db82c771-c858-4222-a8d0-65c95ae4e04c" width="500">
+
 
 ## SWEATERS
 > ### design process from first to last design (Left is front, Right is back)
