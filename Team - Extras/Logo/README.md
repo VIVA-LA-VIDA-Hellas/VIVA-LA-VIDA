@@ -19,7 +19,7 @@
 <img src="https://github.com/user-attachments/assets/e526b82f-c48c-488d-861c-e367e29045b1" width="250">
 
 
-### We ended up liking the last photo the most, and after discussion thought it would be cool to combine it with the innitials of our team name (VΛV), therefore giving birth to the next idea:
+### We ended up liking the final design the most, and after a brief discussion we thought it would be cool to combine it with the initials of our team name (VΛV), therefore giving birth to the next idea:
 
 <img src="https://github.com/user-attachments/assets/451c446c-bb4c-4452-871c-23a6f7429343" width="500">
 
