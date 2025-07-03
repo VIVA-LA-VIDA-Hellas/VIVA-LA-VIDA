@@ -14,12 +14,15 @@
 <div style="width: 20%; height: 20%">
   
   ![V screws](https://github.com/user-attachments/assets/680bb6ba-c3a5-44ac-8660-781549bda550)
+
+</div>
+
   ![short screw](https://github.com/user-attachments/assets/26bc7340-a0bb-405e-85ad-5462b61dc84e)
   ![robot](https://github.com/user-attachments/assets/220cf60b-76f1-4c4d-a3a7-140866c8c725)
   ![long screw](https://github.com/user-attachments/assets/9d4a6421-971b-4800-a025-294621fccdf3)
   ![V](https://github.com/user-attachments/assets/e526b82f-c48c-488d-861c-e367e29045b1) 
   
-</div>
+
 
 
 ### We ended up liking the last photo the most, and after discussion thought it would be cool to combine it with the innitials of our team name (VΛV), therefore giving birth to the next idea:
