@@ -12,7 +12,7 @@
 
 ### Here are some of the first rough sketches
 
-<img src="https://github.com/user-attachments/assets/680bb6ba-c3a5-44ac-8660-781549bda550" width="150" height="280">
+<img src="https://github.com/user-attachments/assets/680bb6ba-c3a5-44ac-8660-781549bda550" width="250" height="180">
   
   ![V screws]()
   ![short screw](https://github.com/user-attachments/assets/26bc7340-a0bb-405e-85ad-5462b61dc84e)
