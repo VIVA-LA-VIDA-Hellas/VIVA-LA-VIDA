@@ -7,6 +7,14 @@
 
 ## We found this coincidence quite fitting, and when we changed up the letters to use both the Latin and Greek alphabets, we managed to create a name that -when capitalized- managed to use only straight lines and formed some very satisfying geometrical shapes.
 
+Letters used are as follows:
+>
+> Latin : VIVA _A V ___
+> 
+> Greek : _Ι_Α ΛΑ _ΙΔΑ
+> 
+> Combined : VIVA ΛΑ VIΔΑ
+>
 
 <p align="center">
   <img src="https://github.com/user-attachments/assets/94dd1953-f380-405d-9a05-d147d3b87f6b" width="700">
