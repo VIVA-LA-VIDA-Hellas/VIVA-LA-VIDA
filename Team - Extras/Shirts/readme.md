@@ -16,3 +16,10 @@
 
 ## SWEATERS
 > ### design process from first to last design (Left is front, Right is back)
+
+<img src="https://github.com/user-attachments/assets/91c0cb81-c98c-45ad-8dbe-363da7ebde7f" width="500">
+
+<img src="https://github.com/user-attachments/assets/dd5ac4e7-b504-4ea4-b1a3-9b795db15e7d" width="500">
+
+<img src="https://github.com/user-attachments/assets/56f201a6-1505-48f6-87dd-166e17bcaac6" width="500">
+
