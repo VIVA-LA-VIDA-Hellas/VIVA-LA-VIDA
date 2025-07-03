@@ -1,0 +1,222 @@
+import board
+import busio
+import time
+import adafruit_tcs34725
+from adafruit_servokit import ServoKit
+from adafruit_motorkit import MotorKit
+import RPi.GPIO as GPIO
+from gpiozero import Button
+
+turns_completed = 0
+direction = "undefined"
+# --- Initialize I2C ---
+i2c = busio.I2C(board.SCL, board.SDA)
+
+#button = Button(16)
+
+#--- Color Sensor Setup ---
+# sensor_color = adafruit_tcs34725.TCS34725(i2c)
+# sensor_color.gain = 16
+# sensor_color.integration_time = 30
+
+# --- Servo Driver Setup ---
+kit = ServoKit(channels=8, i2c=i2c, address=0x40)
+kit.servo[0].angle = 90
+
+# --- Color Classification ---
+# def classify_color(r, g, b):
+#     if  b < 6000 and 500 < r < 800 and 1500 < g < 2000:
+#         return "Blue"
+#     if 1000 < r < 1500 and g < 1800 and b < 2500:
+#         return "Orange"
+#     return "Unknown"
+
+# --- PID Constants ---
+TARGET_DISTANCE = 18.0  # cm
+KP = 0.8
+KI = 0.0
+KD = 2.0
+
+integral = 0
+last_error = 0
+
+kit_motor = MotorKit()
+
+TRIG_1 = 27
+ECHO_1 = 17
+TRIG_2 = 23
+ECHO_2 = 22
+TRIG_3 = 5
+ECHO_3 = 6
+
+# Set up Trigger pins as output and Echo pins as input
+GPIO.setup(TRIG_1, GPIO.OUT)
+GPIO.setup(ECHO_1, GPIO.IN)
+GPIO.setup(TRIG_2, GPIO.OUT)
+GPIO.setup(ECHO_2, GPIO.IN)
+GPIO.setup(TRIG_3, GPIO.OUT)
+GPIO.setup(ECHO_3, GPIO.IN)
+
+# Ensure all Triggers are low initially
+GPIO.output(TRIG_1, GPIO.LOW)
+GPIO.output(TRIG_2, GPIO.LOW)
+GPIO.output(TRIG_3, GPIO.LOW) 	
+
+
+speed = 0.85
+# Motor control functions
+def slow_start():
+    print("Starting motor slowly")
+    kit_motor.motor3.throttle = 0.7  # Slow start
+
+def rotate_motor_forward(): 
+    print("Rotating motor forward")
+    kit_motor.motor3.throttle = speed#speed forward
+
+def rotate_motor_backward():
+    print("Rotating motor backward")
+    kit_motor.motor3.throttle = -0.9#speed backward
+
+def stop_motor():
+    print("Stopping motor")
+    kit_motor.motor3.throttle = 0.0  # Stop the motor
+
+
+def detect_direction():
+    print("Detecting color for initial direction...")
+    while True:
+#         r, g, b, c = sensor_color.color_raw
+#         color = classify_color(r, g, b)
+#         print(f"Raw RGB: R={r}, G={g}, B={b} → Detected Color: {color}")
+
+        right_sensor = get_distance(TRIG_2, ECHO_2)
+        left_sensor = get_distance(TRIG_3, ECHO_3)
+        if left_sensor > 150:
+            direction = "left"
+            print("Initial direction set: LEFT")
+            return "left"
+        if right_sensor > 150:
+            direction = "right"
+            print("Initial direction set: RIGHT")
+            return "right"
+        else:
+            slow_start()  # Keep moving forward until color is detected
+
+        time.sleep(0.1)
+
+
+def get_distance(trigger_pin, echo_pin):
+    # Send a pulse to the trigger pin
+    GPIO.output(trigger_pin, GPIO.HIGH)
+    time.sleep(0.007)  # Pulse duration (10 microseconds)
+    GPIO.output(trigger_pin, GPIO.LOW)
+
+    # Wait for the Echo pin to go HIGH and record the start time
+    pulse_start = None  # Initialize variable to ensure it has a value
+
+    while GPIO.input(echo_pin) == GPIO.LOW:
+        pulse_start = time.time()
+
+    # Check if pulse_start was assigned properly
+    if pulse_start is None:
+        print("Error: No pulse detected.")
+        return None
+
+    # Wait for the Echo pin to go LOW and record the end time
+    while GPIO.input(echo_pin) == GPIO.HIGH:
+        pulse_end = time.time()
+
+    # Calculate the time difference
+    pulse_duration = pulse_end - pulse_start
+
+    # Calculate the distance (speed of sound is ~34300 cm/s)
+    distance = pulse_duration * 34300 / 2  # Divide by 2 for the round trip
+
+    return distance
+
+def get_filtered_distance(trigger_pin, echo_pin, samples=5):
+    readings = []
+    for _ in range(samples):
+        dist = get_distance(trigger_pin, echo_pin)
+        if dist is not None:
+            readings.append(dist)
+        time.sleep(0.01)
+    if len(readings) < 3:
+        return None
+    readings.sort()
+    # Remove the highest and lowest value
+    filtered = readings[1:-1]
+    return sum(filtered) / len(filtered)
+
+#move forward slowly, get and print colour value to determine direction
+direction = detect_direction()
+print("Using distance sensors with direction:", direction)
+# direction = "left"
+
+start = "wait"
+while True:
+#     if start == "wait":
+#         print(start)
+#         button.wait_for_press()
+#         start= "go"
+    front = get_filtered_distance(TRIG_1, ECHO_1)
+    right_sensor = get_filtered_distance(TRIG_2, ECHO_2)
+    left_sensor = get_filtered_distance(TRIG_3, ECHO_3)
+
+    distance_front = front
+    if direction == "left":
+        distance = left_sensor
+        sensortwo = right_sensor
+    elif direction == "right":
+        distance = right_sensor
+        sensortwo = left_sensor
+    else:
+        print("Direction not set correctly. Exiting.")
+        exit()
+    rotate_motor_forward()
+    if distance is not None:
+        speed = 0.85
+        if distance < 100 and sensortwo < 100 and distance_front < 80:
+            speed = 0.11
+        else:
+            speed = 0.85
+        if distance > 90 and sensortwo < 115 and distance_front < 100:
+            if direction == "left":
+                print("Wall lost! Making sharp left turn...")
+                kit.servo[0].angle = 38  # Sharp left
+                if sensortwo > 100:
+                    kit.servo[0].angle = 120
+            else:  # direction == "right"
+                print("Wall lost! Making sharp right turn...")
+                kit.servo[0].angle = 160  # Sharp right (mirror)
+                if sensortwo > 100:
+                    kit.servo[0].angle = 60
+            time.sleep(0.1)
+            turns_completed += 1
+            print(f"Turns completed: {turns_completed}")
+            continue  # Skip PID for this cycle
+
+        error = TARGET_DISTANCE - distance
+        integral += error
+        derivative = error - last_error
+
+        # PID output
+        output = KP * error + KI * integral + KD * derivative
+
+        # Clamp servo angle between 60 and 120 degrees (adjust as needed)
+        if direction == "left":
+            new_angle = max(60, min(120, 90 + output))
+        elif direction == "right":
+            new_angle = max(60, min(120, 90 - output))  # Mirror for right wall
+        kit.servo[0].angle = new_angle
+
+        print(f"Distance: {distance} cm | Error: {error:.2f} | Servo: {new_angle:.1f}")
+        print(f"Turns completed: {turns_completed}")
+        last_error = error
+    else:
+        print("Sensor error, skipping this cycle.")
+
+    time.sleep(0.1)
+
+
+
