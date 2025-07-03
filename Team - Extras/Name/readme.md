@@ -9,6 +9,6 @@
 
 
 <p align="center">
-  <img src="[https://github.com/waldyr/Sublime-Installer/blob/master/sublime_text.png?raw=true](https://github.com/user-attachments/assets/94dd1953-f380-405d-9a05-d147d3b87f6b)" width="700">
+  <img src="https://github.com/user-attachments/assets/94dd1953-f380-405d-9a05-d147d3b87f6b" width="700">
 </p>
 
