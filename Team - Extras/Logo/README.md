@@ -11,7 +11,7 @@
 ### When we began creating our team shirts and searching for sponsors, we decided it was time for an upgrade to a more wearable, minimalistic design that would still encapsulate our teams name "VIVA ΛΑ VIΔΑ", with emphasis on the combination of the greek and english alphabet aswell as the wordplay on VΙΔΑ (Vida), which in greek -literally means- screw.
 
 ### Here are some of the first rough sketches
-<div style="width: 20%; height: 20%">
+<div style="width: 40%; height: 20%">
   
   ![V screws](https://github.com/user-attachments/assets/680bb6ba-c3a5-44ac-8660-781549bda550)
 
