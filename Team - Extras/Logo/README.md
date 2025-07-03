@@ -23,4 +23,4 @@
 
 <img src="https://github.com/user-attachments/assets/451c446c-bb4c-4452-871c-23a6f7429343" width="500">
 
-### This also combined a pleasing visual of our team as it consists of two boys and one girl, represented by the letters (Where the screw acts as a head for each member)
+### This also combined a pleasing visual of our team as it consists of two boys and one girl, represented by the letters (Where each screw acts as a head for a member)
