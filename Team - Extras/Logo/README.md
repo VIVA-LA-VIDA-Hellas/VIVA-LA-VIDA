@@ -13,12 +13,15 @@
 ### Here are some of the first rough sketches
 
 <img src="https://github.com/user-attachments/assets/680bb6ba-c3a5-44ac-8660-781549bda550" width="250">
-  
-  ![V screws]()
-  ![short screw](https://github.com/user-attachments/assets/26bc7340-a0bb-405e-85ad-5462b61dc84e)
-  ![robot](https://github.com/user-attachments/assets/220cf60b-76f1-4c4d-a3a7-140866c8c725)
-  ![long screw](https://github.com/user-attachments/assets/9d4a6421-971b-4800-a025-294621fccdf3)
-  ![V](https://github.com/user-attachments/assets/e526b82f-c48c-488d-861c-e367e29045b1) 
+<img src="https://github.com/user-attachments/assets/26bc7340-a0bb-405e-85ad-5462b61dc84e" width="250">
+<img src="https://github.com/user-attachments/assets/220cf60b-76f1-4c4d-a3a7-140866c8c725" width="250">
+<img src="https://github.com/user-attachments/assets/9d4a6421-971b-4800-a025-294621fccdf3" width="250">
+<img src="https://github.com/user-attachments/assets/e526b82f-c48c-488d-861c-e367e29045b1" width="250">
+
+  ![short screw]()
+  ![robot]()
+  ![long screw]()
+  ![V]() 
   
 
 
