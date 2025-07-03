@@ -5,8 +5,9 @@
 ## SHIRTS
 > ### design process from first to last design (Left is front, Right is back)
 
-<img src="https://github.com/user-attachments/assets/0cfdb368-ceaa-4a1d-8a91-6e3df02d6590" width="350">
-<img src="https://github.com/user-attachments/assets/211cb9b5-aad7-4c94-9f00-d06d4c0bd7a7" width="350">
+<img src="https://github.com/user-attachments/assets/0cfdb368-ceaa-4a1d-8a91-6e3df02d6590" width="500">
+
+<img src="https://github.com/user-attachments/assets/211cb9b5-aad7-4c94-9f00-d06d4c0bd7a7" width="500">
 
 
 ## SWEATERS
