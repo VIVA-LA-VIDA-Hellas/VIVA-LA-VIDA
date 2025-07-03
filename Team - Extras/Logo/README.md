@@ -18,16 +18,9 @@
 <img src="https://github.com/user-attachments/assets/9d4a6421-971b-4800-a025-294621fccdf3" width="250">
 <img src="https://github.com/user-attachments/assets/e526b82f-c48c-488d-861c-e367e29045b1" width="250">
 
-  ![short screw]()
-  ![robot]()
-  ![long screw]()
-  ![V]() 
-  
-
-
 
 ### We ended up liking the last photo the most, and after discussion thought it would be cool to combine it with the innitials of our team name (VΛV), therefore giving birth to the next idea:
 
-![VΛV](https://github.com/user-attachments/assets/451c446c-bb4c-4452-871c-23a6f7429343)
+<img src="https://github.com/user-attachments/assets/451c446c-bb4c-4452-871c-23a6f7429343" width="500">
 
 ### This also combined a pleasing visual of our team as it consists of two boys and one girl, represented by the letters (Where the screw acts as a head for each member)
