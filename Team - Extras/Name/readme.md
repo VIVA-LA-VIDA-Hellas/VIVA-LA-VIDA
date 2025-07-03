@@ -9,7 +9,7 @@
 
 ## Letters used are as follows:
 
-- ### Latin : VIVA _A V ___
+- ### Latin : VIVA _A VI_A
  
 - ### Greek : _Ι_Α ΛΑ _ΙΔΑ
  
