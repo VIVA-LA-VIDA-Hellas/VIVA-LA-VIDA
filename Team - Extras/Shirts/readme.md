@@ -1,4 +1,4 @@
-# We wanted to design some cool shirts - here's how it went
+# We wanted to design some cool shirts - here's how it went!
 
 ### The first designs came along pretty quickly, one version advanced to the next when we cooperated to find the best design that we could all agree upon. We then seeked help from proffessionals in printing on clothes and fabrics to reach our final designs. All original designs where made using canva combined with free online source designs, and then altered with special software by the experts.
 
