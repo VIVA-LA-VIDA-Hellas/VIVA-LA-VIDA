@@ -13,7 +13,7 @@
 # INDEX
 
 ## 1. Mobility management
-###        1.1 [Vehicle compartments](https://github.com/VIVA-LA-VIDA-Hellas/VIVA-LA-VIDA/tree/main/Vehicle/Compartments)
+#### *        1.1 [Vehicle compartments](https://github.com/VIVA-LA-VIDA-Hellas/VIVA-LA-VIDA/tree/main/Vehicle/Compartments)
 
 ## 2. Power and Sense Management
 ###        2.1 [PCB circuit designs and schematics](https://github.com/VIVA-LA-VIDA-Hellas/VIVA-LA-VIDA/tree/main/Schematics/PCB)
