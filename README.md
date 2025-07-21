@@ -9,26 +9,37 @@
 ### Panagiotis Mourmouris (user: Panos1431)
 ### Thanos Karatsis (user: thkaratsis)
 
+
 # INDEX
 
-## 1. [Mobility management](https://github.com/VIVA-LA-VIDA-Hellas/VIVA-LA-VIDA/tree/main/Vehicle/Compartments)
+## 1. Mobility management
+###        1.1 [Vehicle compartments](https://github.com/VIVA-LA-VIDA-Hellas/VIVA-LA-VIDA/tree/main/Vehicle/Compartments)
+
 ## 2. Power and Sense Management
 ###        2.1 [PCB circuit designs and schematics](https://github.com/VIVA-LA-VIDA-Hellas/VIVA-LA-VIDA/tree/main/Schematics/PCB)
-## 3. (Obstacle Management - Code files)[https://github.com/VIVA-LA-VIDA-Hellas/VIVA-LA-VIDA/tree/main/Code%20files]
+
+## 3. Obstacle Management 
 ###        3.1 Wall sensing
 ###        3.2 Direction recognition
 ###        3.3 Red/Green differentiation
 ###        3.4 Turn count tracking
 ###        3.5 Parking
+
 ## 4. Pictures 
 ###        4.1 [Team photos](https://github.com/VIVA-LA-VIDA-Hellas/VIVA-LA-VIDA/tree/main/Team%20photos)
 ###        4.2 [Vehicle photographs](https://github.com/VIVA-LA-VIDA-Hellas/VIVA-LA-VIDA/tree/main/Robot%20Photos)
-## 5. [Performance videos](https://github.com/VIVA-LA-VIDA-Hellas/VIVA-LA-VIDA/tree/main/Videos)
-## 6. [Extra material](https://github.com/VIVA-LA-VIDA-Hellas/VIVA-LA-VIDA/tree/main/Team%20-%20Extras)
+
+## 5. Performance videos
+###        5.1 [Youtube channel link](https://www.youtube.com/@VIVALAVIDAFutureEnginners)
+###        5.2 [All video links](https://github.com/VIVA-LA-VIDA-Hellas/VIVA-LA-VIDA/tree/main/Videos)
+
+## 6. Extra material
 ###        6.1 [Team logo](https://github.com/VIVA-LA-VIDA-Hellas/VIVA-LA-VIDA/tree/main/Team%20-%20Extras/Logo)
 ###        6.2 [Team name - VIVA ΛΑ VIΔΑ](https://github.com/VIVA-LA-VIDA-Hellas/VIVA-LA-VIDA/tree/main/Team%20-%20Extras/Name)
 ###        6.3 [Team shirts](https://github.com/VIVA-LA-VIDA-Hellas/VIVA-LA-VIDA/tree/main/Team%20-%20Extras/Shirts)
-## 7. [Daily entries/logs](https://github.com/VIVA-LA-VIDA-Hellas/VIVA-LA-VIDA/tree/main/Training%20meetings%20log)
+
+## 7. Daily entries
+###        7.1 [Logs](https://github.com/VIVA-LA-VIDA-Hellas/VIVA-LA-VIDA/tree/main/Training%20meetings%20log)
     
 
 
