@@ -33,13 +33,18 @@
 ###        5.1 [Youtube channel link](https://www.youtube.com/@VIVALAVIDAFutureEnginners)
 ###        5.2 [All video links](https://github.com/VIVA-LA-VIDA-Hellas/VIVA-LA-VIDA/tree/main/Videos)
 
-## 6. Extra material
-###        6.1 [Team logo](https://github.com/VIVA-LA-VIDA-Hellas/VIVA-LA-VIDA/tree/main/Team%20-%20Extras/Logo)
-###        6.2 [Team name - VIVA ΛΑ VIΔΑ](https://github.com/VIVA-LA-VIDA-Hellas/VIVA-LA-VIDA/tree/main/Team%20-%20Extras/Name)
-###        6.3 [Team shirts](https://github.com/VIVA-LA-VIDA-Hellas/VIVA-LA-VIDA/tree/main/Team%20-%20Extras/Shirts)
+## 6. Daily entries
+###        6.1 [Logs](https://github.com/VIVA-LA-VIDA-Hellas/VIVA-LA-VIDA/tree/main/Training%20meetings%20log)
 
-## 7. Daily entries
-###        7.1 [Logs](https://github.com/VIVA-LA-VIDA-Hellas/VIVA-LA-VIDA/tree/main/Training%20meetings%20log)
+## 7. 3D Prints
+###        7.1 [3D schematics](https://github.com/VIVA-LA-VIDA-Hellas/VIVA-LA-VIDA/tree/main/3d%20designs/3d%20schematics)
+###        7.2 [Photos of 3D printed parts](https://github.com/VIVA-LA-VIDA-Hellas/VIVA-LA-VIDA/tree/main/3d%20designs/3d%20printed%20part%20photos)
+## 8. Extra material
+###        8.1 [Team logo](https://github.com/VIVA-LA-VIDA-Hellas/VIVA-LA-VIDA/tree/main/Team%20-%20Extras/Logo)
+###        8.2 [Team name - VIVA ΛΑ VIΔΑ](https://github.com/VIVA-LA-VIDA-Hellas/VIVA-LA-VIDA/tree/main/Team%20-%20Extras/Name)
+###        8.3 [Team shirts](https://github.com/VIVA-LA-VIDA-Hellas/VIVA-LA-VIDA/tree/main/Team%20-%20Extras/Shirts)
+
+
     
 
 
