@@ -39,6 +39,7 @@
 ## 7. 3D Prints
 ####        7.1 [3D schematics](https://github.com/VIVA-LA-VIDA-Hellas/VIVA-LA-VIDA/tree/main/3d%20designs/3d%20schematics)
 ####        7.2 [Photos of 3D printed parts](https://github.com/VIVA-LA-VIDA-Hellas/VIVA-LA-VIDA/tree/main/3d%20designs/3d%20printed%20part%20photos)
+
 ## 8. Extra material
 ####        8.1 [Team logo](https://github.com/VIVA-LA-VIDA-Hellas/VIVA-LA-VIDA/tree/main/Team%20-%20Extras/Logo)
 ####        8.2 [Team name - VIVA ΛΑ VIΔΑ](https://github.com/VIVA-LA-VIDA-Hellas/VIVA-LA-VIDA/tree/main/Team%20-%20Extras/Name)
