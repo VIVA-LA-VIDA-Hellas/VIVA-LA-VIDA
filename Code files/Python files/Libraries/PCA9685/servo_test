@@ -1,0 +1,17 @@
+import time
+from pca9685_control import set_servo_angle
+
+SERVO_CHANNEL = 11
+print("Testing servo...")
+
+# Sweep 0 → 180
+for angle in range(0, 181, 10):
+    set_servo_angle(SERVO_CHANNEL, angle)
+    time.sleep(0.05)
+
+# Sweep 180 → 0
+for angle in range(180, -1, -10):
+    set_servo_angle(SERVO_CHANNEL, angle)
+    time.sleep(0.05)
+
+print("Done.")
