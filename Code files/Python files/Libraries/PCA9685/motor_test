@@ -1,0 +1,23 @@
+import time
+from pca9685_control import set_motor_speed
+
+MOTOR_FWD = 11   # forward channel
+MOTOR_REV = 7   # reverse channel
+
+print("Testing motor...")
+
+# Forward 50% speed
+set_motor_speed(MOTOR_FWD, MOTOR_REV, 50)
+time.sleep(2)
+
+# Stop
+set_motor_speed(MOTOR_FWD, MOTOR_REV, 0)
+time.sleep(1)
+
+# Reverse 50% speed
+set_motor_speed(MOTOR_FWD, MOTOR_REV, -50)
+time.sleep(2)
+
+# Stop
+set_motor_speed(MOTOR_FWD, MOTOR_REV, 0)
+print("Done.")
