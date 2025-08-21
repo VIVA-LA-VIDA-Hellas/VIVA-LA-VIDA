@@ -1,0 +1,39 @@
+# SPDX-FileCopyrightText: Copyright (c) 2022 Edrig
+#
+# SPDX-License-Identifier: MIT
+import time
+import board
+from adafruit_lsm6ds.lsm6ds3 import LSM6DS3
+
+i2c = board.I2C()  # uses board.SCL and board.SDA
+sensor = LSM6DS3(i2c)
+
+# ------------------------------
+# Accelerometer functions
+# ------------------------------
+def accel_x():
+    """Return accelerometer X axis in m/s^2"""
+    return sensor.acceleration[0]
+
+def accel_y():
+    """Return accelerometer Y axis in m/s^2"""
+    return sensor.acceleration[1]
+
+def accel_z():
+    """Return accelerometer Z axis in m/s^2"""
+    return sensor.acceleration[2]
+
+# ------------------------------
+# Gyroscope functions
+# ------------------------------
+def gyro_x():
+    """Return gyroscope X axis in rad/s"""
+    return sensor.gyro[0]
+
+def gyro_y():
+    """Return gyroscope Y axis in rad/s"""
+    return sensor.gyro[1]
+
+def gyro_z():
+    """Return gyroscope Z axis in rad/s"""
+    return sensor.gyro[2]
