@@ -78,12 +78,13 @@ integral = 0
 last_error = 0
 SERVO_CHANNEL = 0
 
-TRIG_1 = 27
-ECHO_1 = 17
-TRIG_2 = 23
-ECHO_2 = 22
-TRIG_3 = 5
-ECHO_3 = 6
+GPIO.setmode(GPIO.BCM)
+TRIG_1 = 22
+ECHO_1 = 23
+TRIG_2 = 5
+ECHO_2 = 6
+TRIG_3 = 27
+ECHO_3 = 17
 
 # Set up Trigger pins as output and Echo pins as input
 GPIO.setup(TRIG_1, GPIO.OUT)
@@ -93,10 +94,14 @@ GPIO.setup(ECHO_2, GPIO.IN)
 GPIO.setup(TRIG_3, GPIO.OUT)
 GPIO.setup(ECHO_3, GPIO.IN)
 
+
 # Ensure all Triggers are low initially
 GPIO.output(TRIG_1, GPIO.LOW)
 GPIO.output(TRIG_2, GPIO.LOW)
 GPIO.output(TRIG_3, GPIO.LOW) 	
+
+MOTOR_FWD = 1
+MOTOR_REV = 0
 
 # Motor control functions
 def slow_start():
