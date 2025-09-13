@@ -3,7 +3,6 @@ import RPi.GPIO as GPIO
 from board import SCL, SDA
 import busio
 from adafruit_pca9685 import PCA9685
-from pca9685_control import set_motor_speed, set_servo_angle
 
 # --- Global State ---
 turns_completed = 0
@@ -44,13 +43,20 @@ MOTOR_REV = 0
 
 # --- Motor Control ---
 def rotate_motor_forward():
-    set_motor_speed(pca, MOTOR_FWD, MOTOR_REV, 80)
+    speed = 80
+    duty_cycle = int(min(max(abs(speed), 0), 100) / 100 * 65535)
+    pca.channels[MOTOR_FWD].duty_cycle = duty_cycle
+    pca.channels[MOTOR_REV].duty_cycle = 0
 
 def rotate_motor_backward():
-    set_motor_speed(pca, MOTOR_FWD, MOTOR_REV, -50)
+    speed = -50
+    duty_cycle = int(min(max(abs(speed), 0), 100) / 100 * 65535)
+    pca.channels[MOTOR_FWD].duty_cycle = 0
+    pca.channels[MOTOR_REV].duty_cycle = duty_cycle
 
 def stop_motor():
-    set_motor_speed(pca, MOTOR_FWD, MOTOR_REV, 0)
+    pca.channels[MOTOR_FWD].duty_cycle = 0
+    pca.channels[MOTOR_REV].duty_cycle = 0
 
 # --- Distance Measurement ---
 def get_distance(trigger_pin, echo_pin):
@@ -126,7 +132,14 @@ try:
         else:
             new_angle = max(50, min(130, 90 - output))  # mirrored for right wall
 
-        set_servo_angle(pca, SERVO_CHANNEL, new_angle)
+        # Direct servo control using adafruit_pca9685
+        min_angle = 50
+        max_angle = 130
+        angle = max(min_angle, min(max_angle, new_angle))
+        pulse_min = 1000  # 1ms
+        pulse_max = 2000  # 2ms
+        pulse = int(pulse_min + (pulse_max - pulse_min) * ((angle - min_angle) / (max_angle - min_angle)))
+        pca.channels[SERVO_CHANNEL].duty_cycle = int(pulse * 65535 / 20000)  # 20ms period
 
         print(f"Side: {side_sensor:.1f} cm | Error: {error:.2f} | Servo: {new_angle:.1f}")
         print(f"Turns completed: {turns_completed}")
