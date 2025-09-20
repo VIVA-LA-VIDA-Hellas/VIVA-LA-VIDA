@@ -1,0 +1,162 @@
+import time
+import RPi.GPIO as GPIO
+from board import SCL, SDA
+import busio
+from adafruit_pca9685 import PCA9685
+
+time.sleep(2)
+
+# --- Global State ---
+turns_completed = 0
+direction = "left"  # default wall-following direction
+turning = False
+
+# --- PCA9685 Setup ---
+i2c = busio.I2C(SCL, SDA)
+pca = PCA9685(i2c)
+pca.frequency = 50  # Default for servos
+
+# --- PID Constants ---
+TARGET_DISTANCE = 15.0  # cm
+KP = 1.2
+KI = 0.0
+KD = 1.0
+
+integral = 0
+last_error = 0
+SERVO_CHANNEL = 0
+
+# --- GPIO Setup ---
+GPIO.setmode(GPIO.BCM)
+
+TRIG_1, ECHO_1 = 22, 23   # Front sensor
+TRIG_2, ECHO_2 = 27, 17   # Left sensor
+TRIG_3, ECHO_3 = 5, 6     # Right sensor
+
+for trig in [TRIG_1, TRIG_2, TRIG_3]:
+    GPIO.setup(trig, GPIO.OUT)
+    GPIO.output(trig, GPIO.LOW)
+
+for echo in [ECHO_1, ECHO_2, ECHO_3]:
+    GPIO.setup(echo, GPIO.IN)
+
+# --- Motor Channels ---
+MOTOR_FWD = 1
+MOTOR_REV = 2
+
+# --- Motor Control ---
+def rotate_motor(speed):
+    """Positive = forward, negative = backward"""
+    duty_cycle = int(min(max(abs(speed), 0), 100) / 100 * 65535)
+    if speed >= 0:
+        pca.channels[MOTOR_FWD].duty_cycle = duty_cycle
+        pca.channels[MOTOR_REV].duty_cycle = 0
+    else:
+        pca.channels[MOTOR_FWD].duty_cycle = 0
+        pca.channels[MOTOR_REV].duty_cycle = duty_cycle
+
+def stop_motor():
+    pca.channels[MOTOR_FWD].duty_cycle = 0
+    pca.channels[MOTOR_REV].duty_cycle = 0
+
+# --- Servo Control ---
+def set_servo_angle(angle):
+    """Clamp and write angle to servo"""
+    min_angle, max_angle = 50, 130
+    angle = max(min_angle, min(max_angle, angle))
+    pulse_min, pulse_max = 1000, 2000  # µs
+    pulse = int(pulse_min + (pulse_max - pulse_min) * ((angle - min_angle) / (max_angle - min_angle)))
+    pca.channels[SERVO_CHANNEL].duty_cycle = int(pulse * 65535 / 20000)
+
+# --- Distance Measurement ---
+def get_distance(trigger_pin, echo_pin):
+    GPIO.output(trigger_pin, GPIO.HIGH)
+    time.sleep(0.00001)
+    GPIO.output(trigger_pin, GPIO.LOW)
+
+    pulse_start, pulse_end = None, None
+    timeout = time.time() + 0.02
+
+    while GPIO.input(echo_pin) == GPIO.LOW:
+        pulse_start = time.time()
+        if pulse_start > timeout:
+            return None
+
+    while GPIO.input(echo_pin) == GPIO.HIGH:
+        pulse_end = time.time()
+        if pulse_end > timeout:
+            return None
+
+    if pulse_start and pulse_end:
+        pulse_duration = pulse_end - pulse_start
+        return (pulse_duration * 34300) / 2  # cm
+
+    return None
+
+# --- Main Loop ---
+try:
+    while True:
+        distance_front = get_distance(TRIG_1, ECHO_1)
+        distance_left = get_distance(TRIG_2, ECHO_2)
+        distance_right = get_distance(TRIG_3, ECHO_3)
+
+        # Select active side sensor
+        side_sensor = distance_left if direction == "left" else distance_right
+        if side_sensor is None:
+            print("Sensor error, skipping cycle.")
+            continue
+
+        # --- Corner detection ---
+        if not turning and distance_front and distance_front < 25:
+            turning = True
+            turns_completed += 1
+            print(f"Corner detected! Turn {turns_completed} → {direction.upper()}")
+            # Slow turn sweep
+            if direction == "left":
+                for angle in range(90, 50, -5):  # sweep left
+                    set_servo_angle(angle)
+                    rotate_motor(6)
+                    time.sleep(0.05)
+            else:
+                for angle in range(90, 130, 5):  # sweep right
+                    set_servo_angle(angle)
+                    rotate_motor(6)
+                    time.sleep(0.05)
+            continue
+
+        # --- Resume straight driving after turn ---
+        if turning:
+            if side_sensor < 40:  # wall detected again
+                turning = False
+                print("Re-aligned, back to wall-following")
+            else:
+                rotate_motor(6)  # keep moving slowly until re-aligned
+                continue
+
+        # --- PID Wall Following ---
+        error = TARGET_DISTANCE - side_sensor
+        integral += error
+        derivative = error - last_error
+        output = KP * error + KI * integral + KD * derivative
+
+        if direction == "left":
+            new_angle = 90 + output
+        else:
+            new_angle = 90 - output
+
+        set_servo_angle(new_angle)
+
+        # Adaptive speed: slow near obstacles
+        if distance_front and distance_front < 40:
+            rotate_motor(6)
+        else:
+            rotate_motor(10)
+
+        print(f"Side: {side_sensor:.1f} cm | Error: {error:.2f} | Servo: {new_angle:.1f}")
+        last_error = error
+        time.sleep(0.1)
+
+except KeyboardInterrupt:
+    print("Stopping safely...")
+    stop_motor()
+    GPIO.cleanup()
