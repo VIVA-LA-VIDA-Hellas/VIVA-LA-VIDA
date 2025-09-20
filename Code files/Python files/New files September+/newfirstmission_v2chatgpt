@@ -8,16 +8,16 @@ time.sleep(2)
 
 # --- Global State ---
 turns_completed = 0
-direction = "left"  # start with left wall
+direction = "left"  # initial preferred turn
 turning = False
 
 # --- PCA9685 Setup ---
 i2c = busio.I2C(SCL, SDA)
 pca = PCA9685(i2c)
-pca.frequency = 50  # Default for servos
+pca.frequency = 50
 
 # --- PID Constants ---
-TARGET_DISTANCE = 50.0  # cm (center of 1 m corridor)
+TARGET_DISTANCE = 50.0  # cm from wall in corridor center
 KP = 1.0
 KI = 0.0
 KD = 0.8
@@ -27,7 +27,7 @@ last_error = 0
 SERVO_CHANNEL = 0
 
 # --- Turn threshold ---
-CORNER_TRIGGER = 45.0  # cm
+CORNER_TRIGGER = 45.0  # front sensor threshold to start turn
 
 # --- GPIO Setup ---
 GPIO.setmode(GPIO.BCM)
@@ -49,7 +49,6 @@ MOTOR_REV = 2
 
 # --- Motor Control ---
 def rotate_motor(speed):
-    """Positive = forward, negative = backward"""
     duty_cycle = int(min(max(abs(speed), 0), 100) / 100 * 65535)
     if speed >= 0:
         pca.channels[MOTOR_FWD].duty_cycle = duty_cycle
@@ -64,10 +63,9 @@ def stop_motor():
 
 # --- Servo Control ---
 def set_servo_angle(angle):
-    """Clamp and write angle to servo"""
     min_angle, max_angle = 50, 130
     angle = max(min_angle, min(max_angle, angle))
-    pulse_min, pulse_max = 1000, 2000  # µs
+    pulse_min, pulse_max = 1000, 2000
     pulse = int(pulse_min + (pulse_max - pulse_min) * ((angle - min_angle) / (max_angle - min_angle)))
     pca.channels[SERVO_CHANNEL].duty_cycle = int(pulse * 65535 / 20000)
 
@@ -103,43 +101,52 @@ try:
         distance_left = get_distance(TRIG_2, ECHO_2)
         distance_right = get_distance(TRIG_3, ECHO_3)
 
-        # --- Corner detection ---
+        # --- Corner Detection ---
         if not turning and distance_front and distance_front < CORNER_TRIGGER:
             turning = True
             turns_completed += 1
+
+            # Dynamic turn selection
+            if distance_left and distance_right:
+                direction = "left" if distance_left > distance_right else "right"
+            else:
+                direction = "left" if distance_left else "right"
+
             print(f"Corner detected! Turn {turns_completed} → {direction.upper()}")
 
-            # Smooth sweeping turn
-            if direction == "left":
-                for angle in range(90, 50, -5):  # sweep left
-                    set_servo_angle(angle)
-                    rotate_motor(10)  # slower turn
-                    time.sleep(0.05)
-            else:
-                for angle in range(90, 130, 5):  # sweep right
-                    set_servo_angle(angle)
-                    rotate_motor(10)
-                    time.sleep(0.05)
+            # Gradual wall-detected turn
+            target_angle = 60 if direction == "left" else 120
+            step = -5 if direction == "left" else 5
+            current_angle = 90
+            while (direction == "left" and current_angle > target_angle) or \
+                  (direction == "right" and current_angle < target_angle):
+                set_servo_angle(current_angle)
+                rotate_motor(10)
+                time.sleep(0.05)
 
-            # Switch direction after each corner
-            direction = "right" if direction == "left" else "left"
-            continue
+                # Update side distances
+                distance_left = get_distance(TRIG_2, ECHO_2)
+                distance_right = get_distance(TRIG_3, ECHO_3)
 
-        # --- Resume straight driving after turn ---
-        if turning:
-            if distance_left and distance_right and distance_left < 80 and distance_right < 80:
-                turning = False
-                print("Re-aligned, back to centering mode")
-            else:
-                rotate_motor(10)  # crawl until re-aligned
-                continue
+                # Stop early if new wall detected
+                if direction == "left" and distance_right and distance_right < 80:
+                    break
+                elif direction == "right" and distance_left and distance_left < 80:
+                    break
+
+                current_angle += step
+
+            # Straighten servo and crawl briefly
+            set_servo_angle(90)
+            rotate_motor(8)
+            time.sleep(0.2)
+            turning = False
+            print("Turn completed, back to centering")
 
         # --- Wall Following Control ---
         if distance_left and distance_right:
-            # Dual-wall centering (ideal case in corridor)
             error = distance_left - distance_right
         else:
-            # Fallback to single wall
             side_sensor = distance_left if direction == "left" else distance_right
             if side_sensor is None:
                 print("Sensor error, skipping cycle.")
@@ -152,15 +159,15 @@ try:
         output = KP * error + KI * integral + KD * derivative
         last_error = error
 
-        # Servo adjustment (90 = straight ahead)
+        # Servo adjustment
         new_angle = 90 + output
         set_servo_angle(new_angle)
 
         # Adaptive speed
         if distance_front and distance_front < 60:
-            rotate_motor(15)   # cautious near corner
+            rotate_motor(15)  # slow near corner
         else:
-            rotate_motor(20)   # cruise
+            rotate_motor(20)  # cruise speed
 
         mode = "CENTERING" if (distance_left and distance_right) else f"{direction.upper()} wall"
         print(f"Mode: {mode} | L={distance_left} cm R={distance_right} cm | "
