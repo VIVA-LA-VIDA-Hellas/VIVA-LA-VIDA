@@ -8,7 +8,7 @@ time.sleep(2)
 
 # --- Global State ---
 turns_completed = 0
-direction = "left"  # initial preferred turn
+direction = "left"
 turning = False
 
 # --- PCA9685 Setup ---
@@ -17,7 +17,7 @@ pca = PCA9685(i2c)
 pca.frequency = 50
 
 # --- PID Constants ---
-TARGET_DISTANCE = 50.0  # cm from wall in corridor center
+TARGET_DISTANCE = 50.0
 KP = 1.0
 KI = 0.0
 KD = 0.8
@@ -27,7 +27,7 @@ last_error = 0
 SERVO_CHANNEL = 0
 
 # --- Turn threshold ---
-CORNER_TRIGGER = 45.0  # front sensor threshold to start turn
+CORNER_TRIGGER = 45.0
 
 # --- GPIO Setup ---
 GPIO.setmode(GPIO.BCM)
@@ -114,14 +114,15 @@ try:
 
             print(f"Corner detected! Turn {turns_completed} → {direction.upper()}")
 
-            # Gradual wall-detected turn
+            # Gradual wall-detected turn with safety limit
             target_angle = 60 if direction == "left" else 120
             step = -5 if direction == "left" else 5
             current_angle = 90
-            while (direction == "left" and current_angle > target_angle) or \
-                  (direction == "right" and current_angle < target_angle):
+            MAX_STEPS = abs(90 - target_angle) // abs(step)
+
+            for _ in range(MAX_STEPS):
                 set_servo_angle(current_angle)
-                rotate_motor(10)
+                rotate_motor(12)  # slightly faster for safety
                 time.sleep(0.05)
 
                 # Update side distances
@@ -136,7 +137,7 @@ try:
 
                 current_angle += step
 
-            # Straighten servo and crawl briefly
+            # Straighten servo and crawl briefly to stabilize
             set_servo_angle(90)
             rotate_motor(8)
             time.sleep(0.2)
@@ -145,7 +146,7 @@ try:
 
         # --- Wall Following Control ---
         if distance_left and distance_right:
-            error = distance_left - distance_right
+            error = distance_left - distance_right  # dual-wall centering
         else:
             side_sensor = distance_left if direction == "left" else distance_right
             if side_sensor is None:
@@ -167,7 +168,7 @@ try:
         if distance_front and distance_front < 60:
             rotate_motor(15)  # slow near corner
         else:
-            rotate_motor(20)  # cruise speed
+            rotate_motor(20)  # cruise
 
         mode = "CENTERING" if (distance_left and distance_right) else f"{direction.upper()} wall"
         print(f"Mode: {mode} | L={distance_left} cm R={distance_right} cm | "
