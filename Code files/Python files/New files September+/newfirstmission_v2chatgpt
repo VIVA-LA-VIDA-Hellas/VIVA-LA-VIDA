@@ -8,7 +8,7 @@ time.sleep(2)
 
 # --- Global State ---
 turns_completed = 0
-direction = "left"  # default wall-following direction
+direction = "left"  # start with left wall
 turning = False
 
 # --- PCA9685 Setup ---
@@ -113,23 +113,25 @@ try:
             if direction == "left":
                 for angle in range(90, 50, -5):  # sweep left
                     set_servo_angle(angle)
-                    rotate_motor(5)  # slow crawl
+                    rotate_motor(10)  # slower turn
                     time.sleep(0.05)
             else:
                 for angle in range(90, 130, 5):  # sweep right
                     set_servo_angle(angle)
-                    rotate_motor(5)
+                    rotate_motor(10)
                     time.sleep(0.05)
+
+            # Switch direction after each corner
+            direction = "right" if direction == "left" else "left"
             continue
 
         # --- Resume straight driving after turn ---
         if turning:
-            # Wall seen again → back to centering mode
             if distance_left and distance_right and distance_left < 80 and distance_right < 80:
                 turning = False
-                print("Re-aligned, back to wall-centering")
+                print("Re-aligned, back to centering mode")
             else:
-                rotate_motor(5)  # keep moving slowly until re-aligned
+                rotate_motor(10)  # crawl until re-aligned
                 continue
 
         # --- Wall Following Control ---
@@ -156,9 +158,9 @@ try:
 
         # Adaptive speed
         if distance_front and distance_front < 60:
-            rotate_motor(6)   # slower near corner
+            rotate_motor(15)   # cautious near corner
         else:
-            rotate_motor(10)  # cruise speed
+            rotate_motor(20)   # cruise
 
         mode = "CENTERING" if (distance_left and distance_right) else f"{direction.upper()} wall"
         print(f"Mode: {mode} | L={distance_left} cm R={distance_right} cm | "
