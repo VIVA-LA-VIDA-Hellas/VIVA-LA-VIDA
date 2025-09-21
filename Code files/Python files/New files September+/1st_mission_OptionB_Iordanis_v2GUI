@@ -1,1 +1,358 @@
+# ==============================
+# Full Robot Control GUI with Manual Override, Sliders, and Comments
+# ==============================
 
+import time                                # For delays and timestamps
+import threading                            # To run robot loop in separate thread
+import tkinter as tk                         # GUI library
+from tkinter import ttk                      # Themed widgets
+import RPi.GPIO as GPIO                      # GPIO access for sensors
+from board import SCL, SDA                  # I2C pins
+import busio                                # I2C interface
+from adafruit_pca9685 import PCA9685        # PCA9685 PWM controller for motors/servo
+import matplotlib                            # For plotting sensor data
+matplotlib.use("TkAgg")                     # Use Tkinter backend for matplotlib
+from matplotlib.figure import Figure
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+
+# ==============================
+# CONFIGURATION VARIABLES
+# ==============================
+LOOP_DELAY = 0.1                             # Main loop delay in seconds
+START_DELAY = 2                               # Wait before initializing hardware
+TARGET_DISTANCE = 50.0                        # Desired distance from wall for PID
+KP, KI, KD = 1.0, 0.0, 0.8                   # PID constants
+SERVO_CHANNEL = 0                             # PCA9685 channel for servo
+SERVO_MIN_ANGLE, SERVO_MAX_ANGLE = 50, 130   # Servo limits
+SERVO_CENTER = 90                             # Servo center position
+MOTOR_FWD, MOTOR_REV = 1, 2                   # PCA9685 channels for motors
+SPEED_CRUISE, SPEED_SLOW, TURN_SPEED = 20, 15, 10  # Speeds
+TURN_TRIGGER_DISTANCE = 90                    # Front distance to trigger turn
+TURN_OPEN_THRESHOLD = 100                     # Side distance to prefer turn direction
+BASE_TURN_TIME = 0.8                          # Base time for 90-degree turn
+BASE_SPEED = 10                               # Reference speed for turn duration
+MAX_LAPS = 3                                  # Maximum laps to complete
+EMERGENCY_STOP_DISTANCE = 5                   # Distance to stop immediately
+TRIG_FRONT, ECHO_FRONT = 22, 23              # Front ultrasonic sensor pins
+TRIG_LEFT, ECHO_LEFT = 27, 17                # Left ultrasonic sensor pins
+TRIG_RIGHT, ECHO_RIGHT = 5, 6                # Right ultrasonic sensor pins
+
+# ==============================
+# GLOBAL STATE
+# ==============================
+robot_running = False                         # True if robot loop is active
+auto_mode = True                              # True = PID active; False = manual override
+sensor_data = {"front": 0, "left": 0, "right": 0}  # Latest sensor readings
+turns_completed = 0                           # Number of turns completed
+laps_completed = 0                            # Number of laps completed
+direction = "left"                            # Current wall-follow direction
+integral = 0                                  # PID integral
+last_error = 0                                # PID previous error
+
+# ==============================
+# HARDWARE INITIALIZATION
+# ==============================
+time.sleep(START_DELAY)                        # Wait for hardware stabilization
+i2c = busio.I2C(SCL, SDA)                     # Initialize I2C
+pca = PCA9685(i2c)                             # PCA9685 PWM controller
+pca.frequency = 50                             # Set PWM frequency for servo/motors
+
+# Setup GPIO pins for ultrasonic sensors
+GPIO.setmode(GPIO.BCM)                         # BCM numbering
+for trig in [TRIG_FRONT, TRIG_LEFT, TRIG_RIGHT]:
+    GPIO.setup(trig, GPIO.OUT)                # Set trigger pins as output
+    GPIO.output(trig, GPIO.LOW)               # Ensure trigger is LOW initially
+for echo in [ECHO_FRONT, ECHO_LEFT, ECHO_RIGHT]:
+    GPIO.setup(echo, GPIO.IN)                 # Set echo pins as input
+
+# ==============================
+# HELPER FUNCTIONS
+# ==============================
+def rotate_motor(speed):
+    """Rotate motors at given speed (positive = forward, negative = backward)."""
+    duty_cycle = int(min(max(abs(speed),0),100)/100*65535)  # Scale 0-100% to 0-65535
+    if speed >= 0:
+        pca.channels[MOTOR_FWD].duty_cycle = duty_cycle
+        pca.channels[MOTOR_REV].duty_cycle = 0
+    else:
+        pca.channels[MOTOR_FWD].duty_cycle = 0
+        pca.channels[MOTOR_REV].duty_cycle = duty_cycle
+
+def stop_motor():
+    """Stop both motors immediately."""
+    pca.channels[MOTOR_FWD].duty_cycle = 0
+    pca.channels[MOTOR_REV].duty_cycle = 0
+
+def set_servo_angle(angle):
+    """Set servo to specified angle (degrees)."""
+    angle = max(SERVO_MIN_ANGLE, min(SERVO_MAX_ANGLE, angle))  # Clamp angle
+    pulse_min, pulse_max = 1000, 2000                           # Pulse width in µs
+    pulse = int(pulse_min + (pulse_max - pulse_min)*((angle - SERVO_MIN_ANGLE)/(SERVO_MAX_ANGLE - SERVO_MIN_ANGLE)))
+    pca.channels[SERVO_CHANNEL].duty_cycle = int(pulse*65535/20000)  # Convert to duty cycle
+
+def get_distance(trigger, echo):
+    """Measure distance using ultrasonic sensor."""
+    GPIO.output(trigger, GPIO.HIGH)
+    time.sleep(0.00001)                    # 10 µs pulse
+    GPIO.output(trigger, GPIO.LOW)
+    pulse_start, pulse_end = None, None
+
+    timeout = time.time()+0.02
+    while GPIO.input(echo)==GPIO.LOW:
+        pulse_start = time.time()
+        if pulse_start>timeout: return None
+    timeout = time.time()+0.02
+    while GPIO.input(echo)==GPIO.HIGH:
+        pulse_end = time.time()
+        if pulse_end>timeout: return None
+    if pulse_start and pulse_end:
+        return (pulse_end - pulse_start) * 34300 / 2   # Distance in cm
+    return None
+
+# ==============================
+# ROBOT CONTROL LOOP
+# ==============================
+def robot_loop():
+    """Main PID wall-following loop. Runs in separate thread."""
+    global sensor_data, turns_completed, laps_completed, direction
+    global integral, last_error, robot_running, auto_mode
+
+    while robot_running:
+        # --- Read sensors ---
+        distance_front = get_distance(TRIG_FRONT, ECHO_FRONT)
+        distance_left  = get_distance(TRIG_LEFT, ECHO_LEFT)
+        distance_right = get_distance(TRIG_RIGHT, ECHO_RIGHT)
+
+        # Update sensor dictionary for GUI
+        sensor_data["front"] = distance_front if distance_front else 0
+        sensor_data["left"]  = distance_left  if distance_left else 0
+        sensor_data["right"] = distance_right if distance_right else 0
+
+        # --- Emergency stop ---
+        if distance_front and distance_front < EMERGENCY_STOP_DISTANCE:
+            print("🚨 EMERGENCY STOP!")
+            stop_motor()
+            robot_running = False
+            break
+
+        # --- Auto mode PID + turns ---
+        if auto_mode:
+            # Turn logic: front sensor triggers turn
+            if distance_front and distance_front < TURN_TRIGGER_DISTANCE:
+                # Determine preferred turn direction
+                if distance_left and distance_left > TURN_OPEN_THRESHOLD:
+                    direction = "left"
+                elif distance_right and distance_right > TURN_OPEN_THRESHOLD:
+                    direction = "right"
+                else:
+                    direction = "left" if (distance_left or 0) > (distance_right or 0) else "right"
+
+                # Execute sharp turn
+                turn_duration = BASE_TURN_TIME * (BASE_SPEED / TURN_SPEED)
+                if direction=="left": set_servo_angle(SERVO_MIN_ANGLE)
+                else: set_servo_angle(SERVO_MAX_ANGLE)
+                rotate_motor(TURN_SPEED)
+                time.sleep(turn_duration)
+                stop_motor()
+                set_servo_angle(SERVO_CENTER)
+                time.sleep(0.2)
+
+                turns_completed +=1
+                if turns_completed >= 4:
+                    turns_completed = 0
+                    laps_completed +=1
+                continue
+
+            # PID Wall Following
+            if distance_left and distance_right:
+                error = distance_left - distance_right
+            else:
+                side_sensor = distance_left if direction=="left" else distance_right
+                if side_sensor is None: continue
+                error = TARGET_DISTANCE - side_sensor
+
+            integral += error
+            derivative = error - last_error
+            output = KP*error + KI*integral + KD*derivative
+            last_error = error
+
+            new_angle = SERVO_CENTER + output
+            set_servo_angle(new_angle)
+
+            # Adaptive speed
+            if distance_front and distance_front < 60:
+                rotate_motor(SPEED_SLOW)
+            else:
+                rotate_motor(SPEED_CRUISE)
+
+        time.sleep(LOOP_DELAY)
+
+    stop_motor()
+
+# ==============================
+# MANUAL CONTROL FUNCTIONS
+# ==============================
+def manual_turn_left():
+    """Execute manual left turn."""
+    if robot_running:
+        print("Manual LEFT turn")
+        set_servo_angle(SERVO_MIN_ANGLE)
+        rotate_motor(TURN_SPEED)
+        time.sleep(BASE_TURN_TIME)
+        stop_motor()
+        set_servo_angle(SERVO_CENTER)
+
+def manual_turn_right():
+    """Execute manual right turn."""
+    if robot_running:
+        print("Manual RIGHT turn")
+        set_servo_angle(SERVO_MAX_ANGLE)
+        rotate_motor(TURN_SPEED)
+        time.sleep(BASE_TURN_TIME)
+        stop_motor()
+        set_servo_angle(SERVO_CENTER)
+
+def reset_laps():
+    """Reset lap and turn counters."""
+    global laps_completed, turns_completed
+    laps_completed = 0
+    turns_completed = 0
+    print("Laps reset")
+
+def toggle_auto_mode():
+    """Toggle PID auto mode on/off."""
+    global auto_mode
+    auto_mode = not auto_mode
+    print(f"Auto mode: {auto_mode}")
+
+def emergency_stop():
+    """Immediate stop."""
+    global robot_running
+    print("EMERGENCY STOP triggered!")
+    robot_running = False
+    stop_motor()
+
+# ==============================
+# TKINTER GUI
+# ==============================
+root = tk.Tk()                              # Main window
+root.title("Robot Control Panel")           # Window title
+
+# ==============================
+# Robot control buttons
+# ==============================
+robot_frame = ttk.LabelFrame(root, text="Robot Control")
+robot_frame.pack(padx=10, pady=5)
+ttk.Button(robot_frame, text="START", command=lambda: start_thread()).pack(side="left", padx=5, pady=5)
+ttk.Button(robot_frame, text="STOP", command=emergency_stop).pack(side="left", padx=5, pady=5)
+ttk.Button(robot_frame, text="Reset Laps", command=reset_laps).pack(side="left", padx=5, pady=5)
+ttk.Button(robot_frame, text="Toggle Auto Mode", command=toggle_auto_mode).pack(side="left", padx=5, pady=5)
+
+# ==============================
+# Manual turn buttons
+# ==============================
+manual_frame = ttk.LabelFrame(root, text="Manual Turn")
+manual_frame.pack(padx=10, pady=5)
+ttk.Button(manual_frame, text="Turn LEFT", command=manual_turn_left).pack(side="left", padx=5, pady=5)
+ttk.Button(manual_frame, text="Turn RIGHT", command=manual_turn_right).pack(side="left", padx=5, pady=5)
+
+# ==============================
+# Manual servo & motor sliders
+# ==============================
+slider_frame = ttk.LabelFrame(root, text="Manual Servo & Motor Control")
+slider_frame.pack(padx=10, pady=5)
+
+servo_slider = tk.Scale(slider_frame, from_=SERVO_MIN_ANGLE, to=SERVO_MAX_ANGLE, 
+                        orient=tk.HORIZONTAL, length=300, label="Servo Angle")
+servo_slider.set(SERVO_CENTER)
+servo_slider.pack(padx=5, pady=5)
+
+motor_slider = tk.Scale(slider_frame, from_=-100, to=100, 
+                        orient=tk.HORIZONTAL, length=300, label="Motor Speed")
+motor_slider.set(0)
+motor_slider.pack(padx=5, pady=5)
+
+def update_servo_from_slider(val):
+    set_servo_angle(float(val))
+
+def update_motor_from_slider(val):
+    rotate_motor(float(val))
+
+servo_slider.config(command=update_servo_from_slider)
+motor_slider.config(command=update_motor_from_slider)
+
+def slider_override(event=None):
+    """Disable auto PID mode when using manual sliders."""
+    global auto_mode
+    auto_mode = False
+
+servo_slider.bind("<ButtonPress-1>", slider_override)
+motor_slider.bind("<ButtonPress-1>", slider_override)
+
+# ==============================
+# Sensor labels
+# ==============================
+label_frame = ttk.LabelFrame(root, text="Sensors (cm)")
+label_frame.pack(padx=10, pady=5)
+front_label = ttk.Label(label_frame, text="Front: 0"); front_label.pack()
+left_label  = ttk.Label(label_frame, text="Left: 0"); left_label.pack()
+right_label = ttk.Label(label_frame, text="Right: 0"); right_label.pack()
+laps_label = ttk.Label(root, text="Laps: 0"); laps_label.pack()
+
+# ==============================
+# Live sensor graph
+# ==============================
+fig = Figure(figsize=(6,3))
+ax = fig.add_subplot(111)
+ax.set_ylim(0, 250)
+line_front, = ax.plot([], [], label="Front", color="red")
+line_left,  = ax.plot([], [], label="Left", color="blue")
+line_right, = ax.plot([], [], label="Right", color="green")
+ax.legend()
+canvas = FigureCanvasTkAgg(fig, master=root)
+canvas.get_tk_widget().pack()
+
+plot_length = 50
+time_data = []
+front_data, left_data, right_data = [], [], []
+
+# ==============================
+# GUI UPDATE LOOP
+# ==============================
+def update_gui():
+    t = time.strftime("%H:%M:%S")
+    time_data.append(t)
+    front_data.append(sensor_data["front"])
+    left_data.append(sensor_data["left"])
+    right_data.append(sensor_data["right"])
+    if len(time_data) > plot_length:
+        time_data.pop(0); front_data.pop(0); left_data.pop(0); right_data.pop(0)
+
+    line_front.set_data(range(len(front_data)), front_data)
+    line_left.set_data(range(len(left_data)), left_data)
+    line_right.set_data(range(len(right_data)), right_data)
+    ax.set_xlim(0, plot_length)
+    canvas.draw()
+
+    front_label.config(text=f"Front: {sensor_data['front']:.1f}")
+    left_label.config(text=f"Left: {sensor_data['left']:.1f}")
+    right_label.config(text=f"Right: {sensor_data['right']:.1f}")
+    laps_label.config(text=f"Laps: {laps_completed}")
+
+    root.after(100, update_gui)
+
+# ==============================
+# THREAD START
+# ==============================
+def start_thread():
+    """Start robot loop in separate thread."""
+    global robot_running
+    if not robot_running:
+        robot_running = True
+        threading.Thread(target=robot_loop, daemon=True).start()
+
+# ==============================
+# MAIN LOOP
+# ==============================
+update_gui()
+root.mainloop()
