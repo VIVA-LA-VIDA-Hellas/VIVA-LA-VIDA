@@ -15,6 +15,7 @@ from adafruit_pca9685 import PCA9685
 TARGET_DISTANCE = 15
 FRONT_TURN_TRIGGER = 90
 STOP_THRESHOLD = 5
+CROSSOVER_THRESHOLD = 15
 SPEED_CRUISE = 20
 TURN_ANGLE_LEFT = 40
 TURN_ANGLE_RIGHT = 140
@@ -52,14 +53,12 @@ integral = 0
 last_error = 0
 
 def set_servo(angle):
-    """Move steering servo"""
     angle = max(50, min(130, angle))
     pulse = int(1000 + (2000 - 1000) * ((angle - 50) / (130 - 50)))
     pca.channels[SERVO_CHANNEL].duty_cycle = int(pulse * 65535 / 20000)
-    servo_data.append(angle)  # record for graph
+    servo_data.append(angle)
 
 def rotate_motor(speed):
-    """Forward/backward motor control"""
     duty_cycle = int(min(max(abs(speed), 0), 100) / 100 * 65535)
     if speed >= 0:
         pca.channels[MOTOR_FWD].duty_cycle = duty_cycle
@@ -69,12 +68,10 @@ def rotate_motor(speed):
         pca.channels[MOTOR_REV].duty_cycle = duty_cycle
 
 def stop_motor():
-    """Stop all motors"""
     pca.channels[MOTOR_FWD].duty_cycle = 0
     pca.channels[MOTOR_REV].duty_cycle = 0
 
 def get_distance(trigger, echo):
-    """Ultrasonic sensor distance in cm"""
     GPIO.output(trigger, GPIO.HIGH)
     time.sleep(0.00001)
     GPIO.output(trigger, GPIO.LOW)
@@ -90,32 +87,33 @@ def get_distance(trigger, echo):
     return None
 
 def pid_control(d_left, d_right):
-    """Dual/single wall following"""
     global integral, last_error
     error = 0
-    if d_left and d_right:  # Dual wall centering
+    if d_left and d_right:
         error = d_left - d_right
-    elif d_left:  # Follow left wall
+    elif d_left:
         error = slider_vars["TARGET_DISTANCE"].get() - d_left
-    elif d_right:  # Follow right wall
+    elif d_right:
         error = d_right - slider_vars["TARGET_DISTANCE"].get()
     integral += error
     derivative = error - last_error
     last_error = error
-    output = (slider_vars["KP"].get() * error +
-              slider_vars["KI"].get() * integral +
-              slider_vars["KD"].get() * derivative)
+    # adaptive PID
+    if abs(error) > 20:
+        kp, kd = 1.5, 3.0
+    else:
+        kp, kd = 0.7, 1.5
+    output = kp * error + kd * derivative
     if abs(error) < slider_vars["DEADZONE"].get():
         output = 0
     return output
 
 def turn_decision(d_left, d_right):
-    """Pick turn direction"""
     if d_left and d_left > d_right:
         return "LEFT"
     elif d_right and d_right > d_left:
         return "RIGHT"
-    return "LEFT"  # default
+    return "LEFT"
 
 # ===============================
 # TKINTER GUI
@@ -131,6 +129,7 @@ variables = {
     "TARGET_DISTANCE": [TARGET_DISTANCE, 5, 50],
     "FRONT_TURN_TRIGGER": [FRONT_TURN_TRIGGER, 20, 200],
     "STOP_THRESHOLD": [STOP_THRESHOLD, 1, 20],
+    "CROSSOVER_THRESHOLD": [CROSSOVER_THRESHOLD, 5, 50],
     "SPEED_CRUISE": [SPEED_CRUISE, 5, 50],
     "TURN_ANGLE_LEFT": [TURN_ANGLE_LEFT, 0, 90],
     "TURN_ANGLE_RIGHT": [TURN_ANGLE_RIGHT, 90, 180],
@@ -155,24 +154,60 @@ for name, (val, mn, mx) in variables.items():
     row += 1
 
 # --- Start/Stop buttons ---
-start_flag = False
-def start_robot():
-    global start_flag
-    start_flag = True
-    start_button.config(state="disabled")
-    stop_button.config(state="normal")
+reading_flag = False
+loop_flag = False
+paused_flag = False
+
+def start_reading():
+    global reading_flag
+    reading_flag = True
+    start_read_button.config(state="disabled")
+
+def start_loop():
+    global loop_flag, paused_flag
+    loop_flag = True
+    paused_flag = False
+    start_loop_button.config(state="disabled")
+    resume_button.config(state="disabled")
+    pause_button.config(state="normal")
+
+def pause_loop():
+    global paused_flag
+    paused_flag = True
+    pause_button.config(state="disabled")
+    resume_button.config(state="normal")
+
+def resume_loop():
+    global paused_flag
+    paused_flag = False
+    resume_button.config(state="disabled")
+    pause_button.config(state="normal")
 
 def stop_robot():
-    global start_flag
-    start_flag = False
+    global reading_flag, loop_flag, paused_flag
+    reading_flag = False
+    loop_flag = False
+    paused_flag = False
     stop_motor()
-    start_button.config(state="normal")
-    stop_button.config(state="disabled")
+    start_read_button.config(state="normal")
+    start_loop_button.config(state="normal")
+    pause_button.config(state="disabled")
+    resume_button.config(state="disabled")
 
-start_button = ttk.Button(root, text="Start", command=start_robot)
-start_button.grid(row=1, column=0, pady=5)
-stop_button = ttk.Button(root, text="Stop", command=stop_robot, state="disabled")
-stop_button.grid(row=2, column=0, pady=5)
+start_read_button = ttk.Button(root, text="Start Reading", command=start_reading)
+start_read_button.grid(row=1, column=0, pady=5)
+
+start_loop_button = ttk.Button(root, text="Start Loop", command=start_loop)
+start_loop_button.grid(row=2, column=0, pady=5)
+
+pause_button = ttk.Button(root, text="Pause Loop", command=pause_loop, state="disabled")
+pause_button.grid(row=3, column=0, pady=5)
+
+resume_button = ttk.Button(root, text="Resume Loop", command=resume_loop, state="disabled")
+resume_button.grid(row=4, column=0, pady=5)
+
+stop_button = ttk.Button(root, text="Stop", command=stop_robot)
+stop_button.grid(row=5, column=0, pady=5)
 
 # ===============================
 # MATPLOTLIB PLOTS
@@ -180,25 +215,22 @@ stop_button.grid(row=2, column=0, pady=5)
 fig, (ax_front, ax_side, ax_servo) = plt.subplots(3, 1, figsize=(6, 8))
 fig.tight_layout(pad=3.0)
 
-# Front sensor
 ax_front.set_ylim(0, 200)
 ax_front.set_title("Front Sensor")
 front_line, = ax_front.plot([], [], color="blue")
 
-# Side sensors
 ax_side.set_ylim(0, 200)
 ax_side.set_title("Left & Right Sensors")
 left_line, = ax_side.plot([], [], label="Left", color="green")
 right_line, = ax_side.plot([], [], label="Right", color="red")
 ax_side.legend()
 
-# Servo angle
 ax_servo.set_ylim(0, 180)
 ax_servo.set_title("Servo Angle")
 servo_line, = ax_servo.plot([], [], color="orange")
 
 canvas = FigureCanvasTkAgg(fig, master=root)
-canvas.get_tk_widget().grid(row=0, column=1, rowspan=6, padx=10, pady=5)
+canvas.get_tk_widget().grid(row=0, column=1, rowspan=7, padx=10, pady=5)
 
 # ===============================
 # DATA STORAGE
@@ -211,60 +243,72 @@ front_data, left_data, right_data, servo_data = [], [], [], []
 # ===============================
 def robot_loop():
     t = 0
+    turning = False
+    turn_start_distance = None
+
     while True:
-        if start_flag:
+        if reading_flag:
             d_front = get_distance(TRIG_FRONT, ECHO_FRONT)
             d_left = get_distance(TRIG_LEFT, ECHO_LEFT)
             d_right = get_distance(TRIG_RIGHT, ECHO_RIGHT)
 
+            time_data.append(t)
+            front_data.append(d_front or 0)
+            left_data.append(d_left or 0)
+            right_data.append(d_right or 0)
+
+            if len(time_data) > 100:
+                time_data.pop(0); front_data.pop(0)
+                left_data.pop(0); right_data.pop(0)
+                if servo_data: servo_data.pop(0)
+
+            if t % 10 == 0:
+                front_line.set_data(time_data, front_data)
+                left_line.set_data(time_data, left_data)
+                right_line.set_data(time_data, right_data)
+                if servo_data: servo_line.set_data(time_data, servo_data)
+
+                ax_front.set_xlim(max(0, t-100), t)
+                ax_side.set_xlim(max(0, t-100), t)
+                ax_servo.set_xlim(max(0, t-100), t)
+                canvas.draw()
+
+            t += 1
+
+        if loop_flag and not paused_flag:
             if d_front and d_front < slider_vars["STOP_THRESHOLD"].get():
                 stop_motor()
                 continue
 
+            # --- Turning Mode ---
+            if turning:
+                rotate_motor(slider_vars["SPEED_CRUISE"].get())
+                if d_front and d_front > turn_start_distance + slider_vars["CROSSOVER_THRESHOLD"].get():
+                    stop_motor()
+                    set_servo(slider_vars["SERVO_CENTER"].get())
+                    turning = False
+                time.sleep(0.05)
+                continue
+
+            # --- Initiate turn ---
             if d_front and d_front < slider_vars["FRONT_TURN_TRIGGER"].get():
                 direction = turn_decision(d_left, d_right)
                 if direction == "LEFT":
                     set_servo(slider_vars["TURN_ANGLE_LEFT"].get())
                 else:
                     set_servo(slider_vars["TURN_ANGLE_RIGHT"].get())
+                turn_start_distance = d_front or 0
+                turning = True
                 rotate_motor(slider_vars["SPEED_CRUISE"].get())
-                time.sleep(1.0)  # turning duration
-                set_servo(slider_vars["SERVO_CENTER"].get())
-                stop_motor()
-            else:
-                output = pid_control(d_left, d_right)
-                new_angle = slider_vars["SERVO_CENTER"].get() + output
-                set_servo(new_angle)
-                rotate_motor(slider_vars["SPEED_CRUISE"].get())
+                time.sleep(0.05)
+                continue
 
-            # Store data
-            time_data.append(t)
-            front_data.append(d_front if d_front else 0)
-            left_data.append(d_left if d_left else 0)
-            right_data.append(d_right if d_right else 0)
+            output = pid_control(d_left, d_right)
+            new_angle = slider_vars["SERVO_CENTER"].get() + output
+            set_servo(new_angle)
+            rotate_motor(slider_vars["SPEED_CRUISE"].get())
 
-            if len(time_data) > 100:
-                time_data.pop(0)
-                front_data.pop(0)
-                left_data.pop(0)
-                right_data.pop(0)
-                servo_data.pop(0)
-
-            # Update plots
-            front_line.set_data(time_data, front_data)
-            left_line.set_data(time_data, left_data)
-            right_line.set_data(time_data, right_data)
-            servo_line.set_data(time_data, servo_data)
-
-            ax_front.set_xlim(max(0, t-100), t)
-            ax_side.set_xlim(max(0, t-100), t)
-            ax_servo.set_xlim(max(0, t-100), t)
-
-            canvas.draw()
-            t += 1
-
-        time.sleep(0.1)
+        time.sleep(0.05)
 
 threading.Thread(target=robot_loop, daemon=True).start()
-
 root.mainloop()
