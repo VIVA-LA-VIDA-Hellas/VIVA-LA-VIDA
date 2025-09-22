@@ -72,6 +72,7 @@ def rotate_motor(speed):
 def stop_motor():
     pca.channels[MOTOR_FWD].duty_cycle = 0
     pca.channels[MOTOR_REV].duty_cycle = 0
+    set_servo(slider_vars["SERVO_CENTER"].get())
 
 def get_distance(trigger, echo):
     GPIO.output(trigger, GPIO.HIGH)
@@ -106,7 +107,6 @@ def turn_left():
             last_front = d_front
         time.sleep(0.05)
     stop_motor()
-    set_servo(slider_vars["SERVO_CENTER"].get())
 
 def turn_right():
     set_servo(slider_vars["TURN_ANGLE_RIGHT"].get())
@@ -123,7 +123,6 @@ def turn_right():
             last_front = d_front
         time.sleep(0.05)
     stop_motor()
-    set_servo(slider_vars["SERVO_CENTER"].get())
 
 # ======================
 # --- Tkinter GUI ---
@@ -157,7 +156,16 @@ for name, (val, mn, mx) in variables.items():
     slider_var = tk.DoubleVar(value=val)
     slider = ttk.Scale(var_frame, from_=mn, to=mx, variable=slider_var, orient=tk.HORIZONTAL, length=150)
     slider.grid(row=row, column=1, sticky="w")
+    val_label = ttk.Label(var_frame, text=f"{val:.2f}")
+    val_label.grid(row=row, column=2, padx=5)
     slider_vars[name] = slider_var
+
+    # update label dynamically
+    def update_label(event, lbl=val_label, var=slider_var):
+        lbl.config(text=f"{var.get():.2f}")
+    slider.bind("<Motion>", update_label)
+    slider.bind("<ButtonRelease-1>", update_label)
+
     row += 1
 
 # Start/Stop button
@@ -165,14 +173,25 @@ start_flag = False
 def toggle_start():
     global start_flag
     start_flag = not start_flag
-    start_button.config(text="Stop" if start_flag else "Start")
-start_button = ttk.Button(root, text="Start", command=toggle_start)
+    start_button.config(text="Stop Loop" if start_flag else "Start Loop")
+start_button = ttk.Button(root, text="Start Loop", command=toggle_start)
 start_button.grid(row=1, column=0, pady=5)
+
+# Dedicated STOP button
+def emergency_stop():
+    global start_flag
+    start_flag = False
+    stop_motor()
+    start_button.config(text="Start Loop")
+    print("EMERGENCY STOP triggered!")
+
+stop_button = ttk.Button(root, text="EMERGENCY STOP", command=emergency_stop)
+stop_button.grid(row=2, column=0, pady=5)
 
 # Sensor graph setup
 fig, ax = plt.subplots(figsize=(5,3))
 canvas = FigureCanvasTkAgg(fig, master=root)
-canvas.get_tk_widget().grid(row=0, column=1, rowspan=2, padx=5, pady=5)
+canvas.get_tk_widget().grid(row=0, column=1, rowspan=3, padx=5, pady=5)
 
 ax.set_ylim(0, 200)
 ax.set_xlim(0, 100)
