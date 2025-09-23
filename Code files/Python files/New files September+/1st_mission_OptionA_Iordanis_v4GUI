@@ -288,18 +288,23 @@ stop_button.grid(row=5, column=0, pady=5)
 fig, (ax_front, ax_side) = plt.subplots(2, 1, figsize=(6, 6))
 fig.tight_layout(pad=3.0)
 
-ax_front.set_ylim(0, 350)
+# --- Front sensor plot ---
+ax_front.set_ylim(0, 350)                        # Y-axis limit for front sensor
+ax_front.grid(True)                              # Add gridlines
 ax_front.set_title("Front Sensor")
-ax_front.grid(True)
 front_line, = ax_front.plot([], [], color="blue")
 
-ax_side.set_ylim(0, 350)
-ax_side.set_title("Left & Right Sensors")
-ax_side.grid(True)
-left_line, = ax_side.plot([], [], label="Left", color="green")
-right_line, = ax_side.plot([], [], label="Right", color="red")
-ax_side.legend()
+# --- Left & Right mirrored area plot ---
+ax_side.set_ylim(-150, 150)                      # Symmetrical Y-axis range
+ax_side.grid(True)                               # Add gridlines
+ax_side.set_title("Left vs Right Sensors (Mirrored)")
+ax_side.axhline(0, color="black", linewidth=1)   # Center line
 
+# Store references for dynamic updates
+left_line, = ax_side.plot([], [], color="green")
+right_line, = ax_side.plot([], [], color="orange")
+
+# Embed plots into Tkinter
 canvas = FigureCanvasTkAgg(fig, master=root)
 canvas.get_tk_widget().grid(row=0, column=1, rowspan=7, padx=10, pady=5)
 
@@ -362,13 +367,48 @@ def robot_loop():
                 left_data.pop(0)
                 right_data.pop(0)
 
-            if t % 10 == 0:
-                front_line.set_data(time_data, front_data)
-                left_line.set_data(time_data, left_data)
-                right_line.set_data(time_data, right_data)
-                ax_front.set_xlim(max(0, t - 100), t)
-                ax_side.set_xlim(max(0, t - 100), t)
-                canvas.draw()
+          # --- Update plots every 10 loops ---
+if t % 10 == 0:
+    # Clear old fills
+    ax_front.collections.clear()
+    ax_side.collections.clear()
+
+    # --- Front sensor dynamic color ---
+    if front_data:
+        front_color = "green"
+        if front_data[-1] < 50:
+            front_color = "red"
+        elif front_data[-1] < 100:
+            front_color = "yellow"
+        ax_front.fill_between(time_data, 0, front_data, color=front_color, alpha=0.5)
+        front_line.set_data(time_data, front_data)
+
+    # --- Left sensor dynamic color ---
+    if left_data:
+        left_color = "green"
+        if left_data[-1] < 50:
+            left_color = "red"
+        elif left_data[-1] < 100:
+            left_color = "yellow"
+        ax_side.fill_between(time_data, 0, left_data, color=left_color, alpha=0.5)
+        left_line.set_data(time_data, left_data)
+
+    # --- Right sensor dynamic color (mirrored negative side) ---
+    if right_data:
+        right_color = "green"
+        if right_data[-1] < 50:
+            right_color = "red"
+        elif right_data[-1] < 100:
+            right_color = "yellow"
+        ax_side.fill_between(time_data, 0, [-v for v in right_data], color=right_color, alpha=0.5)
+        right_line.set_data(time_data, [-v for v in right_data])
+
+    # Adjust axis limits dynamically
+    ax_front.set_xlim(max(0, t - 100), t)
+    ax_side.set_xlim(max(0, t - 100), t)
+
+    # Redraw canvas
+    canvas.draw()
 
             t += 1
 
