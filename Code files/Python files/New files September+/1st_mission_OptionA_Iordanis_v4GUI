@@ -350,75 +350,88 @@ def robot_loop():
     turning = False
     turn_start_distance = None
 
+    # Initialize sensor variables so autonomous logic can reference them even if reading hasn't started
+    d_front = d_left = d_right = None
+
     while True:
         if reading_flag:
+            # Read filtered distances from sensors
             d_front = filtered_distance(TRIG_FRONT, ECHO_FRONT, front_history)
             d_left = filtered_distance(TRIG_LEFT, ECHO_LEFT, left_history)
             d_right = filtered_distance(TRIG_RIGHT, ECHO_RIGHT, right_history)
 
+            # Append data for plotting (use 0 when None to keep plot numeric)
             time_data.append(t)
             front_data.append(d_front or 0)
             left_data.append(d_left or 0)
             right_data.append(d_right or 0)
 
+            # Keep only the last 100 samples to avoid memory growth
             if len(time_data) > 100:
                 time_data.pop(0)
                 front_data.pop(0)
                 left_data.pop(0)
                 right_data.pop(0)
 
-          # --- Update plots every 10 loops ---
-if t % 10 == 0:
-    # Clear old fills
-    ax_front.collections.clear()
-    ax_side.collections.clear()
+            # --- Update plots every 10 loops ---
+            if t % 10 == 0:
+                # Clear previous filled areas so new fills redraw cleanly
+                ax_front.collections.clear()
+                ax_side.collections.clear()
 
-    # --- Front sensor dynamic color ---
-    if front_data:
-        front_color = "green"
-        if front_data[-1] < 50:
-            front_color = "red"
-        elif front_data[-1] < 100:
-            front_color = "yellow"
-        ax_front.fill_between(time_data, 0, front_data, color=front_color, alpha=0.5)
-        front_line.set_data(time_data, front_data)
+                # --- Front sensor dynamic color and fill ---
+                if front_data:
+                    front_color = "green"
+                    if front_data[-1] < 50:
+                        front_color = "red"
+                    elif front_data[-1] < 100:
+                        front_color = "yellow"
+                    ax_front.fill_between(time_data, 0, front_data, color=front_color, alpha=0.5)
+                    front_line.set_data(time_data, front_data)
 
-    # --- Left sensor dynamic color ---
-    if left_data:
-        left_color = "green"
-        if left_data[-1] < 50:
-            left_color = "red"
-        elif left_data[-1] < 100:
-            left_color = "yellow"
-        ax_side.fill_between(time_data, 0, left_data, color=left_color, alpha=0.5)
-        left_line.set_data(time_data, left_data)
+                # --- Left sensor dynamic color and fill (positive side) ---
+                if left_data:
+                    left_color = "green"
+                    if left_data[-1] < 50:
+                        left_color = "red"
+                    elif left_data[-1] < 100:
+                        left_color = "yellow"
+                    ax_side.fill_between(time_data, 0, left_data, color=left_color, alpha=0.5)
+                    left_line.set_data(time_data, left_data)
 
-    # --- Right sensor dynamic color (mirrored negative side) ---
-    if right_data:
-        right_color = "green"
-        if right_data[-1] < 50:
-            right_color = "red"
-        elif right_data[-1] < 100:
-            right_color = "yellow"
-        ax_side.fill_between(time_data, 0, [-v for v in right_data], color=right_color, alpha=0.5)
-        right_line.set_data(time_data, [-v for v in right_data])
+                # --- Right sensor dynamic color and fill (mirrored negative side) ---
+                if right_data:
+                    right_color = "green"
+                    if right_data[-1] < 50:
+                        right_color = "red"
+                    elif right_data[-1] < 100:
+                        right_color = "yellow"
+                    ax_side.fill_between(time_data, 0, [-v for v in right_data], color=right_color, alpha=0.5)
+                    right_line.set_data(time_data, [-v for v in right_data])
 
-    # Adjust axis limits dynamically
-    ax_front.set_xlim(max(0, t - 100), t)
-    ax_side.set_xlim(max(0, t - 100), t)
+                # Adjust x-limits so plots show the last 100 samples
+                ax_front.set_xlim(max(0, t - 100), t)
+                ax_side.set_xlim(max(0, t - 100), t)
 
-    # Redraw canvas
-    canvas.draw()
+                # Redraw the canvas (note: running from thread; usually works but if you see a Tk error
+                # we can move this call into root.after())
+                canvas.draw()
 
+            # Increment time counter after processing
             t += 1
 
+        # ===============================
+        # AUTONOMOUS CONTROL (uses latest d_front/d_left/d_right)
+        # ===============================
         if loop_flag and not paused_flag:
+            # Emergency stop if front too close (uses current d_front)
             if d_front is not None and d_front < slider_vars["STOP_THRESHOLD"].get():
                 stop_motor()
                 print("EMERGENCY STOP: Front sensor too close!")
                 time.sleep(0.05)
                 continue
 
+            # If currently turning, keep moving until crossover threshold reached
             if turning:
                 rotate_motor(slider_vars["SPEED_CRUISE"].get())
                 if d_front and d_front > turn_start_distance + slider_vars["CROSSOVER_THRESHOLD"].get():
@@ -428,6 +441,7 @@ if t % 10 == 0:
                 time.sleep(0.05)
                 continue
 
+            # Initiate a turn if front is below the trigger
             if d_front and d_front < slider_vars["FRONT_TURN_TRIGGER"].get():
                 direction = turn_decision(d_left, d_right)
                 if direction == "LEFT":
@@ -440,11 +454,13 @@ if t % 10 == 0:
                 time.sleep(0.05)
                 continue
 
+            # Normal PID wall-following
             output = pid_control(d_left, d_right)
             new_angle = slider_vars["SERVO_CENTER"].get() + output
             set_servo(new_angle)
             rotate_motor(slider_vars["SPEED_CRUISE"].get())
 
+        # Small delay so loop isn't CPU-bound
         time.sleep(0.05)
 
 # ===============================
