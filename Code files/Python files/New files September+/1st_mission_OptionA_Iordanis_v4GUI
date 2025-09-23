@@ -1,6 +1,8 @@
 #----------------------------------------------------------------------------------------------------------------------
-# Autonomous drive logic - VivaLaVida
+# Autonomous drive - VivaLaVida
+# v4 - 23/9/2025
 #
+# Logic description
 # -Continuously read ultrasonic sensor distances: front, left, and right.
 # -Emergency stop: If front distance < stop threshold, halt immediately to prevent collisions.
 # -Initiate turn:
