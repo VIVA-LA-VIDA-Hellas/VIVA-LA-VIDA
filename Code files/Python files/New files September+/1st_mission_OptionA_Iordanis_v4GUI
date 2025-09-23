@@ -1,3 +1,21 @@
+#----------------------------------------------------------------------------------------------------------------------
+# Autonomous drive logic - VivaLaVida
+#
+# -Continuously read ultrasonic sensor distances: front, left, and right.
+# -Emergency stop: If front distance < stop threshold, halt immediately to prevent collisions.
+# -Initiate turn:
+#     Triggered when front distance < configured turn trigger.
+#     Robot chooses the side with the greater distance (left or right) to turn toward.
+#     Moves forward while steering to avoid the obstacle.
+# -PID wall-following:
+#     Compares left and right distances to maintain a centered path between walls.
+#     Adjusts servo angle based on PID output to correct robot heading.
+#     Applies a deadzone to ignore small deviations and prevent oscillations.
+#     Uses adaptive PID gains to respond more aggressively to larger errors.
+# -Continuous forward motion: Robot moves at configured cruise speed unless turning or stopped.
+# -Integrates real-time sensor input, PID steering, and turning logic for autonomous navigation and obstacle avoidance.
+#-----------------------------------------------------------------------------------------------------------------------
+
 # ===============================
 # IMPORTS
 # ===============================
