@@ -2,6 +2,7 @@
 # Autonomous drive - VivaLaVida
 # v4 - 23/9/2025
 # v4.1 - remove camera, add logging - 24/9/2025
+# v4.2 - improved turn logic and timeout slider - 24/9/2025
 #
 # Logic description
 # - Continuously read ultrasonic sensor distances: front, left, and right.
@@ -10,6 +11,7 @@
 #     Triggered when front distance < configured turn trigger.
 #     Robot chooses the side with the greater distance (left or right) to turn toward.
 #     Moves forward while steering to avoid the obstacle.
+#     Turn ends when front sensor reads clear OR timeout reached.
 # - PID wall-following:
 #     Compares left and right distances to maintain a centered path between walls.
 #     Adjusts servo angle based on PID output to correct robot heading.
@@ -46,10 +48,11 @@ logging.basicConfig(level=logging.INFO)
 TARGET_DISTANCE = 30                          # Desired distance from wall (cm)
 FRONT_TURN_TRIGGER = 90                       # Distance to initiate a turn (cm)
 STOP_THRESHOLD = 20                           # Emergency stop distance (cm)
-CROSSOVER_THRESHOLD = 50                      # Extra distance to end turn (cm)
+CROSSOVER_THRESHOLD = 30                      # Extra distance to end turn (cm) (tuned down)
 SPEED_CRUISE = 20                             # Default motor speed (0-100)
-TURN_ANGLE_LEFT = 60                          # Servo angle for left turn
-TURN_ANGLE_RIGHT = 120                        # Servo angle for right turn
+SPEED_TURN = 10                               # Slower speed for turning
+TURN_ANGLE_LEFT = 80                          # Servo angle for left turn (tuned down)
+TURN_ANGLE_RIGHT = 100                        # Servo angle for right turn (tuned down)
 SERVO_CENTER = 90                             # Servo center angle (straight)
 SERVO_MIN_ANGLE = 50                          # Minimum servo angle
 SERVO_MAX_ANGLE = 130                         # Maximum servo angle
@@ -57,10 +60,13 @@ KP, KI, KD = 1, 0, 2                          # PID constants (integers)
 DEADZONE = 2                                  # Deadzone for PID
 MAX_LAPS = 3                                  # Maximum laps
 N_READINGS = 5                                # Median filter readings
+TURN_TIMEOUT = 1.0                            # Maximum seconds allowed for a turn
 
 # ===============================
 # HARDWARE SETUP
 # ===============================
+GPIO.setmode(GPIO.BCM)                        # BCM pin numbering
+GPIO.setwarnings(False)
 i2c = busio.I2C(SCL, SDA)                     # Initialize I2C
 pca = PCA9685(i2c)                            # Initialize PCA9685 driver
 pca.frequency = 50                            # Set PWM frequency
@@ -71,7 +77,6 @@ MOTOR_FWD = 1
 MOTOR_REV = 2
 
 # GPIO setup
-GPIO.setmode(GPIO.BCM)                        # BCM pin numbering
 TRIG_FRONT, ECHO_FRONT = 22, 23
 TRIG_LEFT, ECHO_LEFT = 27, 17
 TRIG_RIGHT, ECHO_RIGHT = 5, 6
@@ -98,8 +103,9 @@ variables = {
     "TARGET_DISTANCE": [TARGET_DISTANCE, 10, 50, "int"],
     "FRONT_TURN_TRIGGER": [FRONT_TURN_TRIGGER, 50, 150, "int"],
     "STOP_THRESHOLD": [STOP_THRESHOLD, 10, 30, "int"],
-    "CROSSOVER_THRESHOLD": [CROSSOVER_THRESHOLD, 20, 100, "int"],
+    "CROSSOVER_THRESHOLD": [CROSSOVER_THRESHOLD, 10, 100, "int"],
     "SPEED_CRUISE": [SPEED_CRUISE, 5, 50, "int"],
+    "SPEED_TURN": [SPEED_TURN, 5, 30, "int"],
     "TURN_ANGLE_LEFT": [TURN_ANGLE_LEFT, 45, 90, "int"],
     "TURN_ANGLE_RIGHT": [TURN_ANGLE_RIGHT, 90, 135, "int"],
     "SERVO_CENTER": [SERVO_CENTER, 50, 130, "int"],
@@ -110,6 +116,7 @@ variables = {
     "KD": [KD, 0, 5, "float"],
     "DEADZONE": [DEADZONE, 0, 10, "int"],
     "MAX_LAPS": [MAX_LAPS, 1, 20, "int"],
+    "TURN_TIMEOUT": [TURN_TIMEOUT, 0.2, 5.0, "float"],  # New variable for timeout (seconds)
 }
 
 slider_vars = {}
@@ -122,10 +129,10 @@ for name, (val, mn, mx, vtype) in variables.items():
     else:  # "float"
         slider_var = tk.DoubleVar(value=val)
         def round_value(val, var=slider_var):
-            var.set(round(float(val), 1))  # <-- rounds to 1 decimal
+            var.set(round(float(val), 2))  # <-- rounds to 2 decimals for timeout
         slider = ttk.Scale(var_frame, from_=mn, to=mx, variable=slider_var, orient=tk.HORIZONTAL, length=150, command=round_value)
     slider.grid(row=row, column=1, sticky="w")
-    ttk.Label(var_frame, textvariable=slider_var, width=5).grid(row=row, column=2)
+    ttk.Label(var_frame, textvariable=slider_var, width=7).grid(row=row, column=2)
     slider_vars[name] = slider_var
     row += 1
 
@@ -334,13 +341,14 @@ class RobotController:
 
     def pid_control(self, d_left, d_right):
         error = 0
-        if d_left and d_right:
+        if d_left is not None and d_right is not None:
             error = d_left - d_right
-        elif d_left:
+        elif d_left is not None:
             error = self.slider_vars["TARGET_DISTANCE"].get() - d_left
-        elif d_right:
+        elif d_right is not None:
             error = d_right - self.slider_vars["TARGET_DISTANCE"].get()
         self.integral += error
+        self.integral = max(min(self.integral, 100), -100)  # Clamp integral
         derivative = error - self.last_error
         self.last_error = error
         if abs(error) > 20:
@@ -353,10 +361,16 @@ class RobotController:
         return output
 
     def turn_decision(self, d_left, d_right):
-        if d_left and d_left > d_right:
+        if d_left is not None and d_right is not None:
+            if d_left > d_right:
+                return "LEFT"
+            else:
+                return "RIGHT"
+        elif d_left is not None:
             return "LEFT"
-        elif d_right and d_right > d_left:
+        elif d_right is not None:
             return "RIGHT"
+        logging.warning("Both side sensors unavailable, defaulting to LEFT turn.")
         return "LEFT"
 
 robot = RobotController(pca, slider_vars)
@@ -368,6 +382,7 @@ def robot_loop():
     t = 0
     turning = False
     turn_start_distance = None
+    turn_start_time = None
     d_front = d_left = d_right = None
     while True:
         if reading_flag:
@@ -388,35 +403,47 @@ def robot_loop():
             t += 1
 
         if loop_flag and not paused_flag:
+            # EMERGENCY STOP
             if d_front is not None and d_front < slider_vars["STOP_THRESHOLD"].get():
                 robot.stop_motor()
                 logging.warning("EMERGENCY STOP: Front sensor too close!")
                 time.sleep(0.05)
                 continue
 
+            # TURNING LOGIC
             if turning:
-                robot.rotate_motor(slider_vars["SPEED_CRUISE"].get())
-                if d_front and d_front > turn_start_distance + slider_vars["CROSSOVER_THRESHOLD"].get():
+                robot.rotate_motor(slider_vars["SPEED_TURN"].get())
+                # End turn if distance exceeds threshold OR time limit
+                turn_timeout = slider_vars["TURN_TIMEOUT"].get()
+                if ((d_front is not None and turn_start_distance is not None and d_front > turn_start_distance + slider_vars["CROSSOVER_THRESHOLD"].get())
+                    or (turn_start_time is not None and time.time() - turn_start_time > turn_timeout)):
                     robot.stop_motor()
                     robot.set_servo(slider_vars["SERVO_CENTER"].get())
                     turning = False
+                    turn_start_time = None
+                    logging.info("Turn ended: front_distance=%s, time=%s", d_front, time.time() - (turn_start_time or 0))
                 time.sleep(0.05)
                 continue
 
-            if d_front and d_front < slider_vars["FRONT_TURN_TRIGGER"].get():
+            # TURN INITIATION
+            if d_front is not None and d_front < slider_vars["FRONT_TURN_TRIGGER"].get():
                 direction = robot.turn_decision(d_left, d_right)
-                if direction == "LEFT":
-                    robot.set_servo(slider_vars["TURN_ANGLE_LEFT"].get())
-                else:
-                    robot.set_servo(slider_vars["TURN_ANGLE_RIGHT"].get())
+                angle_var = f"TURN_ANGLE_{direction}"
+                robot.set_servo(slider_vars[angle_var].get())
                 turn_start_distance = d_front or 0
                 turning = True
-                robot.rotate_motor(slider_vars["SPEED_CRUISE"].get())
+                turn_start_time = time.time()
+                robot.rotate_motor(slider_vars["SPEED_TURN"].get())
+                logging.info("Turn started: direction=%s, front_distance=%s", direction, d_front)
                 time.sleep(0.05)
                 continue
 
+            # PID WALL FOLLOWING
             output = robot.pid_control(d_left, d_right)
             new_angle = slider_vars["SERVO_CENTER"].get() + output
+            servo_min = slider_vars["SERVO_MIN_ANGLE"].get()
+            servo_max = slider_vars["SERVO_MAX_ANGLE"].get()
+            new_angle = max(servo_min, min(servo_max, new_angle))
             robot.set_servo(new_angle)
             robot.rotate_motor(slider_vars["SPEED_CRUISE"].get())
         time.sleep(0.05)
