@@ -43,10 +43,10 @@ logging.basicConfig(level=logging.INFO)
 # ===============================
 # CONFIGURABLE VARIABLES
 # ===============================
-TARGET_DISTANCE = 15                          # Desired distance from wall (cm)
+TARGET_DISTANCE = 30                          # Desired distance from wall (cm)
 FRONT_TURN_TRIGGER = 90                       # Distance to initiate a turn (cm)
-STOP_THRESHOLD = 5                            # Emergency stop distance (cm)
-CROSSOVER_THRESHOLD = 15                      # Extra distance to end turn (cm)
+STOP_THRESHOLD = 20                           # Emergency stop distance (cm)
+CROSSOVER_THRESHOLD = 50                      # Extra distance to end turn (cm)
 SPEED_CRUISE = 20                             # Default motor speed (0-100)
 TURN_ANGLE_LEFT = 60                          # Servo angle for left turn
 TURN_ANGLE_RIGHT = 120                        # Servo angle for right turn
@@ -55,7 +55,7 @@ SERVO_MIN_ANGLE = 50                          # Minimum servo angle
 SERVO_MAX_ANGLE = 130                         # Maximum servo angle
 KP, KI, KD = 1, 0, 2                          # PID constants (integers)
 DEADZONE = 2                                  # Deadzone for PID
-MAX_LAPS = 5                                  # Maximum laps
+MAX_LAPS = 3                                  # Maximum laps
 N_READINGS = 5                                # Median filter readings
 
 # ===============================
@@ -95,19 +95,19 @@ var_frame = ttk.LabelFrame(root, text="Variables")
 var_frame.grid(row=0, column=0, padx=5, pady=5, sticky="nw")
 
 variables = {
-    "TARGET_DISTANCE": [TARGET_DISTANCE, 5, 50, "int"],
-    "FRONT_TURN_TRIGGER": [FRONT_TURN_TRIGGER, 20, 200, "int"],
-    "STOP_THRESHOLD": [STOP_THRESHOLD, 1, 20, "int"],
-    "CROSSOVER_THRESHOLD": [CROSSOVER_THRESHOLD, 5, 50, "int"],
+    "TARGET_DISTANCE": [TARGET_DISTANCE, 10, 50, "int"],
+    "FRONT_TURN_TRIGGER": [FRONT_TURN_TRIGGER, 50, 150, "int"],
+    "STOP_THRESHOLD": [STOP_THRESHOLD, 10, 30, "int"],
+    "CROSSOVER_THRESHOLD": [CROSSOVER_THRESHOLD, 20, 100, "int"],
     "SPEED_CRUISE": [SPEED_CRUISE, 5, 50, "int"],
-    "TURN_ANGLE_LEFT": [TURN_ANGLE_LEFT, 0, 90, "int"],
-    "TURN_ANGLE_RIGHT": [TURN_ANGLE_RIGHT, 90, 180, "int"],
+    "TURN_ANGLE_LEFT": [TURN_ANGLE_LEFT, 45, 90, "int"],
+    "TURN_ANGLE_RIGHT": [TURN_ANGLE_RIGHT, 90, 135, "int"],
     "SERVO_CENTER": [SERVO_CENTER, 50, 130, "int"],
     "SERVO_MIN_ANGLE": [SERVO_MIN_ANGLE, 0, 90, "int"],
     "SERVO_MAX_ANGLE": [SERVO_MAX_ANGLE, 90, 180, "int"],
-    "KP": [KP, 0, 5, "int"],
-    "KI": [KI, 0, 5, "int"],
-    "KD": [KD, 0, 5, "int"],
+    "KP": [KP, 0, 5, "float"],
+    "KI": [KI, 0, 5, "float"],
+    "KD": [KD, 0, 5, "float"],
     "DEADZONE": [DEADZONE, 0, 10, "int"],
     "MAX_LAPS": [MAX_LAPS, 1, 20, "int"],
 }
@@ -119,10 +119,10 @@ for name, (val, mn, mx, vtype) in variables.items():
     if vtype == "int":
         slider_var = tk.IntVar(value=val)
         slider = ttk.Scale(var_frame, from_=mn, to=mx, variable=slider_var, orient=tk.HORIZONTAL, length=150)
-    else:
+    else:  # "float"
         slider_var = tk.DoubleVar(value=val)
         def round_value(val, var=slider_var):
-            var.set(round(float(val),1))
+            var.set(round(float(val), 1))  # <-- rounds to 1 decimal
         slider = ttk.Scale(var_frame, from_=mn, to=mx, variable=slider_var, orient=tk.HORIZONTAL, length=150, command=round_value)
     slider.grid(row=row, column=1, sticky="w")
     ttk.Label(var_frame, textvariable=slider_var, width=5).grid(row=row, column=2)
