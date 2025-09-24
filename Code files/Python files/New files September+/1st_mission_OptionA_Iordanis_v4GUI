@@ -235,8 +235,8 @@ front_data, left_data, right_data = [], [], []  # Sensor data for plotting
 
 def update_ui_plots():
     """Update all UI plots from latest data and redraw canvas."""
-    ax_front.collections.clear()
-    ax_side.collections.clear()
+    ax_front.collections[:] = []
+    ax_side.collections[:] = []
 
     # Dynamic fill for front sensor (green/yellow/red based on distance)
     if front_data:
