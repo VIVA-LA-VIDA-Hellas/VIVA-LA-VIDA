@@ -35,12 +35,12 @@ from board import SCL, SDA                    # Board module for I2C pins
 import busio                                  # I2C communication setup
 from adafruit_pca9685 import PCA9685          # Servo/motor driver for PWM output
 from collections import deque                 # Double-ended queue for sliding window of sensor values
-import logging                                # For message logging and debugging
+# import logging                                # For message logging and debugging
 
 # ===============================
 # LOGGING SETUP: Configures logging for info and warnings.
 # ===============================
-logging.basicConfig(level=logging.INFO)       # Enable info-level logging to console
+# logging.basicConfig(level=logging.INFO)       # Enable info-level logging to console
 
 # ===============================
 # CONFIGURABLE VARIABLES: Robot operating parameters and control settings.
@@ -441,7 +441,7 @@ def robot_loop():
                     robot.set_servo(slider_vars["SERVO_CENTER"].get())
                     turning = False
                     turn_start_time = None
-                    logging.info("Turn ended: front_distance=%s, time=%s", d_front, time.time() - (turn_start_time or 0))
+                    print("Turn ended: front_distance=%s, time=%s", d_front, time.time() - (turn_start_time or 0))
                 time.sleep(0.05)
                 continue
 
@@ -454,7 +454,7 @@ def robot_loop():
                 turning = True
                 turn_start_time = time.time()
                 robot.rotate_motor(slider_vars["SPEED_TURN"].get())
-                logging.info("Turn started: direction=%s, front_distance=%s", direction, d_front)
+                print("Turn started: direction=%s, front_distance=%s", direction, d_front)
                 time.sleep(0.05)
                 continue
 
