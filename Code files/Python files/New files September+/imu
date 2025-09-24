@@ -1,0 +1,76 @@
+import time
+import smbus2
+from pca9685_control import set_servo_angle, set_motor_speed
+
+# ==== MPU6050 Setup ====
+MPU6050_ADDR = 0x68
+PWR_MGMT_1 = 0x6B
+SMPLRT_DIV = 0x19
+ACCEL_CONFIG = 0x1C
+GYRO_CONFIG = 0x1B
+INT_ENABLE = 0x38
+GYRO_YOUT_H = 0x45
+
+bus = smbus2.SMBus(1)
+
+def mpu6050_init():
+    bus.write_byte_data(MPU6050_ADDR, PWR_MGMT_1, 0)
+    bus.write_byte_data(MPU6050_ADDR, SMPLRT_DIV, 7)
+    bus.write_byte_data(MPU6050_ADDR, ACCEL_CONFIG, 0)
+    bus.write_byte_data(MPU6050_ADDR, GYRO_CONFIG, 0)
+    bus.write_byte_data(MPU6050_ADDR, INT_ENABLE, 1)
+
+def read_raw_data(addr):
+    high = bus.read_byte_data(MPU6050_ADDR, addr)
+    low  = bus.read_byte_data(MPU6050_ADDR, addr+1)
+    value = (high << 8) | low
+    if value > 32767:
+        value -= 65536
+    return value
+
+# ==== Motor & Servo Setup ====
+SERVO_CHANNEL = 0
+CENTER_ANGLE = 90     # approximate center within 30-50 range
+SERVO_MIN = 50
+SERVO_MAX = 130
+
+MOTOR_FWD = 1
+MOTOR_REV = 2
+FORWARD_SPEED = 30    # slower speed for smoother control
+
+set_servo_angle(SERVO_CHANNEL, CENTER_ANGLE)
+
+# ==== PID-like constants ====
+KP = 5               # smaller proportional gain for gentle adjustments
+GYRO_Y_BIAS = 2.0    # measured gyro Y when robot is straight
+
+mpu6050_init()
+time.sleep(0.1)
+
+try:
+    while True:
+        # Read gyro Y-axis
+        gyro_y = read_raw_data(GYRO_YOUT_H) / 131.0  # °/s
+
+        # Apply bias
+        error = gyro_y - GYRO_Y_BIAS
+
+        # Compute servo correction
+        correction = KP * error
+        servo_angle = CENTER_ANGLE - correction
+
+        # Clamp servo to smaller range
+        servo_angle = max(SERVO_MIN, min(SERVO_MAX, servo_angle))
+
+        # Apply servo angle
+        set_servo_angle(SERVO_CHANNEL, int(servo_angle))
+
+        # Drive motor forward slower
+        set_motor_speed(MOTOR_FWD, MOTOR_REV, FORWARD_SPEED)
+
+        time.sleep(0.05)
+
+except KeyboardInterrupt:
+    set_motor_speed(MOTOR_FWD, MOTOR_REV, 0)
+    set_servo_angle(SERVO_CHANNEL, CENTER_ANGLE)
+    print("Stopped and reset.")
