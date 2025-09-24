@@ -1,21 +1,22 @@
 #----------------------------------------------------------------------------------------------------------------------
 # Autonomous drive - VivaLaVida
 # v4 - 23/9/2025
+# v4.1 - remove camera, add logging - 24/9/2025
 #
 # Logic description
-# -Continuously read ultrasonic sensor distances: front, left, and right.
-# -Emergency stop: If front distance < stop threshold, halt immediately to prevent collisions.
-# -Initiate turn:
+# - Continuously read ultrasonic sensor distances: front, left, and right.
+# - Emergency stop: If front distance < stop threshold, halt immediately to prevent collisions.
+# - Initiate turn:
 #     Triggered when front distance < configured turn trigger.
 #     Robot chooses the side with the greater distance (left or right) to turn toward.
 #     Moves forward while steering to avoid the obstacle.
-# -PID wall-following:
+# - PID wall-following:
 #     Compares left and right distances to maintain a centered path between walls.
 #     Adjusts servo angle based on PID output to correct robot heading.
 #     Applies a deadzone to ignore small deviations and prevent oscillations.
 #     Uses adaptive PID gains to respond more aggressively to larger errors.
-# -Continuous forward motion: Robot moves at configured cruise speed unless turning or stopped.
-# -Integrates real-time sensor input, PID steering, and turning logic for autonomous navigation and obstacle avoidance.
+# - Continuous forward motion: Robot moves at configured cruise speed unless turning or stopped.
+# - Integrates real-time sensor input, PID steering, and turning logic for autonomous navigation and obstacle avoidance.
 #-----------------------------------------------------------------------------------------------------------------------
 
 # ===============================
@@ -32,8 +33,12 @@ from board import SCL, SDA                    # I2C pins
 import busio                                  # I2C communication
 from adafruit_pca9685 import PCA9685          # PCA9685 servo/motor driver
 from collections import deque                 # Deque for storing sensor history
-from picamera2 import Picamera2               # Picamera2 for Raspberry Pi camera
-from PIL import Image, ImageTk                # Convert camera frames for Tkinter
+import logging
+
+# ===============================
+# LOGGING SETUP
+# ===============================
+logging.basicConfig(level=logging.INFO)
 
 # ===============================
 # CONFIGURABLE VARIABLES
@@ -212,32 +217,8 @@ canvas = FigureCanvasTkAgg(fig, master=root)
 canvas.get_tk_widget().grid(row=0, column=1, rowspan=7, padx=10, pady=5)
 
 # ===============================
-# PICAMERA2 LIVE FEED WITH DYNAMIC RESIZE
+# REMOVE CAMERA UI (NO CAMERA FRAME/FEED)
 # ===============================
-camera_frame = ttk.LabelFrame(root, text="Live Camera Feed")
-camera_frame.grid(row=0, column=2, rowspan=7, padx=10, pady=5)
-camera_label = tk.Label(camera_frame)
-camera_label.pack(fill="both", expand=True)
-
-picam2 = Picamera2()
-preview_config = picam2.create_preview_configuration(main={"format":"RGB888","size":(640,480)})
-picam2.configure(preview_config)
-picam2.start()
-
-def update_camera_feed():
-    """Capture camera frame and resize dynamically"""
-    frame = picam2.capture_array()
-    img = Image.fromarray(frame)
-    w = camera_label.winfo_width()
-    h = camera_label.winfo_height()
-    if w > 0 and h > 0:
-        img = img.resize((w, h))
-    imgtk = ImageTk.PhotoImage(image=img)
-    camera_label.imgtk = imgtk
-    camera_label.config(image=imgtk)
-    camera_label.after(20, update_camera_feed)
-
-update_camera_feed()
 
 # ===============================
 # DATA STORAGE FOR PLOTTING
@@ -324,19 +305,23 @@ class RobotController:
         self.pca.channels[MOTOR_REV].duty_cycle = 0
 
     def get_distance(self, trigger, echo):
-        GPIO.output(trigger, GPIO.HIGH)
-        time.sleep(0.00001)
-        GPIO.output(trigger, GPIO.LOW)
-        pulse_start, pulse_end = None, None
-        timeout = time.time() + 0.02
-        while GPIO.input(echo) == GPIO.LOW and time.time() < timeout:
-            pulse_start = time.time()
-        timeout = time.time() + 0.02
-        while GPIO.input(echo) == GPIO.HIGH and time.time() < timeout:
-            pulse_end = time.time()
-        if pulse_start and pulse_end:
-            return (pulse_end - pulse_start) * 17150
-        return None
+        try:
+            GPIO.output(trigger, GPIO.HIGH)
+            time.sleep(0.00001)
+            GPIO.output(trigger, GPIO.LOW)
+            pulse_start, pulse_end = None, None
+            timeout = time.time() + 0.02
+            while GPIO.input(echo) == GPIO.LOW and time.time() < timeout:
+                pulse_start = time.time()
+            timeout = time.time() + 0.02
+            while GPIO.input(echo) == GPIO.HIGH and time.time() < timeout:
+                pulse_end = time.time()
+            if pulse_start and pulse_end:
+                return (pulse_end - pulse_start) * 17150
+            return None
+        except Exception as e:
+            logging.error(f"Sensor read failed: {e}")
+            return None
 
     def filtered_distance(self, trigger, echo, history):
         d = self.get_distance(trigger, echo)
@@ -409,7 +394,7 @@ def robot_loop():
         if loop_flag and not paused_flag:
             if d_front is not None and d_front < slider_vars["STOP_THRESHOLD"].get():
                 robot.stop_motor()
-                print("EMERGENCY STOP: Front sensor too close!")
+                logging.warning("EMERGENCY STOP: Front sensor too close!")
                 time.sleep(0.05)
                 continue
 
@@ -449,12 +434,8 @@ def on_closing():
     try:
         robot.stop_motor()
         GPIO.cleanup()
-    except Exception:
-        pass
-    try:
-        picam2.stop()
-    except Exception:
-        pass
+    except Exception as e:
+        logging.error(f"Cleanup failed: {e}")
     root.destroy()
 
 root.protocol("WM_DELETE_WINDOW", on_closing)
