@@ -3,6 +3,7 @@
 # v4 - 23/9/2025
 # v4.1 - remove camera, add logging - 24/9/2025
 # v4.2 - improved turn logic and timeout slider - 24/9/2025
+# v4.3 - graph and turn improvements - 25/9/2025
 #
 # Logic description
 # - Continuously read ultrasonic sensor distances: front, left, and right.
@@ -234,50 +235,41 @@ time_data = []                                  # Time steps for plotting
 front_data, left_data, right_data = [], [], []  # Sensor data for plotting
 
 def update_ui_plots():
-    """Update all UI plots from latest data and redraw canvas."""
-    # Remove old fills before drawing new ones
-    for coll in list(ax_front.collections):
-        coll.remove()
-    for coll in list(ax_side.collections):
-        coll.remove()
-
-    # Dynamic fill for front sensor (green/yellow/red based on distance)
+    """Update all UI plots with line graphs only (no fill_between)."""
     if front_data:
-        front_color = "green"
-        if front_data[-1] < 50:
-            front_color = "red"
-        elif front_data[-1] < 100:
-            front_color = "yellow"
-        ax_front.fill_between(time_data, 0, front_data, color=front_color, alpha=0.5)
         front_line.set_data(time_data, front_data)
+        if front_data[-1] < 50:
+            front_line.set_color("red")
+        elif front_data[-1] < 100:
+            front_line.set_color("yellow")
+        else:
+            front_line.set_color("green")
 
-    # Dynamic fill for left sensor (green/yellow/red)
     if left_data:
-        left_color = "green"
-        if left_data[-1] < 50:
-            left_color = "red"
-        elif left_data[-1] < 100:
-            left_color = "yellow"
-        ax_side.fill_between(time_data, 0, left_data, color=left_color, alpha=0.5)
         left_line.set_data(time_data, left_data)
+        if left_data[-1] < 50:
+            left_line.set_color("red")
+        elif left_data[-1] < 100:
+            left_line.set_color("yellow")
+        else:
+            left_line.set_color("green")
 
-    # Dynamic fill for right sensor (mirrored negative side, green/yellow/red)
     if right_data:
-        right_color = "green"
+        right_line.set_data(time_data, [-v for v in right_data])  # mirror right sensor
         if right_data[-1] < 50:
-            right_color = "red"
+            right_line.set_color("red")
         elif right_data[-1] < 100:
-            right_color = "yellow"
-        ax_side.fill_between(time_data, 0, [-v for v in right_data], color=right_color, alpha=0.5)
-        right_line.set_data(time_data, [-v for v in right_data])
+            right_line.set_color("yellow")
+        else:
+            right_line.set_color("green")
 
-    # Set x-axis limits to show last 100 readings
-    ax_front.set_xlim(max(0, len(time_data)-100), len(time_data))
-    ax_side.set_xlim(max(0, len(time_data)-100), len(time_data))
+    # Keep only the last 100 readings visible
+    ax_front.set_xlim(max(0, len(time_data) - 100), len(time_data))
+    ax_side.set_xlim(max(0, len(time_data) - 100), len(time_data))
 
-    canvas.draw()                               # Redraw the canvas
+    canvas.draw()
     try:
-        canvas.flush_events()                   # Flush if possible (for real-time update)
+        canvas.flush_events()
     except Exception:
         pass
 
