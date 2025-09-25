@@ -379,6 +379,8 @@ robot = RobotController(pca, slider_vars)
 # ROBOT LOOP THREAD
 # ===============================
 def robot_loop():
+    last_turn_time = 0  # Timestamp of last turn start
+    TURN_LOCKOUT = 3.0  # Lockout duration in seconds
     t = 0
     turning = False
     turn_start_time = None
@@ -419,13 +421,18 @@ def robot_loop():
                 time.sleep(0.05)
                 continue
 
-            # TURN INITIATION
-            if d_front is not None and d_front < front_trigger and not turning:
-                if (d_left is not None and 100 < d_left <250) or (d_right is not None and 100 < d_right < 250):
-                    direction = robot.turn_decision(d_left, d_right)
-                    turning = True
-                    turn_start_time = time.time()
-                    print(f"Turn started: {direction}, front={d_front}, left={d_left}, right={d_right}")
+# TURN INITIATION
+current_time = time.time()
+# Only initiate a turn if front < trigger, not already turning,
+# and lockout period has passed
+if d_front is not None and d_front < front_trigger and not turning \
+   and (current_time - last_turn_time > TURN_LOCKOUT):
+    if (d_left is not None and d_left > 100) or (d_right is not None and d_right > 100):
+        direction = robot.turn_decision(d_left, d_right)
+        turning = True
+        turn_start_time = current_time
+        last_turn_time = current_time  # record turn start for lockout
+        print(f"Turn started: {direction}, front={d_front}, left={d_left}, right={d_right}")
 
             # TURNING LOGIC
             if turning:
