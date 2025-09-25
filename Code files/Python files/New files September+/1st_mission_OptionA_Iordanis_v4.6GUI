@@ -33,16 +33,6 @@
 # - Safe shutdown and cleanup
 #----------------------------------------------------------------------------------------------------------------------
 
-#----------------------------------------------------------------------------------------------------------------------
-# Autonomous drive - VivaLaVida
-# v4.6c - Fully commented version
-# Features:
-# - PID wall-following
-# - Obstacle detection
-# - Smooth turning with post-turn wait
-# - Tkinter GUI with plotting
-#----------------------------------------------------------------------------------------------------------------------
-
 import tkinter as tk                         # Import Tkinter for GUI
 from tkinter import ttk                      # Import themed Tkinter widgets
 import matplotlib.pyplot as plt              # Import matplotlib for plotting
