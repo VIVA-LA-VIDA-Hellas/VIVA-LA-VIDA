@@ -5,6 +5,7 @@
 # v4.2 - improved turn logic and timeout slider - 24/9/2025
 # v4.3 - graph and turn improvements - 25/9/2025
 # v4.5 - rewrite
+# v4.5 - new turn logic with PID clear after turn
 #
 # Logic description
 # - Continuously read ultrasonic sensor distances: front, left, and right.
