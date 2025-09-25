@@ -345,27 +345,39 @@ class RobotController:
                 return sorted_hist[mid]
         return None
 
-    def pid_control(self, d_left, d_right):
-        """Calculate PID steering correction based on left/right distance error."""
-        error = 0
-        if d_left is not None and d_right is not None:
-            error = d_left - d_right
-        elif d_left is not None:
-            error = self.slider_vars["TARGET_DISTANCE"].get() - d_left
-        elif d_right is not None:
-            error = d_right - self.slider_vars["TARGET_DISTANCE"].get()
-        self.integral += error
-        self.integral = max(min(self.integral, 100), -100)  # Clamp integral against windup
-        derivative = error - self.last_error
-        self.last_error = error
-        if abs(error) > 20:
-            kp, kd = 1.5, 3.0
-        else:
-            kp, kd = 0.7, 1.5
-        output = kp * error + kd * derivative
-        if abs(error) < self.slider_vars["DEADZONE"].get():
-            output = 0
-        return output
+   def pid_control(self, d_left, d_right):
+    """Calculate PID steering correction with safe handling of missing sensors."""
+    # Default target and deadzone values
+    target = self.slider_vars.get("TARGET_DISTANCE", tk.DoubleVar(value=30)).get()
+    deadzone = self.slider_vars.get("DEADZONE", tk.DoubleVar(value=2)).get()
+
+    # Compute error
+    if d_left is not None and d_right is not None:
+        error = d_left - d_right
+    elif d_left is not None:
+        error = target - d_left
+    elif d_right is not None:
+        error = d_right - target
+    else:
+        error = 0  # No sensor data, assume centered
+
+    # PID terms
+    self.integral += error
+    self.integral = max(min(self.integral, 100), -100)  # Clamp integral
+    derivative = error - self.last_error
+    self.last_error = error
+
+    # Adaptive gains
+    kp, kd = (1.5, 3.0) if abs(error) > 20 else (0.7, 1.5)
+
+    # PID output
+    output = kp * error + kd * derivative
+
+    # Apply deadzone
+    if abs(error) < deadzone:
+        output = 0
+
+    return output
 
     def turn_decision(self, d_left, d_right):
         """Decide which direction to turn (LEFT or RIGHT) based on sensor readings."""
@@ -390,81 +402,91 @@ def robot_loop():
     """Background thread that runs robot logic and updates sensor data."""
     t = 0
     turning = False
-    turn_start_distance = None
     turn_start_time = None
+    direction = None
     d_front = d_left = d_right = None
+
     while True:
+        # SENSOR READING
         if reading_flag:
-            # Read and filter sensor values for all sides
             d_front = robot.filtered_distance(TRIG_FRONT, ECHO_FRONT, robot.front_history)
             d_left = robot.filtered_distance(TRIG_LEFT, ECHO_LEFT, robot.left_history)
             d_right = robot.filtered_distance(TRIG_RIGHT, ECHO_RIGHT, robot.right_history)
-            # Append sensor data for plotting
+
+            # Store for plotting
             time_data.append(t)
             front_data.append(d_front or 0)
             left_data.append(d_left or 0)
             right_data.append(d_right or 0)
-            # Keep only last 100 data points for plotting
+
+            # Keep last 100 points
             if len(time_data) > 100:
                 time_data.pop(0)
                 front_data.pop(0)
                 left_data.pop(0)
                 right_data.pop(0)
-            # Batch plot updates every 10 ticks
+
             if t % 10 == 0:
                 root.after(0, update_ui_plots)
             t += 1
 
+        # MAIN CONTROL
         if loop_flag and not paused_flag:
-            # EMERGENCY STOP: If front sensor too close, stop immediately
-            if d_front is not None and d_front < slider_vars["STOP_THRESHOLD"].get():
+            # EMERGENCY STOP
+            stop_threshold = slider_vars.get("STOP_THRESHOLD", tk.IntVar(value=20)).get()
+            if d_front is not None and d_front < stop_threshold:
                 robot.stop_motor()
-                logging.warning("EMERGENCY STOP: Front sensor too close!")
+                print("EMERGENCY STOP: Front sensor too close!")
                 time.sleep(0.05)
                 continue
 
-            # TURN INITIATION: If obstacle detected, choose turn direction and initiate turn
-if d_front is not None and d_front < slider_vars["FRONT_TURN_TRIGGER"].get() and not turning:
-    direction = robot.turn_decision(d_left, d_right)
-    turning = True
-    turn_start_time = time.time()
-    print(f"Turn started: direction={direction}, front_distance={d_front}")
+            # TURN INITIATION
+            front_trigger = slider_vars.get("FRONT_TURN_TRIGGER", tk.IntVar(value=90)).get()
+            if d_front is not None and d_front < front_trigger and not turning:
+                direction = robot.turn_decision(d_left, d_right)
+                turning = True
+                turn_start_time = time.time()
+                print(f"Turn started: direction={direction}, front_distance={d_front}")
 
-# TURNING LOGIC: If in turning state, keep steering until clear or timeout
-if turning:
-    # Pick fixed turn angle from sliders
-    if direction == "LEFT":
-        angle = slider_vars["TURN_ANGLE_LEFT"].get()
-        side_distance = d_left
-    else:
-        angle = slider_vars["TURN_ANGLE_RIGHT"].get()
-        side_distance = d_right
+            # TURN LOGIC
+            if turning:
+                speed_turn = slider_vars.get("SPEED_TURN", tk.IntVar(value=10)).get()
+                if direction == "LEFT":
+                    angle = slider_vars.get("TURN_ANGLE_LEFT", tk.IntVar(value=80)).get()
+                    side_distance = d_left or 0
+                else:
+                    angle = slider_vars.get("TURN_ANGLE_RIGHT", tk.IntVar(value=100)).get()
+                    side_distance = d_right or 0
 
-    robot.set_servo(angle)
-    robot.rotate_motor(slider_vars["SPEED_TURN"].get())
+                robot.set_servo(angle)
+                robot.rotate_motor(speed_turn)
 
-    turn_timeout = slider_vars["TURN_TIMEOUT"].get()
+                turn_timeout = slider_vars.get("TURN_TIMEOUT", tk.DoubleVar(value=1.0)).get()
 
-    # End conditions: (front clear AND side has room) OR timeout
-    if ((d_front is not None and d_front > slider_vars["FRONT_TURN_TRIGGER"].get()) and
-        (side_distance is not None and side_distance > slider_vars["TARGET_DISTANCE"].get())) \
-       or (time.time() - turn_start_time > turn_timeout):
+                # End turn if front clear & side has room OR timeout
+                target_distance = slider_vars.get("TARGET_DISTANCE", tk.DoubleVar(value=30)).get()
+                if ((d_front is not None and d_front > front_trigger) and
+                    side_distance > target_distance) or \
+                   (time.time() - turn_start_time > turn_timeout):
+                    robot.stop_motor()
+                    robot.set_servo(slider_vars.get("SERVO_CENTER", tk.IntVar(value=90)).get())
+                    turning = False
+                    print(f"Turn ended: direction={direction}, front_distance={d_front}")
 
-        robot.stop_motor()
-        robot.set_servo(slider_vars["SERVO_CENTER"].get())
-        turning = False
-        print(f"Turn ended: direction={direction}, front_distance={d_front}")
-    time.sleep(0.05)
-    continue
+                time.sleep(0.05)
+                continue  # Skip PID while turning
 
-            # PID WALL FOLLOWING: Calculate correction and drive forward
+            # PID WALL FOLLOWING
             output = robot.pid_control(d_left, d_right)
-            new_angle = slider_vars["SERVO_CENTER"].get() + output
-            servo_min = slider_vars["SERVO_MIN_ANGLE"].get()
-            servo_max = slider_vars["SERVO_MAX_ANGLE"].get()
-            new_angle = max(servo_min, min(servo_max, new_angle)) # Clamp to servo range
+            new_angle = slider_vars.get("SERVO_CENTER", tk.IntVar(value=90)).get() + output
+            servo_min = slider_vars.get("SERVO_MIN_ANGLE", tk.IntVar(value=50)).get()
+            servo_max = slider_vars.get("SERVO_MAX_ANGLE", tk.IntVar(value=130)).get()
+            new_angle = max(servo_min, min(servo_max, new_angle))
             robot.set_servo(new_angle)
-            robot.rotate_motor(slider_vars["SPEED_CRUISE"].get())
+
+            speed_cruise = slider_vars.get("SPEED_CRUISE", tk.IntVar(value=20)).get()
+            robot.rotate_motor(speed_cruise)
+
         time.sleep(0.05)
 
 threading.Thread(target=robot_loop, daemon=True).start() # Start robot loop thread
