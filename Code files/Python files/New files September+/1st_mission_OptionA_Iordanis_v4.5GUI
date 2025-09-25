@@ -443,10 +443,10 @@ def update_ui_from_queue():
 update_ui_from_queue()  # Start periodic UI update
 
 # ===============================
-# ROBOT MAIN LOOP THREAD
+# ROBOT MAIN LOOP THREAD (UPDATED)
 # ===============================
 def robot_loop():
-    """Main loop for sensor reading, PID control, and turn logic."""
+    """Main loop for sensor reading, PID control, and turn logic with PID reset after turns."""
     t = 0  # Time step counter
     turning = False  # Currently turning
     turn_start_time = 0
@@ -502,7 +502,26 @@ def robot_loop():
                     robot.stop_motor()
                     robot.set_servo(slider_vars["SERVO_CENTER"].get())
                     turning = False
-                    last_turn_time = current_time  # Update lockout AFTER turn ends
+                    last_turn_time = current_time  # start lockout
+
+                    # -------------------------------
+                    # RESET PID AFTER TURN
+                    # -------------------------------
+                    robot.integral = 0  # reset integral term
+                    robot.last_error = 0  # reset derivative term
+
+                    # -------------------------------
+                    # OPTIONAL: Smooth PID fade-in
+                    # -------------------------------
+                    fade_duration = 0.5  # seconds
+                    fade_start = time.monotonic()
+                    while time.monotonic() - fade_start < fade_duration:
+                        output = robot.pid_control(d_left, d_right)
+                        factor = (time.monotonic() - fade_start)/fade_duration
+                        robot.set_servo(slider_vars["SERVO_CENTER"].get() + output * factor)
+                        robot.rotate_motor(slider_vars["SPEED_CRUISE"].get())
+                        time.sleep(0.05)
+
                     root.after(0, lambda: status_var.set("Driving"))
                 time.sleep(0.05)
                 continue  # Skip PID during turn
