@@ -421,7 +421,7 @@ def robot_loop():
 
             # TURN INITIATION
             if d_front is not None and d_front < front_trigger and not turning:
-                if (d_left is not None and d_left>100) or (d_right is not None and d_right>100):
+                if (d_left is not None and 100 < d_left <250) or (d_right is not None and 100 < d_right < 250):
                     direction = robot.turn_decision(d_left, d_right)
                     turning = True
                     turn_start_time = time.time()
