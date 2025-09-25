@@ -423,32 +423,39 @@ def robot_loop():
                 time.sleep(0.05)
                 continue
 
-            # TURNING LOGIC: If in turning state, continue turn until clear or timeout
-            if turning:
-                robot.rotate_motor(slider_vars["SPEED_TURN"].get())
-                turn_timeout = slider_vars["TURN_TIMEOUT"].get()
-                if ((d_front is not None and turn_start_distance is not None and d_front > turn_start_distance + slider_vars["CROSSOVER_THRESHOLD"].get())
-                    or (turn_start_time is not None and time.time() - turn_start_time > turn_timeout)):
-                    robot.stop_motor()
-                    robot.set_servo(slider_vars["SERVO_CENTER"].get())
-                    turning = False
-                    turn_start_time = None
-                    print("Turn ended: front_distance=%s, time=%s", d_front, time.time() - (turn_start_time or 0))
-                time.sleep(0.05)
-                continue
-
             # TURN INITIATION: If obstacle detected, choose turn direction and initiate turn
-            if d_front is not None and d_front < slider_vars["FRONT_TURN_TRIGGER"].get():
-                direction = robot.turn_decision(d_left, d_right)
-                angle_var = f"TURN_ANGLE_{direction}"
-                robot.set_servo(slider_vars[angle_var].get())
-                turn_start_distance = d_front or 0
-                turning = True
-                turn_start_time = time.time()
-                robot.rotate_motor(slider_vars["SPEED_TURN"].get())
-                print("Turn started: direction=%s, front_distance=%s", direction, d_front)
-                time.sleep(0.05)
-                continue
+if d_front is not None and d_front < slider_vars["FRONT_TURN_TRIGGER"].get() and not turning:
+    direction = robot.turn_decision(d_left, d_right)
+    turning = True
+    turn_start_time = time.time()
+    print(f"Turn started: direction={direction}, front_distance={d_front}")
+
+# TURNING LOGIC: If in turning state, keep steering until clear or timeout
+if turning:
+    # Pick fixed turn angle from sliders
+    if direction == "LEFT":
+        angle = slider_vars["TURN_ANGLE_LEFT"].get()
+        side_distance = d_left
+    else:
+        angle = slider_vars["TURN_ANGLE_RIGHT"].get()
+        side_distance = d_right
+
+    robot.set_servo(angle)
+    robot.rotate_motor(slider_vars["SPEED_TURN"].get())
+
+    turn_timeout = slider_vars["TURN_TIMEOUT"].get()
+
+    # End conditions: (front clear AND side has room) OR timeout
+    if ((d_front is not None and d_front > slider_vars["FRONT_TURN_TRIGGER"].get()) and
+        (side_distance is not None and side_distance > slider_vars["TARGET_DISTANCE"].get())) \
+       or (time.time() - turn_start_time > turn_timeout):
+
+        robot.stop_motor()
+        robot.set_servo(slider_vars["SERVO_CENTER"].get())
+        turning = False
+        print(f"Turn ended: direction={direction}, front_distance={d_front}")
+    time.sleep(0.05)
+    continue
 
             # PID WALL FOLLOWING: Calculate correction and drive forward
             output = robot.pid_control(d_left, d_right)
