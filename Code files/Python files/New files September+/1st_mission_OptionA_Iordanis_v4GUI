@@ -432,8 +432,11 @@ def robot_loop():
 
         # MAIN CONTROL
         if loop_flag and not paused_flag:
-            # EMERGENCY STOP
             stop_threshold = slider_vars.get("STOP_THRESHOLD", tk.IntVar(value=20)).get()
+            front_trigger = slider_vars.get("FRONT_TURN_TRIGGER", tk.IntVar(value=90)).get()
+            target_distance = slider_vars.get("TARGET_DISTANCE", tk.DoubleVar(value=30)).get()
+
+            # EMERGENCY STOP
             if d_front is not None and d_front < stop_threshold:
                 robot.stop_motor()
                 print("EMERGENCY STOP: Front sensor too close!")
@@ -441,16 +444,16 @@ def robot_loop():
                 continue
 
             # TURN INITIATION
-            front_trigger = slider_vars.get("FRONT_TURN_TRIGGER", tk.IntVar(value=90)).get()
             if d_front is not None and d_front < front_trigger and not turning:
                 direction = robot.turn_decision(d_left, d_right)
                 turning = True
                 turn_start_time = time.time()
                 print(f"Turn started: direction={direction}, front_distance={d_front}")
 
-            # TURN LOGIC
+            # TURNING LOGIC
             if turning:
                 speed_turn = slider_vars.get("SPEED_TURN", tk.IntVar(value=10)).get()
+
                 if direction == "LEFT":
                     angle = slider_vars.get("TURN_ANGLE_LEFT", tk.IntVar(value=80)).get()
                     side_distance = d_left or 0
@@ -464,7 +467,6 @@ def robot_loop():
                 turn_timeout = slider_vars.get("TURN_TIMEOUT", tk.DoubleVar(value=1.0)).get()
 
                 # End turn if front clear & side has room OR timeout
-                target_distance = slider_vars.get("TARGET_DISTANCE", tk.DoubleVar(value=30)).get()
                 if ((d_front is not None and d_front > front_trigger) and
                     side_distance > target_distance) or \
                    (time.time() - turn_start_time > turn_timeout):
