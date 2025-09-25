@@ -63,7 +63,7 @@ KP, KI, KD = 1, 0, 2  # PID constants
 DEADZONE = 4  # PID deadzone to avoid oscillation
 MAX_LAPS = 3  # Max laps if needed
 N_READINGS = 5  # Sliding window size for median filter
-TURN_TIMEOUT = 2.0  # Maximum turn duration in seconds
+TURN_TIMEOUT = 3.0  # Maximum turn duration in seconds
 TURN_LOCKOUT = 4.0  # Minimum time between consecutive turns
 
 # ===============================
