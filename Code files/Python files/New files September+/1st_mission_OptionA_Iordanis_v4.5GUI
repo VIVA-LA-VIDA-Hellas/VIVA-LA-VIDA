@@ -32,77 +32,80 @@
 # - Safe shutdown and cleanup
 #----------------------------------------------------------------------------------------------------------------------
 
-import tkinter as tk
-from tkinter import ttk
-import matplotlib.pyplot as plt
-from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
-import threading
-import time
-import RPi.GPIO as GPIO
-from board import SCL, SDA
-import busio
-from adafruit_pca9685 import PCA9685
-from collections import deque
+import tkinter as tk  # Tkinter for GUI
+from tkinter import ttk  # Themed widgets for Tkinter
+import matplotlib.pyplot as plt  # Plotting library
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg  # Embed plots in Tkinter
+import threading  # Run robot loop in background
+import time  # Time tracking and delays
+import RPi.GPIO as GPIO  # Raspberry Pi GPIO
+from board import SCL, SDA  # I2C pins
+import busio  # I2C communication
+from adafruit_pca9685 import PCA9685  # Servo/motor driver
+from collections import deque  # For sensor smoothing with sliding window
 
 # ===============================
 # CONFIGURATION VARIABLES
 # ===============================
-TARGET_DISTANCE = 30
-FRONT_TURN_TRIGGER = 90
-STOP_THRESHOLD = 20
-CROSSOVER_THRESHOLD = 30
-SPEED_CRUISE = 20
-SPEED_TURN = 10
-TURN_ANGLE_LEFT = 80
-TURN_ANGLE_RIGHT = 100
-SERVO_CENTER = 90
-SERVO_MIN_ANGLE = 50
-SERVO_MAX_ANGLE = 130
-KP, KI, KD = 1, 0, 2
-DEADZONE = 2
-MAX_LAPS = 3
-N_READINGS = 5
-TURN_TIMEOUT = 1.0
-TURN_LOCKOUT = 3.0  # Seconds to wait after a turn before allowing a new turn
+TARGET_DISTANCE = 40  # Desired distance from walls for PID
+FRONT_TURN_TRIGGER = 80  # Front distance threshold to trigger turn
+STOP_THRESHOLD = 20  # Emergency stop threshold (cm)
+CROSSOVER_THRESHOLD = 80  # Distance to end turn safely
+SPEED_CRUISE = 20  # Normal driving speed
+SPEED_TURN = 20  # Speed during turns
+TURN_ANGLE_LEFT = 65  # Servo angle for left turn
+TURN_ANGLE_RIGHT = 115  # Servo angle for right turn
+SERVO_CENTER = 90  # Straight ahead servo angle
+SERVO_MIN_ANGLE = 50  # Minimum allowed servo angle
+SERVO_MAX_ANGLE = 130  # Maximum allowed servo angle
+KP, KI, KD = 1, 0, 2  # PID constants
+DEADZONE = 4  # No correction if error within this range
+MAX_LAPS = 3  # Max laps if needed
+N_READINGS = 5  # Sensor median filter window size
+TURN_TIMEOUT = 2.0  # Maximum turn duration in seconds
+TURN_LOCKOUT = 4.0  # Seconds after a turn before allowing new turn
 
 # ===============================
 # HARDWARE SETUP
 # ===============================
-GPIO.setmode(GPIO.BCM)
-GPIO.setwarnings(False)
+GPIO.setmode(GPIO.BCM)  # Use Broadcom pin numbering
+GPIO.setwarnings(False)  # Disable warnings
 
-# Initialize I2C and PCA9685 for motor/servo control
+# Initialize I2C bus and PCA9685 driver
 i2c = busio.I2C(SCL, SDA)
 pca = PCA9685(i2c)
-pca.frequency = 50
+pca.frequency = 50  # 50 Hz for servo/motor PWM
 
+# PCA9685 channels
 SERVO_CHANNEL = 0
 MOTOR_FWD = 1
 MOTOR_REV = 2
 
 # Ultrasonic sensor pins
 TRIG_FRONT, ECHO_FRONT = 22, 23
-TRIG_LEFT, ECHO_LEFT = 5, 6
-TRIG_RIGHT, ECHO_RIGHT = 27, 17
+TRIG_LEFT, ECHO_LEFT = 27, 17
+TRIG_RIGHT, ECHO_RIGHT = 5, 6
 
-# Setup GPIO pins
+# Set trigger pins as output and initialize low
 for trig in [TRIG_FRONT, TRIG_LEFT, TRIG_RIGHT]:
     GPIO.setup(trig, GPIO.OUT)
     GPIO.output(trig, GPIO.LOW)
+
+# Set echo pins as input
 for echo in [ECHO_FRONT, ECHO_LEFT, ECHO_RIGHT]:
     GPIO.setup(echo, GPIO.IN)
 
 # ===============================
 # TKINTER GUI SETUP
 # ===============================
-root = tk.Tk()
-root.title("Robot Control Panel")
+root = tk.Tk()  # Create main window
+root.title("Robot Control Panel")  # Window title
 
 # Frame for sliders
 var_frame = ttk.LabelFrame(root, text="Variables")
 var_frame.grid(row=0, column=0, padx=5, pady=5, sticky="nw")
 
-# Define robot variables and their GUI ranges
+# Dictionary for slider variables: name -> [value, min, max, type]
 variables = {
     "TARGET_DISTANCE": [TARGET_DISTANCE, 10, 50, "int"],
     "FRONT_TURN_TRIGGER": [FRONT_TURN_TRIGGER, 50, 150, "int"],
@@ -124,10 +127,12 @@ variables = {
     "TURN_LOCKOUT": [TURN_LOCKOUT, 0.5, 10.0, "float"],
 }
 
-slider_vars = {}
+slider_vars = {}  # Store Tkinter variables
 row = 0
 for name, (val, mn, mx, vtype) in variables.items():
+    # Label for variable
     ttk.Label(var_frame, text=name).grid(row=row, column=0, sticky="w")
+    # Create slider and variable
     if vtype == "int":
         slider_var = tk.IntVar(value=val)
         def round_int(val, var=slider_var):
@@ -141,17 +146,29 @@ for name, (val, mn, mx, vtype) in variables.items():
         slider = ttk.Scale(var_frame, from_=mn, to=mx, variable=slider_var,
                            orient=tk.HORIZONTAL, length=150, command=round_float)
     slider.grid(row=row, column=1, sticky="w")
+    # Label to show current value
     ttk.Label(var_frame, textvariable=slider_var, width=7).grid(row=row, column=2)
     slider_vars[name] = slider_var
     row += 1
 
 # ===============================
-# CONTROL BUTTONS
+# STATUS LABEL
 # ===============================
-reading_flag = False
-loop_flag = False
-paused_flag = False
+status_var = tk.StringVar(value="Idle")  # Store robot status
+ttk.Label(root, text="Status:").grid(row=6, column=0, sticky="w", pady=5)
+status_label = ttk.Label(root, textvariable=status_var, foreground="blue")
+status_label.grid(row=6, column=0, sticky="e", padx=5, pady=5)
 
+# ===============================
+# CONTROL FLAGS
+# ===============================
+reading_flag = False  # Sensor reading mode
+loop_flag = False  # Main robot loop running
+paused_flag = False  # Pause flag
+
+# ===============================
+# BUTTON FUNCTIONS
+# ===============================
 def start_reading():
     global reading_flag
     reading_flag = True
@@ -179,6 +196,7 @@ def stop_robot():
     loop_flag = False
     paused_flag = False
     robot.stop_motor()
+    status_var.set("Stopped")
     update_control_buttons()
 
 def update_control_buttons():
@@ -199,6 +217,7 @@ def update_control_buttons():
         pause_button.config(state="disabled")
         resume_button.config(state="disabled")
 
+# Create buttons
 start_read_button = ttk.Button(root, text="Start Reading", command=start_reading)
 start_read_button.grid(row=1, column=0, pady=5)
 start_loop_button = ttk.Button(root, text="Start Loop", command=start_loop)
@@ -211,31 +230,36 @@ stop_button = ttk.Button(root, text="Stop", command=stop_robot)
 stop_button.grid(row=5, column=0, pady=5)
 
 # ===============================
-# MATPLOTLIB PLOTS
+# PLOTS SETUP
 # ===============================
-fig, (ax_front, ax_side) = plt.subplots(2, 1, figsize=(6, 6))
+fig, (ax_front, ax_side) = plt.subplots(2,1, figsize=(6,6))
 fig.tight_layout(pad=3.0)
 
-ax_front.set_ylim(0, 350)
+# Front sensor plot
+ax_front.set_ylim(0,350)
 ax_front.grid(True)
 ax_front.set_title("Front Sensor")
-front_line, = ax_front.plot([], [], color="blue")
+front_line, = ax_front.plot([],[], color="blue")
 
-ax_side.set_ylim(-150, 150)
+# Side sensors plot
+ax_side.set_ylim(-150,150)
 ax_side.grid(True)
 ax_side.set_title("Left vs Right Sensors (Mirrored)")
 ax_side.axhline(0, color="black", linewidth=1)
-left_line, = ax_side.plot([], [], color="green")
-right_line, = ax_side.plot([], [], color="orange")
+left_line, = ax_side.plot([],[], color="green")
+right_line, = ax_side.plot([],[], color="orange")
 
+# Embed figure in Tkinter
 canvas = FigureCanvasTkAgg(fig, master=root)
 canvas.get_tk_widget().grid(row=0, column=1, rowspan=7, padx=10, pady=5)
 
 # ===============================
 # DATA STORAGE FOR PLOTTING
 # ===============================
-time_data = []
-front_data, left_data, right_data = [], [], []
+time_data = []  # Time steps
+front_data = []
+left_data = []
+right_data = []
 
 # ===============================
 # ROBOT CONTROLLER CLASS
@@ -244,14 +268,14 @@ class RobotController:
     def __init__(self, pca, slider_vars):
         self.pca = pca
         self.slider_vars = slider_vars
-        self.integral = 0
-        self.last_error = 0
+        self.integral = 0  # PID integral
+        self.last_error = 0  # PID last error
         self.front_history = deque(maxlen=N_READINGS)
         self.left_history = deque(maxlen=N_READINGS)
         self.right_history = deque(maxlen=N_READINGS)
 
     # -------------------------------
-    # Servo and motor control methods
+    # Servo control
     # -------------------------------
     def set_servo(self, angle):
         min_angle = self.slider_vars["SERVO_MIN_ANGLE"].get()
@@ -260,43 +284,48 @@ class RobotController:
         pulse = int(1000 + (2000-1000)*((angle-min_angle)/(max_angle-min_angle)))
         self.pca.channels[SERVO_CHANNEL].duty_cycle = int(pulse*65535/20000)
 
+    # -------------------------------
+    # Motor control
+    # -------------------------------
     def rotate_motor(self, speed):
-        duty = int(min(max(abs(speed),0),100)/100*65535)
+        duty_cycle = int(min(max(abs(speed),0),100)/100*65535)
         if speed>=0:
-            self.pca.channels[MOTOR_FWD].duty_cycle = duty
-            self.pca.channels[MOTOR_REV].duty_cycle = 0
+            self.pca.channels[MOTOR_FWD].duty_cycle=duty_cycle
+            self.pca.channels[MOTOR_REV].duty_cycle=0
         else:
-            self.pca.channels[MOTOR_FWD].duty_cycle = 0
-            self.pca.channels[MOTOR_REV].duty_cycle = duty
+            self.pca.channels[MOTOR_FWD].duty_cycle=0
+            self.pca.channels[MOTOR_REV].duty_cycle=duty_cycle
 
     def stop_motor(self):
-        self.pca.channels[MOTOR_FWD].duty_cycle = 0
-        self.pca.channels[MOTOR_REV].duty_cycle = 0
+        self.pca.channels[MOTOR_FWD].duty_cycle=0
+        self.pca.channels[MOTOR_REV].duty_cycle=0
 
     # -------------------------------
-    # Ultrasonic sensor readings
+    # Ultrasonic distance
     # -------------------------------
-    def get_distance(self, trigger, echo):
+    def get_distance(self, trig, echo):
         try:
-            GPIO.output(trigger, GPIO.HIGH)
+            GPIO.output(trig, GPIO.HIGH)
             time.sleep(0.00001)
-            GPIO.output(trigger, GPIO.LOW)
-            start = time.time()
-            timeout = start + 0.02
+            GPIO.output(trig, GPIO.LOW)
             pulse_start = pulse_end = None
-            while GPIO.input(echo)==0 and time.time()<timeout:
-                pulse_start = time.time()
             timeout = time.time()+0.02
+            while GPIO.input(echo)==0 and time.time()<timeout:
+                pulse_start=time.time()
+            timeout=time.time()+0.02
             while GPIO.input(echo)==1 and time.time()<timeout:
-                pulse_end = time.time()
+                pulse_end=time.time()
             if pulse_start and pulse_end:
                 return (pulse_end-pulse_start)*17150
             return None
         except:
             return None
 
-    def filtered_distance(self, trigger, echo, history):
-        d = self.get_distance(trigger, echo)
+    # -------------------------------
+    # Median filter
+    # -------------------------------
+    def filtered_distance(self, trig, echo, history):
+        d = self.get_distance(trig, echo)
         if d is not None:
             history.append(d)
         if history:
@@ -309,16 +338,16 @@ class RobotController:
     # PID wall-following
     # -------------------------------
     def pid_control(self, d_left, d_right):
-        error = 0
+        error=0
         if d_left is not None and d_right is not None:
-            error = d_left - d_right
+            error=d_left-d_right
         elif d_left is not None:
-            error = self.slider_vars["TARGET_DISTANCE"].get() - d_left
+            error=self.slider_vars["TARGET_DISTANCE"].get()-d_left
         elif d_right is not None:
-            error = d_right - self.slider_vars["TARGET_DISTANCE"].get()
+            error=d_right-self.slider_vars["TARGET_DISTANCE"].get()
         self.integral += error
-        self.integral = max(min(self.integral, 100), -100)
-        derivative = error - self.last_error
+        self.integral = max(min(self.integral,100),-100)
+        derivative = error-self.last_error
         self.last_error = error
         if abs(error)>20: kp,kd=1.5,3.0
         else: kp,kd=0.7,1.5
@@ -327,28 +356,22 @@ class RobotController:
         return output
 
     # -------------------------------
-    # Turn decision based on side distances
+    # Turn decision based on sides
     # -------------------------------
-    def turn_decision(self, d_left, d_right):
-        # Only turn to side with >100 cm if front is blocked
+    def turn_decision(self,d_left,d_right):
         threshold = 100
-        if d_left is not None and d_left>threshold:
-            return "LEFT"
-        elif d_right is not None and d_right>threshold:
-            return "RIGHT"
-        # Default to side with larger distance
-        if d_left is not None and d_right is not None:
-            return "LEFT" if d_left>d_right else "RIGHT"
-        elif d_left is not None:
-            return "LEFT"
-        elif d_right is not None:
-            return "RIGHT"
-        return "LEFT"  # fallback
+        if d_left is not None and d_left>threshold: return "LEFT"
+        elif d_right is not None and d_right>threshold: return "RIGHT"
+        if d_left is not None and d_right is not None: return "LEFT" if d_left>d_right else "RIGHT"
+        elif d_left is not None: return "LEFT"
+        elif d_right is not None: return "RIGHT"
+        return "LEFT"
 
+# Instantiate robot controller
 robot = RobotController(pca, slider_vars)
 
 # ===============================
-# PLOT UPDATER (RUNS IN TK THREAD)
+# PLOT UPDATES (Tkinter thread)
 # ===============================
 def update_ui_plots():
     if front_data:
@@ -366,25 +389,25 @@ def update_ui_plots():
 
 def periodic_plot_update():
     update_ui_plots()
-    root.after(100, periodic_plot_update)
+    root.after(100, periodic_plot_update)  # Refresh every 100 ms
 
 periodic_plot_update()
 
 # ===============================
-# ROBOT LOOP THREAD
+# ROBOT MAIN LOOP THREAD
 # ===============================
 def robot_loop():
     t=0
     turning=False
     turn_start_time=0
-    last_turn_time= -TURN_LOCKOUT
+    last_turn_time=-TURN_LOCKOUT
     d_front=d_left=d_right=None
     direction=None
     while True:
         if reading_flag:
-            d_front = robot.filtered_distance(TRIG_FRONT, ECHO_FRONT, robot.front_history)
-            d_left = robot.filtered_distance(TRIG_LEFT, ECHO_LEFT, robot.left_history)
-            d_right = robot.filtered_distance(TRIG_RIGHT, ECHO_RIGHT, robot.right_history)
+            d_front=robot.filtered_distance(TRIG_FRONT,ECHO_FRONT,robot.front_history)
+            d_left=robot.filtered_distance(TRIG_LEFT,ECHO_LEFT,robot.left_history)
+            d_right=robot.filtered_distance(TRIG_RIGHT,ECHO_RIGHT,robot.right_history)
             time_data.append(t)
             front_data.append(d_front or 0)
             left_data.append(d_left or 0)
@@ -394,49 +417,53 @@ def robot_loop():
             t+=1
 
         if loop_flag and not paused_flag:
-            # EMERGENCY STOP
+            current_time=time.time()
+            # Emergency stop
             if d_front is not None and d_front<slider_vars["STOP_THRESHOLD"].get():
                 robot.stop_motor()
+                status_var.set("Stopped! Obstacle ahead")
                 time.sleep(0.05)
                 continue
 
-            # TURN INITIATION (with lockout)
-            current_time = time.time()
+            # Turn initiation with lockout
             if (not turning and d_front is not None and d_front<slider_vars["FRONT_TURN_TRIGGER"].get()
                 and (d_left>100 or d_right>100)
                 and current_time - last_turn_time >= slider_vars["TURN_LOCKOUT"].get()):
-                direction = robot.turn_decision(d_left,d_right)
+                direction=robot.turn_decision(d_left,d_right)
                 turning=True
                 turn_start_time=current_time
                 last_turn_time=current_time
+                status_var.set(f"Turning {direction}")
                 print(f"Turn started: {direction}")
 
-            # TURNING LOGIC
+            # Turning logic
             if turning:
                 angle = slider_vars["TURN_ANGLE_LEFT"].get() if direction=="LEFT" else slider_vars["TURN_ANGLE_RIGHT"].get()
-                side_distance = d_left if direction=="LEFT" else d_right
+                side_distance=d_left if direction=="LEFT" else d_right
                 robot.set_servo(angle)
                 robot.rotate_motor(slider_vars["SPEED_TURN"].get())
-                # End turn if front clears AND side distance sufficient OR timeout
+                status_var.set(f"Turning {direction}")
                 if ((d_front>slider_vars["FRONT_TURN_TRIGGER"].get() and side_distance>slider_vars["TARGET_DISTANCE"].get())
                     or (current_time-turn_start_time>slider_vars["TURN_TIMEOUT"].get())):
                     robot.stop_motor()
                     robot.set_servo(slider_vars["SERVO_CENTER"].get())
                     turning=False
+                    status_var.set("Driving")
                     print(f"Turn ended: {direction}")
                 time.sleep(0.05)
                 continue
 
-            # PID WALL FOLLOWING
+            # PID wall-following
             output = robot.pid_control(d_left,d_right)
-            new_angle = slider_vars["SERVO_CENTER"].get() + output
-            new_angle = max(slider_vars["SERVO_MIN_ANGLE"].get(), min(slider_vars["SERVO_MAX_ANGLE"].get(), new_angle))
+            new_angle = slider_vars["SERVO_CENTER"].get()+output
+            new_angle=max(slider_vars["SERVO_MIN_ANGLE"].get(),min(slider_vars["SERVO_MAX_ANGLE"].get(),new_angle))
             robot.set_servo(new_angle)
             robot.rotate_motor(slider_vars["SPEED_CRUISE"].get())
+            status_var.set("Driving")
 
         time.sleep(0.05)
 
-threading.Thread(target=robot_loop, daemon=True).start()
+threading.Thread(target=robot_loop,daemon=True).start()
 
 # ===============================
 # CLEANUP ON EXIT
@@ -451,4 +478,5 @@ def on_closing():
 
 root.protocol("WM_DELETE_WINDOW", on_closing)
 root.mainloop()
+
 
