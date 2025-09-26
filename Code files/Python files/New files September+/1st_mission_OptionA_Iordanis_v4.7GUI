@@ -1,6 +1,6 @@
 #----------------------------------------------------------------------------------------------------------------------
 # Autonomous drive - VivaLaVida
-# v5.0 (Integrated Turn Modes)
+# v5.1 (GUI Fixed, MPU-6050 hidden output)
 #----------------------------------------------------------------------------------------------------------------------
 
 import threading
@@ -13,19 +13,17 @@ import busio
 from adafruit_pca9685 import PCA9685
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
-
 from mpu6050 import mpu6050  # Gyro sensor for 90-degree turns
 
 # ==========================================================
 # CONFIGURATION VARIABLES
 # ==========================================================
+TARGET_DISTANCE = 40
+FRONT_TURN_TRIGGER = 80
+STOP_THRESHOLD = 20
 
-TARGET_DISTANCE = 40          # Desired distance from walls when driving straight (cm)
-FRONT_TURN_TRIGGER = 80      # Distance from obstacle to trigger a turn (cm)
-STOP_THRESHOLD = 20           # Minimum distance to front obstacle to trigger emergency stop (cm)
-
-SPEED_CRUISE = 20             # Standard forward speed (% of max duty cycle)
-SPEED_TURN = 20               # Speed used during turning (% of max duty cycle)
+SPEED_CRUISE = 20
+SPEED_TURN = 20
 
 SERVO_CHANNEL = 0
 SERVO_CENTER = 90
@@ -48,7 +46,6 @@ ULTRASONIC_TIMEOUT = 0.02
 SOUND_SPEED = 17150
 
 N_READINGS = 5
-SAFE_MARGIN = 20
 SOFT_MARGIN = 30
 MAX_CORRECTION = 15
 
@@ -59,10 +56,9 @@ POST_TURN_DURATION = 0.5
 
 LOOP_DELAY = 0.05
 TRIG_PULSE_DURATION = 0.00001
-
 MAX_POINTS = 100
 
-# Turn mode options
+# Turn modes
 TURN_MODE_DISTANCE = "distance"
 TURN_MODE_GYRO = "gyro"
 turn_mode = TURN_MODE_DISTANCE
@@ -275,7 +271,7 @@ def robot_loop():
                     robot.set_servo(target_servo)
                     robot.rotate_motor(SPEED_TURN)
 
-                    # Integrate gyro z-axis
+                    # Integrate gyro z-axis without printing
                     gyro_data = sensor.get_gyro_data()
                     now = time.time()
                     dt = now - last_time
@@ -408,7 +404,6 @@ def launch_gui():
 # ==========================================================
 # MAIN
 # ==========================================================
-threading.Thread(target=robot_loop, daemon=True).start()
-
 if __name__ == "__main__":
+    threading.Thread(target=robot_loop, daemon=True).start()
     launch_gui()
