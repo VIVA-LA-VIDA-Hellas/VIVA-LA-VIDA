@@ -343,31 +343,58 @@ class RobotController:
     # -------------------------------
     # PID CONTROL
     # -------------------------------
-    def pid_control(self, d_left, d_right):
-        """Compute PID output based on left/right distances."""
-        error = 0
-        if d_left is not None and d_right is not None:
-            error = d_left - d_right             # Difference between walls
-        elif d_left is not None:
-            error = self.slider_vars["TARGET_DISTANCE"].get() - d_left
-        elif d_right is not None:
-            error = d_right - self.slider_vars["TARGET_DISTANCE"].get()
+    #def pid_control(self, d_left, d_right):
+    #    """Compute PID output based on left/right distances."""
+    #    error = 0
+    #    if d_left is not None and d_right is not None:
+    #        error = d_left - d_right             # Difference between walls
+    #   elif d_left is not None:
+    #        error = self.slider_vars["TARGET_DISTANCE"].get() - d_left
+    #    elif d_right is not None:
+    #        error = d_right - self.slider_vars["TARGET_DISTANCE"].get()
 
-        self.integral += error                    # Update integral term
-        self.integral = max(min(self.integral,100),-100)  # Clamp integral
-        derivative = error - self.last_error      # Compute derivative
-        self.last_error = error
+    #    self.integral += error                    # Update integral term
+    #    self.integral = max(min(self.integral,100),-100)  # Clamp integral
+    #    derivative = error - self.last_error      # Compute derivative
+    #    self.last_error = error
 
-        kp = self.slider_vars["KP"].get()         # Proportional gain
-        kd = self.slider_vars["KD"].get()         # Derivative gain
-        if abs(error) > 20:                       # Adaptive gain for large errors
-            kp *= 1.5
-            kd *= 2.0
+    #    kp = self.slider_vars["KP"].get()         # Proportional gain
+    #    kd = self.slider_vars["KD"].get()         # Derivative gain
+    #    if abs(error) > 20:                       # Adaptive gain for large errors
+    #        kp *= 1.5
+    #        kd *= 2.0
 
-        output = kp*error + kd*derivative         # PID output
-        if abs(error) < self.slider_vars["DEADZONE"].get():  # Apply deadzone
-            output = 0
-        return output
+    #    output = kp*error + kd*derivative         # PID output
+    #    if abs(error) < self.slider_vars["DEADZONE"].get():  # Apply deadzone
+    #        output = 0
+    #    return output
+
+    # -------------------------------
+    # SAFE STRAIGHT DRIVING CONTROL
+    # -------------------------------
+    def safe_straight_control(self, d_left, d_right):
+        """Keep robot driving straight unless too close to a wall.
+           Maintain at least 20 cm clearance on either side.
+        """
+        safe_margin = 20    # absolute minimum distance
+        soft_margin = 30    # start correcting earlier
+        correction = 0
+
+        # If left wall is too close → steer right
+        if d_left is not None and d_left < soft_margin:
+            correction = (soft_margin - d_left) * 2   # proportional correction
+        # If right wall is too close → steer left
+        elif d_right is not None and d_right < soft_margin:
+            correction = -(soft_margin - d_right) * 2
+
+        # Clamp correction so it doesn’t jerk too hard
+        correction = max(-30, min(30, correction))
+
+        # Compute final steering angle
+        new_angle = self.slider_vars["SERVO_CENTER"].get() + correction
+        new_angle = max(self.slider_vars["SERVO_MIN_ANGLE"].get(),
+                        min(self.slider_vars["SERVO_MAX_ANGLE"].get(), new_angle))
+        return new_angle
 
     # -------------------------------
     # TURN DECISION
@@ -479,10 +506,16 @@ def robot_loop():
             # -------------------------------
             # PID WALL-FOLLOWING
             # -------------------------------
-            output = robot.pid_control(d_left, d_right)
-            new_angle = slider_vars["SERVO_CENTER"].get() + output
-            new_angle = max(slider_vars["SERVO_MIN_ANGLE"].get(),
-                            min(slider_vars["SERVO_MAX_ANGLE"].get(), new_angle))
+            #output = robot.pid_control(d_left, d_right)
+            #new_angle = slider_vars["SERVO_CENTER"].get() + output
+            #new_angle = max(slider_vars["SERVO_MIN_ANGLE"].get(),
+            #                min(slider_vars["SERVO_MAX_ANGLE"].get(), new_angle))
+            #robot.set_servo(new_angle)
+            #robot.rotate_motor(slider_vars["SPEED_CRUISE"].get())
+            #root.after(0, lambda: status_var.set("Driving"))
+
+            # SAFE STRAIGHT DRIVING
+            new_angle = robot.safe_straight_control(d_left, d_right)
             robot.set_servo(new_angle)
             robot.rotate_motor(slider_vars["SPEED_CRUISE"].get())
             root.after(0, lambda: status_var.set("Driving"))
