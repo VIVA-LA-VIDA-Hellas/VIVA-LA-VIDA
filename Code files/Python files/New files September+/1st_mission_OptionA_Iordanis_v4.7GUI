@@ -1,6 +1,6 @@
 #----------------------------------------------------------------------------------------------------------------------
 # Autonomous drive - VivaLaVida
-# v4.7
+# v5.0 (Integrated Turn Modes)
 #----------------------------------------------------------------------------------------------------------------------
 
 import threading
@@ -14,66 +14,62 @@ from adafruit_pca9685 import PCA9685
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 
-# ===============================
-# CONFIGURATION VARIABLES
-# ===============================
+from mpu6050 import mpu6050  # Gyro sensor for 90-degree turns
 
-# --- Distance thresholds ---
+# ==========================================================
+# CONFIGURATION VARIABLES
+# ==========================================================
+
 TARGET_DISTANCE = 40          # Desired distance from walls when driving straight (cm)
 FRONT_TURN_TRIGGER = 80      # Distance from obstacle to trigger a turn (cm)
 STOP_THRESHOLD = 20           # Minimum distance to front obstacle to trigger emergency stop (cm)
 
-# --- Speed settings ---
 SPEED_CRUISE = 20             # Standard forward speed (% of max duty cycle)
 SPEED_TURN = 20               # Speed used during turning (% of max duty cycle)
 
-# --- Servo configuration ---
-SERVO_CHANNEL = 0             # PCA9685 channel controlling the steering servo
-SERVO_CENTER = 90             # Center angle of the servo (straight forward)
-SERVO_MIN_ANGLE = 50          # Minimum servo angle (hard left)
-SERVO_MAX_ANGLE = 130         # Maximum servo angle (hard right)
-TURN_ANGLE_LEFT = 65          # Servo angle to turn left
-TURN_ANGLE_RIGHT = 115        # Servo angle to turn right
-SERVO_PULSE_MIN = 1000        # Minimum PWM pulse for servo (µs)
-SERVO_PULSE_MAX = 2000        # Maximum PWM pulse for servo (µs)
-SERVO_PERIOD = 20000          # Servo PWM period (µs)
+SERVO_CHANNEL = 0
+SERVO_CENTER = 90
+SERVO_MIN_ANGLE = 50
+SERVO_MAX_ANGLE = 130
+TURN_ANGLE_LEFT = 65
+TURN_ANGLE_RIGHT = 115
+SERVO_PULSE_MIN = 1000
+SERVO_PULSE_MAX = 2000
+SERVO_PERIOD = 20000
 
-# --- Motor configuration ---
-MOTOR_FWD = 1                 # PCA9685 channel for forward motor
-MOTOR_REV = 2                 # PCA9685 channel for reverse motor
+MOTOR_FWD = 1
+MOTOR_REV = 2
 
-# --- Ultrasonic sensor pins ---
-TRIG_FRONT, ECHO_FRONT = 22, 23  # GPIO pins for front ultrasonic sensor
-TRIG_LEFT, ECHO_LEFT = 27, 17    # GPIO pins for left ultrasonic sensor
-TRIG_RIGHT, ECHO_RIGHT = 5, 6    # GPIO pins for right ultrasonic sensor
+TRIG_FRONT, ECHO_FRONT = 22, 23
+TRIG_LEFT, ECHO_LEFT = 27, 17
+TRIG_RIGHT, ECHO_RIGHT = 5, 6
 
-# --- Ultrasonic timing ---
-ULTRASONIC_TIMEOUT = 0.02     # Maximum wait time for echo (seconds)
-SOUND_SPEED = 17150            # Speed of sound in cm/s for distance calculation
+ULTRASONIC_TIMEOUT = 0.02
+SOUND_SPEED = 17150
 
-# --- Sensor reading and PID settings ---
-N_READINGS = 5                 # Number of readings used for median filtering
-SAFE_MARGIN = 20               # Minimum safe distance from walls (cm)
-SOFT_MARGIN = 30               # Distance threshold for gentle wall correction
-MAX_CORRECTION = 15            # Maximum servo correction angle for wall following (degrees)
+N_READINGS = 5
+SAFE_MARGIN = 20
+SOFT_MARGIN = 30
+MAX_CORRECTION = 15
 
-# --- Turn control parameters ---
-TURN_TIMEOUT = 3.0             # Maximum time allowed for a turn (seconds)
-TURN_LOCKOUT = 4.0             # Minimum interval between consecutive turns (seconds)
-TURN_DECISION_THRESHOLD = 100  # Minimum side distance to consider turning toward that side (cm)
-POST_TURN_DURATION = 0.5       # Duration to continue straight after finishing a turn (seconds)
+TURN_TIMEOUT = 3.0
+TURN_LOCKOUT = 4.0
+TURN_DECISION_THRESHOLD = 100
+POST_TURN_DURATION = 0.5
 
-# --- Loop timing ---
-LOOP_DELAY = 0.05              # Delay for main control loop (seconds)
-TRIG_PULSE_DURATION = 0.00001  # Duration of ultrasonic trigger pulse (seconds)
+LOOP_DELAY = 0.05
+TRIG_PULSE_DURATION = 0.00001
 
-# --- Plotting settings ---
-MAX_POINTS = 100               # Maximum number of data points stored for plots
+MAX_POINTS = 100
 
+# Turn mode options
+TURN_MODE_DISTANCE = "distance"
+TURN_MODE_GYRO = "gyro"
+turn_mode = TURN_MODE_DISTANCE
 
-# ===============================
+# ==========================================================
 # HARDWARE SETUP
-# ===============================
+# ==========================================================
 GPIO.setmode(GPIO.BCM)
 GPIO.setwarnings(False)
 
@@ -88,23 +84,26 @@ for trig in [TRIG_FRONT, TRIG_LEFT, TRIG_RIGHT]:
 for echo in [ECHO_FRONT, ECHO_LEFT, ECHO_RIGHT]:
     GPIO.setup(echo, GPIO.IN)
 
-# ===============================
+# MPU-6050 sensor
+sensor = mpu6050(0x68)
+
+# ==========================================================
 # CONTROL FLAGS
-# ===============================
+# ==========================================================
 loop_flag = False
 status_text = "Idle"
 
-# ===============================
+# ==========================================================
 # SENSOR DATA STORAGE
-# ===============================
+# ==========================================================
 time_data = deque(maxlen=MAX_POINTS)
 front_data = deque(maxlen=MAX_POINTS)
 left_data = deque(maxlen=MAX_POINTS)
 right_data = deque(maxlen=MAX_POINTS)
 
-# ===============================
+# ==========================================================
 # ROBOT CONTROLLER CLASS
-# ===============================
+# ==========================================================
 class RobotController:
     def __init__(self, pca):
         self.pca = pca
@@ -188,11 +187,11 @@ class RobotController:
 
 robot = RobotController(pca)
 
-# ===============================
+# ==========================================================
 # ROBOT MAIN LOOP
-# ===============================
+# ==========================================================
 def robot_loop():
-    global loop_flag, status_text
+    global loop_flag, status_text, turn_mode
     turning = False
     turn_start_time = 0
     last_turn_time = -TURN_LOCKOUT
@@ -200,32 +199,33 @@ def robot_loop():
     post_turn_start = 0
     direction = None
     d_front = d_left = d_right = None
+    current_angle = 0
 
     start_time = time.monotonic()
-
+    
     while True:
         if loop_flag:
             current_time = time.monotonic() - start_time
 
-            # Read sensors
+            # --- Read sensors ---
             d_front = robot.filtered_distance(TRIG_FRONT, ECHO_FRONT, robot.front_history)
             d_left = robot.filtered_distance(TRIG_LEFT, ECHO_LEFT, robot.left_history)
             d_right = robot.filtered_distance(TRIG_RIGHT, ECHO_RIGHT, robot.right_history)
 
-            # Save to plotting buffers
+            # Save for plotting
             time_data.append(current_time)
             front_data.append(d_front or 0)
             left_data.append(d_left or 0)
             right_data.append(d_right or 0)
 
-            # Emergency stop
+            # --- Emergency stop ---
             if d_front is not None and d_front < STOP_THRESHOLD:
                 robot.stop_motor()
                 status_text = "Stopped! Obstacle ahead"
                 time.sleep(LOOP_DELAY)
                 continue
 
-            # Post-turn wait
+            # --- Post-turn wait ---
             if post_turn_wait:
                 if time.monotonic() - post_turn_start < POST_TURN_DURATION:
                     robot.set_servo(SERVO_CENTER)
@@ -236,7 +236,7 @@ def robot_loop():
                 else:
                     post_turn_wait = False
 
-            # Turn initiation
+            # --- Turn initiation ---
             if (not turning
                 and not post_turn_wait
                 and d_front is not None
@@ -249,27 +249,51 @@ def robot_loop():
                 turn_start_time = time.monotonic()
                 status_text = f"Turning {direction}"
 
-            # Turn logic
+                if turn_mode == TURN_MODE_GYRO:
+                    current_angle = 0
+                    last_time = time.time()
+                    factor = 1 if direction == "LEFT" else -1
+
+            # --- Turn execution ---
             if turning:
-                angle = TURN_ANGLE_LEFT if direction == "LEFT" else TURN_ANGLE_RIGHT
-                side_distance = d_left if direction == "LEFT" else d_right
-                robot.set_servo(angle)
-                robot.rotate_motor(SPEED_TURN)
+                if turn_mode == TURN_MODE_DISTANCE:
+                    target_angle = TURN_ANGLE_LEFT if direction == "LEFT" else TURN_ANGLE_RIGHT
+                    robot.set_servo(target_angle)
+                    robot.rotate_motor(SPEED_TURN)
+                    opposite_distance = d_right if direction == "LEFT" else d_left
+                    if ((opposite_distance and opposite_distance >= TARGET_DISTANCE)
+                        or (time.monotonic() - turn_start_time > TURN_TIMEOUT)):
+                        robot.stop_motor()
+                        robot.set_servo(SERVO_CENTER)
+                        turning = False
+                        last_turn_time = time.monotonic()
+                        post_turn_wait = True
+                        post_turn_start = time.monotonic()
 
-                if ((d_front and d_front > FRONT_TURN_TRIGGER and side_distance and side_distance > TARGET_DISTANCE)
-                    or (time.monotonic() - turn_start_time > TURN_TIMEOUT)):
+                elif turn_mode == TURN_MODE_GYRO:
+                    target_servo = TURN_ANGLE_LEFT if direction == "LEFT" else TURN_ANGLE_RIGHT
+                    robot.set_servo(target_servo)
+                    robot.rotate_motor(SPEED_TURN)
 
-                    robot.stop_motor()
-                    robot.set_servo(SERVO_CENTER)
-                    turning = False
-                    last_turn_time = time.monotonic()
-                    post_turn_wait = True
-                    post_turn_start = time.monotonic()
+                    # Integrate gyro z-axis
+                    gyro_data = sensor.get_gyro_data()
+                    now = time.time()
+                    dt = now - last_time
+                    last_time = now
+                    current_angle += gyro_data['z'] * dt * factor
+
+                    if abs(current_angle) >= 90 or (time.monotonic() - turn_start_time > TURN_TIMEOUT):
+                        robot.stop_motor()
+                        robot.set_servo(SERVO_CENTER)
+                        turning = False
+                        last_turn_time = time.monotonic()
+                        post_turn_wait = True
+                        post_turn_start = time.monotonic()
 
                 time.sleep(LOOP_DELAY)
                 continue
 
-            # Straight driving
+            # --- Straight driving ---
             new_angle = robot.safe_straight_control(d_left, d_right)
             robot.set_servo(new_angle)
             robot.rotate_motor(SPEED_CRUISE)
@@ -277,9 +301,19 @@ def robot_loop():
 
         time.sleep(LOOP_DELAY)
 
-# ===============================
-# START / STOP FUNCTIONS
-# ===============================
+# ==========================================================
+# GUI CONTROL FUNCTIONS
+# ==========================================================
+def set_turn_mode_distance():
+    global turn_mode, status_text
+    turn_mode = TURN_MODE_DISTANCE
+    status_text = "Turn mode: Distance"
+
+def set_turn_mode_gyro():
+    global turn_mode, status_text
+    turn_mode = TURN_MODE_GYRO
+    status_text = "Turn mode: Gyro"
+
 def start_loop():
     global loop_flag, status_text
     loop_flag = True
@@ -295,9 +329,9 @@ def stop_loop():
     btn_start.config(state="normal")
     btn_stop.config(state="disabled")
 
-# ===============================
-# GUI SECTION
-# ===============================
+# ==========================================================
+# GUI LAUNCH
+# ==========================================================
 def launch_gui():
     global btn_start, btn_stop, root, canvas, ax_front, ax_side, front_line, left_line, right_line
 
@@ -315,6 +349,13 @@ def launch_gui():
                          width=20, height=2, bg="red", fg="white", state="disabled")
     btn_stop.pack(pady=5)
 
+    btn_distance = tk.Button(root, text="Distance Turn", command=set_turn_mode_distance,
+                             width=20, height=2, bg="lightblue")
+    btn_distance.pack(pady=5)
+    btn_gyro = tk.Button(root, text="Gyro Turn", command=set_turn_mode_gyro,
+                         width=20, height=2, bg="lightgreen")
+    btn_gyro.pack(pady=5)
+
     lbl_status = tk.Label(root, textvariable=status_var, font=("Arial", 14))
     lbl_status.pack(pady=5)
 
@@ -322,13 +363,11 @@ def launch_gui():
     fig, (ax_front, ax_side) = plt.subplots(2,1, figsize=(6,6))
     fig.tight_layout(pad=3.0)
 
-    # Front sensor plot
     ax_front.set_ylim(0, 350)
     ax_front.set_title("Front Sensor")
     ax_front.grid(True)
     front_line, = ax_front.plot([], [], color="blue")
 
-    # Side sensors plot
     ax_side.set_ylim(-150, 150)
     ax_side.set_title("Left (+Y) vs Right (-Y) Sensors")
     ax_side.grid(True)
@@ -339,9 +378,7 @@ def launch_gui():
     canvas = FigureCanvasTkAgg(fig, master=root)
     canvas.get_tk_widget().pack()
 
-    # ===============================
-    # UPDATE FUNCTIONS
-    # ===============================
+    # Update functions
     def update_status():
         status_var.set(status_text)
         root.after(200, update_status)
@@ -354,28 +391,23 @@ def launch_gui():
 
             ax_front.set_xlim(0, MAX_POINTS)
             ax_side.set_xlim(0, MAX_POINTS)
-
             canvas.draw()
-
         root.after(100, update_plot)
 
-    # ===============================
-    # CLEANUP
-    # ===============================
+    # Cleanup
     def on_closing():
         stop_loop()
         GPIO.cleanup()
         root.destroy()
 
     root.protocol("WM_DELETE_WINDOW", on_closing)
-
     update_status()
     update_plot()
     root.mainloop()
 
-# ===============================
+# ==========================================================
 # MAIN
-# ===============================
+# ==========================================================
 threading.Thread(target=robot_loop, daemon=True).start()
 
 if __name__ == "__main__":
