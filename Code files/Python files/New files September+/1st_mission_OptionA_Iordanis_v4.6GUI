@@ -6,6 +6,7 @@
 # v4.3 - graph and turn improvements - 25/9/2025
 # v4.5 - rewrite
 # v4.5 - new turn logic with PID clear after turn
+# v4.6 - new wall following rules - 26/9/2025
 #
 # Logic description
 # - Continuously read ultrasonic sensor distances: front, left, and right.
