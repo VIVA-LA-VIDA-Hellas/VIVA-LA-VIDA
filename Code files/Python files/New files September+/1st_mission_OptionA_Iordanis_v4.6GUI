@@ -388,7 +388,7 @@ class RobotController:
             correction = -(soft_margin - d_right) * 2
 
         # Clamp correction so it doesn’t jerk too hard
-        correction = max(-30, min(30, correction))
+        correction = max(-15, min(15, correction))
 
         # Compute final steering angle
         new_angle = self.slider_vars["SERVO_CENTER"].get() + correction
