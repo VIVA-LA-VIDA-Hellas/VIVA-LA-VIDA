@@ -17,48 +17,59 @@ from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 # ===============================
 # CONFIGURATION VARIABLES
 # ===============================
-TARGET_DISTANCE = 40
-FRONT_TURN_TRIGGER = 80
-STOP_THRESHOLD = 20
 
-SPEED_CRUISE = 20
-SPEED_TURN = 20
+# --- Distance thresholds ---
+TARGET_DISTANCE = 40          # Desired distance from walls when driving straight (cm)
+FRONT_TURN_TRIGGER = 80      # Distance from obstacle to trigger a turn (cm)
+STOP_THRESHOLD = 20           # Minimum distance to front obstacle to trigger emergency stop (cm)
 
-SERVO_CHANNEL = 0
-SERVO_CENTER = 90
-SERVO_MIN_ANGLE = 50
-SERVO_MAX_ANGLE = 130
-TURN_ANGLE_LEFT = 65
-TURN_ANGLE_RIGHT = 115
+# --- Speed settings ---
+SPEED_CRUISE = 20             # Standard forward speed (% of max duty cycle)
+SPEED_TURN = 20               # Speed used during turning (% of max duty cycle)
 
-SERVO_PULSE_MIN = 1000
-SERVO_PULSE_MAX = 2000
-SERVO_PERIOD = 20000
+# --- Servo configuration ---
+SERVO_CHANNEL = 0             # PCA9685 channel controlling the steering servo
+SERVO_CENTER = 90             # Center angle of the servo (straight forward)
+SERVO_MIN_ANGLE = 50          # Minimum servo angle (hard left)
+SERVO_MAX_ANGLE = 130         # Maximum servo angle (hard right)
+TURN_ANGLE_LEFT = 65          # Servo angle to turn left
+TURN_ANGLE_RIGHT = 115        # Servo angle to turn right
+SERVO_PULSE_MIN = 1000        # Minimum PWM pulse for servo (µs)
+SERVO_PULSE_MAX = 2000        # Maximum PWM pulse for servo (µs)
+SERVO_PERIOD = 20000          # Servo PWM period (µs)
 
-MOTOR_FWD = 1
-MOTOR_REV = 2
+# --- Motor configuration ---
+MOTOR_FWD = 1                 # PCA9685 channel for forward motor
+MOTOR_REV = 2                 # PCA9685 channel for reverse motor
 
-TRIG_FRONT, ECHO_FRONT = 22, 23
-TRIG_LEFT, ECHO_LEFT = 27, 17
-TRIG_RIGHT, ECHO_RIGHT = 5, 6
+# --- Ultrasonic sensor pins ---
+TRIG_FRONT, ECHO_FRONT = 22, 23  # GPIO pins for front ultrasonic sensor
+TRIG_LEFT, ECHO_LEFT = 27, 17    # GPIO pins for left ultrasonic sensor
+TRIG_RIGHT, ECHO_RIGHT = 5, 6    # GPIO pins for right ultrasonic sensor
 
-ULTRASONIC_TIMEOUT = 0.02
-SOUND_SPEED = 17150
+# --- Ultrasonic timing ---
+ULTRASONIC_TIMEOUT = 0.02     # Maximum wait time for echo (seconds)
+SOUND_SPEED = 17150            # Speed of sound in cm/s for distance calculation
 
-N_READINGS = 5
-SAFE_MARGIN = 20
-SOFT_MARGIN = 30
-MAX_CORRECTION = 15
+# --- Sensor reading and PID settings ---
+N_READINGS = 5                 # Number of readings used for median filtering
+SAFE_MARGIN = 20               # Minimum safe distance from walls (cm)
+SOFT_MARGIN = 30               # Distance threshold for gentle wall correction
+MAX_CORRECTION = 15            # Maximum servo correction angle for wall following (degrees)
 
-TURN_TIMEOUT = 3.0
-TURN_LOCKOUT = 4.0
-TURN_DECISION_THRESHOLD = 100
-POST_TURN_DURATION = 0.5
+# --- Turn control parameters ---
+TURN_TIMEOUT = 3.0             # Maximum time allowed for a turn (seconds)
+TURN_LOCKOUT = 4.0             # Minimum interval between consecutive turns (seconds)
+TURN_DECISION_THRESHOLD = 100  # Minimum side distance to consider turning toward that side (cm)
+POST_TURN_DURATION = 0.5       # Duration to continue straight after finishing a turn (seconds)
 
-LOOP_DELAY = 0.05
-TRIG_PULSE_DURATION = 0.00001
+# --- Loop timing ---
+LOOP_DELAY = 0.05              # Delay for main control loop (seconds)
+TRIG_PULSE_DURATION = 0.00001  # Duration of ultrasonic trigger pulse (seconds)
 
-MAX_POINTS = 100  # last 100 readings for graphs
+# --- Plotting settings ---
+MAX_POINTS = 100               # Maximum number of data points stored for plots
+
 
 # ===============================
 # HARDWARE SETUP
