@@ -141,6 +141,7 @@ front_data = deque(maxlen=MAX_POINTS)
 left_data = deque(maxlen=MAX_POINTS)
 right_data = deque(maxlen=MAX_POINTS)
 angle_data = deque(maxlen=MAX_POINTS)
+state_data = deque(maxlen=MAX_POINTS)  # Store robot state for each reading
 
 # ===============================
 # ROBOT CONTROLLER
@@ -265,6 +266,7 @@ def robot_loop():
             left_data.append(d_left or 0)
             right_data.append(d_right or 0)
             angle_data.append(yaw)
+            state_data.append(status_text) 
         else:
             last_time = current_time
 
@@ -571,33 +573,37 @@ def stop_loop():
 # -------------------------
 
 def export_data_csv():
-    """Export all sensor, yaw readings, and current slider settings to a CSV file with timestamp."""
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    filename = f"robot_data_{timestamp}.csv"
+    """Export current sensor readings, yaw angle, robot state, and current slider parameters to a CSV file."""
+    from datetime import datetime
+    import csv
 
-    # Collect current slider values
+    filename = f"viva_data_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv"
+
+    # Gather current slider values
     slider_values = {name: var.get() for name, var in slider_vars.items()}
 
-    length = len(time_data)
     with open(filename, mode='w', newline='') as file:
         writer = csv.writer(file)
 
-        # Write sliders first
-        writer.writerow(["Parameter", "Value"])
-        for name, value in slider_values.items():
-            writer.writerow([name, value])
-        writer.writerow([])  # empty line before readings
+        # Write header: sensor columns + slider columns
+        header = ["Time (s)", "Front (cm)", "Left (cm)", "Right (cm)", "Yaw (deg)", "State"]
+        header += [name for name in slider_values.keys()]
+        writer.writerow(header)
 
-        # Write sensor data headers
-        writer.writerow(["Time_s", "Front_cm", "Left_cm", "Right_cm", "Yaw_deg"])
-        for i in range(length):
-            writer.writerow([
-                time_data[i],
-                front_data[i],
-                left_data[i],
-                right_data[i],
-                angle_data[i]
-            ])
+        # Write data rows
+        for i in range(len(time_data)):
+            row = [
+                round(time_data[i], 2),
+                round(front_data[i], 2),
+                round(left_data[i], 2),
+                round(right_data[i], 2),
+                round(angle_data[i], 2),
+                state_data[i]
+            ]
+            # Append slider values (current values, not historical)
+            row += [slider_values[name] for name in slider_values.keys()]
+            writer.writerow(row)
+
     print(f"Data exported to {filename}")
 
 # ===============================
