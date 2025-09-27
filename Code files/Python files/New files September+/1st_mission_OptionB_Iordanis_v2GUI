@@ -1,0 +1,543 @@
+# Full Robot Control GUI with Dead Zone, all variables defined, and per-line comments
+
+# --- Imports ---
+import time                                  # time functions (sleep, time)
+import threading                              # threading to run robot loop separate from GUI
+import tkinter as tk                           # tkinter GUI main module
+from tkinter import ttk                        # themed widgets
+import RPi.GPIO as GPIO                        # Raspberry Pi GPIO access
+from board import SCL, SDA                     # I2C pin definitions for busio
+import busio                                   # I2C bus interface
+from adafruit_pca9685 import PCA9685           # PCA9685 PWM driver for servos/motors
+import matplotlib                               # plotting library
+matplotlib.use("TkAgg")                        # set matplotlib backend to TkAgg for Tkinter
+from matplotlib.figure import Figure           # Figure container for plots
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg  # canvas bridge for Tkinter
+
+# --- Configuration variables (all defined here for easy editing) ---
+LOOP_DELAY = 0.1                               # main control loop delay in seconds
+START_DELAY = 1.0                              # wait before hardware initialization (seconds)
+TARGET_DISTANCE = 50.0                         # desired distance from wall for PID (cm)
+KP = 1.0                                       # proportional gain for PID
+KI = 0.0                                       # integral gain for PID
+KD = 0.8                                       # derivative gain for PID
+DEAD_ZONE = 2.0                                # servo dead zone threshold (degrees) to ignore small PID output
+SERVO_CHANNEL = 0                              # PCA9685 channel used for steering servo
+SERVO_MIN_ANGLE = 50                           # minimum servo angle (deg) corresponding to hard left
+SERVO_MAX_ANGLE = 130                          # maximum servo angle (deg) corresponding to hard right
+SERVO_CENTER = 90                              # servo center angle (deg) for straight ahead
+MOTOR_FWD = 1                                  # PCA9685 channel for forward motor control
+MOTOR_REV = 2                                  # PCA9685 channel for reverse motor control
+SPEED_CRUISE = 20                              # normal cruising motor speed (0-100)
+SPEED_SLOW = 15                                # slow speed used when approaching obstacles (0-100)
+TURN_SPEED = 10                                # motor speed used while executing sharp turns (0-100)
+BASE_TURN_TIME = 0.8                            # calibrated time (s) for ~90° turn at BASE_SPEED
+BASE_SPEED = 10                                 # reference motor speed used to calibrate BASE_TURN_TIME
+TURN_TRIGGER_DISTANCE = 90.0                    # front distance (cm) that triggers a turn
+TURN_OPEN_THRESHOLD = 100.0                     # side distance (cm) to treat side as "open" for turning
+EMERGENCY_STOP_DISTANCE = 5.0                   # front distance (cm) to trigger immediate emergency stop
+MAX_LAPS = 3                                    # optional maximum laps (not auto-stopping unless used)
+TRIG_FRONT, ECHO_FRONT = 22, 23                 # GPIO pins for front ultrasonic (trigger, echo)
+TRIG_LEFT,  ECHO_LEFT  = 27, 17                 # GPIO pins for left ultrasonic (trigger, echo)
+TRIG_RIGHT, ECHO_RIGHT = 5, 6                   # GPIO pins for right ultrasonic (trigger, echo)
+
+# --- Global runtime state variables ---
+robot_running = False                           # whether the robot loop is active
+auto_mode = True                                # True => PID auto mode enabled; False => manual override
+sensor_data = {"front": 0.0, "left": 0.0, "right": 0.0}  # latest sensor readings (cm)
+turns_completed = 0                              # number of turns in current lap
+laps_completed = 0                               # number of completed laps
+direction = "left"                               # wall-follow direction preference ("left" or "right")
+integral = 0.0                                   # PID integral accumulator
+last_error = 0.0                                 # last PID error for derivative calculation
+
+# --- Small safety / UI constants ---
+PLOT_LENGTH = 50                                 # number of history points to show on plot
+GUI_UPDATE_MS = 100                               # milliseconds between GUI updates (labels/plot)
+DOWN_HOLD_MS = 1000                               # ms duration to consider "down held" to start backward
+
+# --- Small initial delay to allow hardware to settle ---
+time.sleep(START_DELAY)                           # let sensors/hardware settle before init
+
+# --- PCA9685 & GPIO initialization ---
+i2c = busio.I2C(SCL, SDA)                         # create I2C bus for PCA9685
+pca = PCA9685(i2c)                                # initialize PCA9685
+pca.frequency = 50                                # set PWM frequency for servos (50 Hz)
+GPIO.setmode(GPIO.BCM)                            # use BCM GPIO numbering for ultrasonic sensors
+for trig in (TRIG_FRONT, TRIG_LEFT, TRIG_RIGHT):  # configure trigger pins as outputs
+    GPIO.setup(trig, GPIO.OUT)                    # set trigger pin as output
+    GPIO.output(trig, GPIO.LOW)                   # initialize trigger pin to LOW
+for echo in (ECHO_FRONT, ECHO_LEFT, ECHO_RIGHT):  # configure echo pins as inputs
+    GPIO.setup(echo, GPIO.IN)                     # set echo pin as input
+
+# --- Helper functions: motor/servo/control/sensors ---
+def rotate_motor(speed):
+    """Set motor speed: speed is -100..100, positive forward, negative reverse."""
+    duty_cycle = int(min(max(abs(speed), 0), 100) / 100.0 * 65535)  # scale 0..100 to 0..65535
+    if speed >= 0:                                                   # forward direction
+        pca.channels[MOTOR_FWD].duty_cycle = duty_cycle              # apply PWM to forward channel
+        pca.channels[MOTOR_REV].duty_cycle = 0                       # ensure reverse is off
+    else:                                                             # reverse direction
+        pca.channels[MOTOR_FWD].duty_cycle = 0                       # ensure forward is off
+        pca.channels[MOTOR_REV].duty_cycle = duty_cycle              # apply PWM to reverse channel
+
+def stop_motor():
+    """Stop motors immediately by zeroing PWM channels."""
+    pca.channels[MOTOR_FWD].duty_cycle = 0                            # stop forward channel
+    pca.channels[MOTOR_REV].duty_cycle = 0                            # stop reverse channel
+
+def set_servo_angle(angle):
+    """Set servo angle (degrees) mapped to PWM pulse width on PCA9685."""
+    angle = max(SERVO_MIN_ANGLE, min(SERVO_MAX_ANGLE, angle))         # clamp to safe servo range
+    pulse_min = 1000                                                  # 1.0 ms pulse width (µs)
+    pulse_max = 2000                                                  # 2.0 ms pulse width (µs)
+    pulse = int(pulse_min + (pulse_max - pulse_min) * ((angle - SERVO_MIN_ANGLE) / (SERVO_MAX_ANGLE - SERVO_MIN_ANGLE)))
+    pca.channels[SERVO_CHANNEL].duty_cycle = int(pulse * 65535 / 20000)  # convert µs to PCA9685 duty cycle
+
+def get_distance(trigger_pin, echo_pin):
+    """Measure distance in cm using HC-SR04-style ultrasonic sensor (blocking short)."""
+    GPIO.output(trigger_pin, GPIO.HIGH)                               # set trigger high
+    time.sleep(0.00001)                                               # keep high for 10 µs
+    GPIO.output(trigger_pin, GPIO.LOW)                                # set trigger low
+    pulse_start = None                                                 # initialize start time
+    pulse_end = None                                                   # initialize end time
+    timeout = time.time() + 0.02                                       # short timeout to avoid blocking forever
+    while GPIO.input(echo_pin) == GPIO.LOW:                            # wait for echo to go high
+        pulse_start = time.time()                                      # record time when it goes high
+        if pulse_start > timeout:                                      # if stuck low, return None
+            return None
+    timeout = time.time() + 0.02                                       # set timeout for falling edge
+    while GPIO.input(echo_pin) == GPIO.HIGH:                           # wait for echo to go low
+        pulse_end = time.time()                                        # record time when it goes low
+        if pulse_end > timeout:                                        # if stuck high, return None
+            return None
+    if pulse_start and pulse_end:                                      # if both times were recorded
+        pulse_duration = pulse_end - pulse_start                       # echo pulse duration (s)
+        return (pulse_duration * 34300.0) / 2.0                        # convert to cm (speed of sound ~34300 cm/s)
+    return None                                                         # fallback if measurement failed
+
+# --- Robot main control loop (runs in worker thread) ---
+def robot_loop():
+    """Main control loop: sensor reads, PID centering, turn logic, lap counting."""
+    global robot_running, sensor_data, integral, last_error, turns_completed, laps_completed, direction
+
+    while robot_running:                                               # keep running while flag is True
+        # --- Read sensor values (non-blocking returns None on timeout) ---
+        front = get_distance(TRIG_FRONT, ECHO_FRONT)                   # read front distance in cm
+        left = get_distance(TRIG_LEFT, ECHO_LEFT)                      # read left distance in cm
+        right = get_distance(TRIG_RIGHT, ECHO_RIGHT)                   # read right distance in cm
+
+        # --- Store sensor readings for GUI and logic (0.0 when sensor failed) ---
+        sensor_data["front"] = float(front) if front is not None else 0.0
+        sensor_data["left"]  = float(left)  if left  is not None else 0.0
+        sensor_data["right"] = float(right) if right is not None else 0.0
+
+        # --- Emergency stop if object extremely close in front ---
+        if front is not None and front < EMERGENCY_STOP_DISTANCE:
+            stop_motor()                                               # stop motors immediately
+            robot_running = False                                     # stop robot loop
+            break                                                     # exit loop to stop thread
+
+        # --- Auto (PID) mode behavior ---
+        if auto_mode:
+            # --- If obstacle ahead close enough, perform sharp calibrated turn ---
+            if front is not None and front < TURN_TRIGGER_DISTANCE:
+                # prefer turning toward an open side (side > TURN_OPEN_THRESHOLD)
+                if left is not None and left > TURN_OPEN_THRESHOLD:
+                    direction = "left"                                  # choose left turn
+                elif right is not None and right > TURN_OPEN_THRESHOLD:
+                    direction = "right"                                 # choose right turn
+                else:
+                    # fallback to whichever side reports larger distance
+                    left_val = left if left is not None else 0.0
+                    right_val = right if right is not None else 0.0
+                    direction = "left" if left_val > right_val else "right"
+
+                # dynamic turn duration scaled by turn speed vs base speed
+                turn_duration = BASE_TURN_TIME * (BASE_SPEED / max(1.0, TURN_SPEED))
+                # set servo to hard angle in chosen direction
+                if direction == "left":
+                    set_servo_angle(SERVO_MIN_ANGLE)
+                else:
+                    set_servo_angle(SERVO_MAX_ANGLE)
+                rotate_motor(TURN_SPEED)                               # move slowly while turning
+                time.sleep(turn_duration)                              # hold for calculated time to achieve ~90°
+                stop_motor()                                           # stop motors briefly after turn
+                set_servo_angle(SERVO_CENTER)                          # re-center servo after turn
+                time.sleep(0.15)                                      # small stabilization delay
+                # update turn and lap counters
+                turns_completed += 1
+                if turns_completed >= 4:
+                    turns_completed = 0
+                    laps_completed += 1
+                continue                                                # skip PID this cycle after turning
+
+            # --- PID centering between walls if both side sensors available ---
+            if left is not None and right is not None:
+                error = left - right                                  # positive error => robot too close to right wall
+            else:
+                # fallback to single-wall PID: use preferred wall based on `direction`
+                side_val = (left if direction == "left" else right)
+                if side_val is None:
+                    # if no valid side reading, skip this cycle to avoid bad control
+                    time.sleep(LOOP_DELAY)
+                    continue
+                error = TARGET_DISTANCE - side_val                    # compute error relative to target distance
+
+            integral += error                                           # accumulate integral term
+            derivative = error - last_error                             # compute derivative term
+            output = KP * error + KI * integral + KD * derivative       # PID output (in "degrees" correction)
+
+            # --- DEAD ZONE: ignore very small PID outputs to prevent jitter ---
+            if abs(output) < DEAD_ZONE:
+                output = 0.0                                            # zero-out tiny corrections
+
+            # --- Compute new servo angle from PID output, clamp to safe range ---
+            new_angle = SERVO_CENTER + output                           # apply correction around center
+            new_angle = max(SERVO_MIN_ANGLE, min(SERVO_MAX_ANGLE, new_angle))  # clamp within limits
+            set_servo_angle(new_angle)                                  # command servo
+
+            last_error = error                                          # save error for next derivative
+
+            # --- Adaptive forward speed based on front proximity ---
+            if front is not None and front < 60.0:
+                rotate_motor(SPEED_SLOW)                                # slow down when obstacle ahead
+            else:
+                rotate_motor(SPEED_CRUISE)                              # normal cruise
+
+        # small delay to yield CPU and to control loop rate
+        time.sleep(LOOP_DELAY)
+
+    # ensure motors are stopped when loop exits
+    stop_motor()
+
+# --- Manual control functions used by GUI buttons and keys ---
+def manual_turn_left():
+    """Execute a manual sharp left turn (blocking short operation)."""
+    if robot_running:
+        set_servo_angle(SERVO_MIN_ANGLE)                               # hard left
+        rotate_motor(TURN_SPEED)                                       # run motors slowly to perform turn
+        time.sleep(BASE_TURN_TIME * (BASE_SPEED / max(1.0, TURN_SPEED)))# turn duration scaled by speed
+        stop_motor()                                                    # stop after turn
+        set_servo_angle(SERVO_CENTER)                                   # re-center steering
+
+def manual_turn_right():
+    """Execute a manual sharp right turn (blocking short operation)."""
+    if robot_running:
+        set_servo_angle(SERVO_MAX_ANGLE)                               # hard right
+        rotate_motor(TURN_SPEED)                                       # run motors slowly to perform turn
+        time.sleep(BASE_TURN_TIME * (BASE_SPEED / max(1.0, TURN_SPEED)))# turn duration scaled by speed
+        stop_motor()                                                    # stop after turn
+        set_servo_angle(SERVO_CENTER)                                   # re-center steering
+
+def reset_laps():
+    """Reset lap and turn counters to zero."""
+    global laps_completed, turns_completed
+    laps_completed = 0
+    turns_completed = 0
+
+def toggle_auto_mode():
+    """Toggle between automatic PID mode and manual mode."""
+    global auto_mode
+    auto_mode = not auto_mode
+
+def emergency_stop():
+    """Immediate emergency stop: stop motors and halt robot loop."""
+    global robot_running
+    robot_running = False
+    stop_motor()
+
+# --- GUI: create main window and widgets ---
+root = tk.Tk()                                                      # main Tkinter window
+root.title("Robot Control Panel (Dead Zone + Full Controls)")       # window title
+
+# --- Top control frame (Start/Stop/E-Stop/Reset/Auto Toggle) ---
+control_frame = ttk.LabelFrame(root, text="Robot Controls")         # frame to group robot controls
+control_frame.pack(padx=8, pady=6, fill="x")                        # pack with padding and fill X
+
+start_btn = ttk.Button(control_frame, text="START")                 # start button widget
+start_btn.pack(side="left", padx=4, pady=4)                         # pack left in control frame
+
+stop_btn = ttk.Button(control_frame, text="STOP", command=emergency_stop)  # stop button widget
+stop_btn.pack(side="left", padx=4, pady=4)                           # pack next to start
+
+reset_btn = ttk.Button(control_frame, text="Reset Laps", command=reset_laps)  # reset laps button
+reset_btn.pack(side="left", padx=4, pady=4)                           # pack
+
+auto_btn = ttk.Button(control_frame, text="Toggle Auto", command=toggle_auto_mode)  # auto toggle button
+auto_btn.pack(side="left", padx=4, pady=4)                             # pack
+
+# --- Bind start button to starting thread function below (set after definition) ---
+# placeholder: will set command after start_thread defined
+
+# --- Manual turn frame (buttons) ---
+manual_frame = ttk.LabelFrame(root, text="Manual Turn")               # frame for manual turn buttons
+manual_frame.pack(padx=8, pady=6, fill="x")                           # pack with padding
+
+ttk.Button(manual_frame, text="Turn LEFT", command=manual_turn_left).pack(side="left", padx=4, pady=4)  # left turn
+ttk.Button(manual_frame, text="Turn RIGHT", command=manual_turn_right).pack(side="left", padx=4, pady=4)  # right turn
+
+# --- Manual servo & motor sliders frame ---
+slider_frame = ttk.LabelFrame(root, text="Manual Servo & Motor Control")  # frame for sliders
+slider_frame.pack(padx=8, pady=6, fill="x")                                 # pack
+
+servo_slider = tk.Scale(slider_frame, from_=SERVO_MIN_ANGLE, to=SERVO_MAX_ANGLE,
+                        orient=tk.HORIZONTAL, length=360, label="Servo Angle")  # servo angle slider
+servo_slider.set(SERVO_CENTER)                                                # initialize slider to center
+servo_slider.pack(padx=4, pady=4)                                             # pack slider
+
+motor_slider = tk.Scale(slider_frame, from_=-100, to=100,
+                        orient=tk.HORIZONTAL, length=360, label="Motor Speed")  # motor speed slider
+motor_slider.set(0)                                                            # set initial speed to 0
+motor_slider.pack(padx=4, pady=4)                                              # pack slider
+
+# --- slider binding functions (explicit setters for safety) ---
+def set_servo_from_slider(v):                                                  # setter for servo slider
+    set_servo_angle(float(v))                                                  # command servo from slider
+
+def set_motor_from_slider(v):                                                  # setter for motor slider
+    rotate_motor(float(v))                                                     # command motor from slider
+
+servo_slider.config(command=set_servo_from_slider)                             # bind servo slider change
+motor_slider.config(command=set_motor_from_slider)                             # bind motor slider change
+
+# when user touches slider, disable auto mode so manual input takes precedence
+def slider_override(event=None):                                               # disable auto_mode on slider interaction
+    global auto_mode
+    auto_mode = False
+
+servo_slider.bind("<ButtonPress-1>", slider_override)                          # bind press event for servo slider
+motor_slider.bind("<ButtonPress-1>", slider_override)                          # bind press event for motor slider
+
+# --- Sensor display frame (front/left/right labels and lap counter) ---
+sensor_frame = ttk.LabelFrame(root, text="Sensors (cm)")                       # frame for sensor labels
+sensor_frame.pack(padx=8, pady=6, fill="x")                                    # pack
+
+front_label = ttk.Label(sensor_frame, text="Front: 0.0")                        # label for front sensor
+front_label.pack(side="left", padx=6)                                          # pack left
+left_label = ttk.Label(sensor_frame, text="Left: 0.0")                          # label for left sensor
+left_label.pack(side="left", padx=6)                                           # pack
+right_label = ttk.Label(sensor_frame, text="Right: 0.0")                        # label for right sensor
+right_label.pack(side="left", padx=6)                                          # pack
+
+laps_label = ttk.Label(root, text="Laps: 0")                                    # label showing completed laps
+laps_label.pack(padx=8, pady=4)                                                 # pack
+
+mode_label = ttk.Label(root, text="Mode: AUTO" if auto_mode else "Mode: MANUAL") # label for mode indication
+mode_label.pack(padx=8, pady=2)                                                 # pack
+
+# --- Live plotting area (matplotlib embedded) ---
+fig = Figure(figsize=(7, 3))                                                    # create a matplotlib Figure
+ax = fig.add_subplot(111)                                                       # add subplot
+ax.set_ylim(0, 250)                                                             # set y-axis limits for distances
+line_front, = ax.plot([], [], label="Front", color="red")                       # line for front sensor
+line_left, = ax.plot([], [], label="Left", color="blue")                        # line for left sensor
+line_right, = ax.plot([], [], label="Right", color="green")                     # line for right sensor
+ax.legend(loc="upper right")                                                    # add legend to plot
+
+canvas = FigureCanvasTkAgg(fig, master=root)                                    # create canvas for embedding Figure
+canvas.get_tk_widget().pack(padx=8, pady=6)                                     # pack the canvas widget
+
+# buffers for plot history
+time_buffer = []                                                                 # timestamps buffer (unused on X axis, using index)
+front_buffer = []                                                                # front sensor history
+left_buffer = []                                                                 # left sensor history
+right_buffer = []                                                                # right sensor history
+
+# --- GUI update function to refresh labels and plot ---
+def update_gui():
+    """Refresh GUI labels and live plot with latest sensor_data and counters."""
+    # update labels
+    front_label.config(text=f"Front: {sensor_data['front']:.1f}")               # display front distance
+    left_label.config(text=f"Left: {sensor_data['left']:.1f}")                  # display left distance
+    right_label.config(text=f"Right: {sensor_data['right']:.1f}")               # display right distance
+    laps_label.config(text=f"Laps: {laps_completed}")                          # display laps completed
+    mode_label.config(text="Mode: AUTO" if auto_mode else "Mode: MANUAL")       # display auto/manual mode
+
+    # append buffers and keep limited history
+    front_buffer.append(sensor_data["front"])                                   # append latest front
+    left_buffer.append(sensor_data["left"])                                     # append latest left
+    right_buffer.append(sensor_data["right"])                                   # append latest right
+    if len(front_buffer) > PLOT_LENGTH:                                         # if too long
+        front_buffer.pop(0)                                                     # drop oldest
+        left_buffer.pop(0)                                                      # drop oldest
+        right_buffer.pop(0)                                                     # drop oldest
+
+    # update plot data (x is index 0..n-1)
+    line_front.set_data(range(len(front_buffer)), front_buffer)                 # set front data
+    line_left.set_data(range(len(left_buffer)), left_buffer)                    # set left data
+    line_right.set_data(range(len(right_buffer)), right_buffer)                 # set right data
+    ax.set_xlim(0, max(PLOT_LENGTH, len(front_buffer)))                         # adjust x limits
+    canvas.draw()                                                               # redraw canvas
+
+    root.after(GUI_UPDATE_MS, update_gui)                                       # schedule next GUI update
+
+# --- Arrow key handling with hold-for-backwards logic ---
+down_press_time = None                                                           # timestamp when Down pressed
+backward_active = False                                                          # flag whether backward motion is active
+MANUAL_SPEED_FORWARD = SPEED_CRUISE                                              # manual forward speed to use on Up press
+MANUAL_SPEED_BACKWARD = -SPEED_CRUISE                                            # manual backward speed to use when Down held
+
+def on_up_press(event):
+    """Start moving forward at MANUAL_SPEED_FORWARD while Up is pressed."""
+    global auto_mode
+    auto_mode = False                                                            # disable auto while manual keys used
+    rotate_motor(MANUAL_SPEED_FORWARD)                                           # command forward speed
+
+def on_up_release(event):
+    """Stop forward motion on Up release (optional keep-running behavior could be changed)."""
+    stop_motor()                                                                  # stop on release
+
+def on_down_press(event):
+    """Record Down press time; a short tap will stop, long hold will start backward motion."""
+    global down_press_time, backward_active, auto_mode
+    auto_mode = False                                                            # disable auto when using keys
+    down_press_time = int(time.time() * 1000)                                    # record timestamp in ms
+    backward_active = False                                                      # reset backward flag
+
+def on_down_release(event):
+    """Handle Down release: if short press (<1s) then toggle stop; if long hold, stop backward."""
+    global down_press_time, backward_active
+    if down_press_time is None:
+        return
+    duration_ms = int(time.time() * 1000) - down_press_time                       # compute hold duration ms
+    if duration_ms < DOWN_HOLD_MS:
+        stop_motor()                                                              # short press: stop motor
+        backward_active = False
+    else:
+        if backward_active:
+            stop_motor()                                                          # if backward active, stop on release
+            backward_active = False
+    # reset timestamp
+    down_press_time = None
+
+def check_down_hold():
+    """Periodic check to detect long hold on Down key and start backward if held long enough."""
+    global down_press_time, backward_active
+    if down_press_time is None:
+        root.after(100, check_down_hold)                                          # re-schedule check
+        return
+    # if not active and held long enough, start backward motion
+    if (not backward_active) and (int(time.time() * 1000) - down_press_time >= DOWN_HOLD_MS):
+        rotate_motor(MANUAL_SPEED_BACKWARD)                                       # start backward motion
+        backward_active = True
+    root.after(100, check_down_hold)                                              # re-schedule check
+
+# bind arrow key events to root window for manual control
+root.bind("<KeyPress-Up>", on_up_press)                                           # Up press -> forward
+root.bind("<KeyRelease-Up>", on_up_release)                                       # Up release -> stop
+root.bind("<KeyPress-Down>", on_down_press)                                       # Down press -> start timer
+root.bind("<KeyRelease-Down>", on_down_release)                                   # Down release -> handle stop/stop-back
+
+# start the down-hold checker loop
+root.after(100, check_down_hold)
+
+# --- Configuration sliders for PID and other tunables (explicit setter functions) ---
+config_frame = ttk.LabelFrame(root, text="Tunable Parameters")                   # frame for parameter sliders
+config_frame.pack(padx=8, pady=6, fill="x")                                      # pack it in GUI
+
+# setter functions must refer to globals
+def set_KP(v): 
+    """Set KP from slider value."""
+    global KP
+    KP = float(v)
+
+def set_KI(v):
+    """Set KI from slider value."""
+    global KI
+    KI = float(v)
+
+def set_KD(v):
+    """Set KD from slider value."""
+    global KD
+    KD = float(v)
+
+def set_target_distance(v):
+    """Set TARGET_DISTANCE from slider value."""
+    global TARGET_DISTANCE
+    TARGET_DISTANCE = float(v)
+
+def set_speed_cruise(v):
+    """Set cruise speed from slider value."""
+    global SPEED_CRUISE, MANUAL_SPEED_FORWARD
+    SPEED_CRUISE = float(v)
+    MANUAL_SPEED_FORWARD = SPEED_CRUISE  # keep manual mapped to cruise
+
+def set_speed_slow(v):
+    """Set slow speed from slider value."""
+    global SPEED_SLOW
+    SPEED_SLOW = float(v)
+
+def set_turn_speed(v):
+    """Set turn speed from slider value."""
+    global TURN_SPEED
+    TURN_SPEED = float(v)
+
+def set_servo_min(v):
+    """Set servo minimum angle from slider value."""
+    global SERVO_MIN_ANGLE
+    SERVO_MIN_ANGLE = float(v)
+
+def set_servo_max(v):
+    """Set servo maximum angle from slider value."""
+    global SERVO_MAX_ANGLE
+    SERVO_MAX_ANGLE = float(v)
+
+def set_servo_center(v):
+    """Set servo center angle from slider value."""
+    global SERVO_CENTER
+    SERVO_CENTER = float(v)
+    servo_slider.set(SERVO_CENTER)  # update manual slider to reflect new center
+
+def set_base_turn_time(v):
+    """Set base turn duration from slider value."""
+    global BASE_TURN_TIME
+    BASE_TURN_TIME = float(v)
+
+def set_dead_zone(v):
+    """Set dead zone (degrees) from slider value."""
+    global DEAD_ZONE
+    DEAD_ZONE = float(v)
+
+# Create sliders and bind them to setter functions
+tk.Scale(config_frame, label="KP", from_=0.0, to=5.0, resolution=0.05, orient=tk.HORIZONTAL, length=280, command=set_KP).pack(padx=4, pady=2)
+tk.Scale(config_frame, label="KI", from_=0.0, to=1.0, resolution=0.01, orient=tk.HORIZONTAL, length=280, command=set_KI).pack(padx=4, pady=2)
+tk.Scale(config_frame, label="KD", from_=0.0, to=5.0, resolution=0.05, orient=tk.HORIZONTAL, length=280, command=set_KD).pack(padx=4, pady=2)
+tk.Scale(config_frame, label="Target Distance (cm)", from_=10, to=200, resolution=1, orient=tk.HORIZONTAL, length=280, command=set_target_distance).pack(padx=4, pady=2)
+tk.Scale(config_frame, label="Cruise Speed", from_=0, to=100, resolution=1, orient=tk.HORIZONTAL, length=280, command=set_speed_cruise).pack(padx=4, pady=2)
+tk.Scale(config_frame, label="Slow Speed", from_=0, to=100, resolution=1, orient=tk.HORIZONTAL, length=280, command=set_speed_slow).pack(padx=4, pady=2)
+tk.Scale(config_frame, label="Turn Speed", from_=0, to=100, resolution=1, orient=tk.HORIZONTAL, length=280, command=set_turn_speed).pack(padx=4, pady=2)
+tk.Scale(config_frame, label="Servo Min Angle", from_=0, to=180, resolution=1, orient=tk.HORIZONTAL, length=280, command=set_servo_min).pack(padx=4, pady=2)
+tk.Scale(config_frame, label="Servo Max Angle", from_=0, to=180, resolution=1, orient=tk.HORIZONTAL, length=280, command=set_servo_max).pack(padx=4, pady=2)
+tk.Scale(config_frame, label="Servo Center", from_=0, to=180, resolution=1, orient=tk.HORIZONTAL, length=280, command=set_servo_center).pack(padx=4, pady=2)
+tk.Scale(config_frame, label="Base Turn Time (s)", from_=0.1, to=3.0, resolution=0.05, orient=tk.HORIZONTAL, length=280, command=set_base_turn_time).pack(padx=4, pady=2)
+tk.Scale(config_frame, label="Dead Zone (deg)", from_=0.0, to=20.0, resolution=0.1, orient=tk.HORIZONTAL, length=280, command=set_dead_zone).pack(padx=4, pady=2)
+
+# --- Start thread helper (start robot loop safely) ---
+def start_thread():
+    """Start the robot loop thread if not already running."""
+    global robot_running
+    if not robot_running:
+        robot_running = True                                                     # set flag so robot_loop runs
+        threading.Thread(target=robot_loop, daemon=True).start()                # spawn worker thread
+
+# attach start action to the start button (defined earlier)
+start_btn.config(command=start_thread)                                           # bind start button to start_thread
+
+# --- Clean shutdown when GUI window is closed ---
+def on_close():
+    """Handle application close: stop robot, cleanup GPIO, and destroy window."""
+    global robot_running
+    robot_running = False                                                         # stop worker loop
+    stop_motor()                                                                  # ensure motors are stopped
+    try:
+        GPIO.cleanup()                                                            # cleanup GPIO pins
+    except Exception:
+        pass
+    root.destroy()                                                                # close Tkinter window
+
+root.protocol("WM_DELETE_WINDOW", on_close)                                      # bind window close event to on_close
+
+# --- Start GUI update loop and Tk main loop ---
+update_gui()                                                                       # start GUI periodic updates
+root.mainloop()                                                                    # enter Tkinter main event loop

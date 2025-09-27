@@ -18,9 +18,11 @@ def set_servo_angle(channel, angle, min_us=500, max_us=2500, frequency=50):
     pca.frequency = frequency
     pulse_length = 1000000 / pca.frequency / 4096  # microseconds per tick
     pulse = min_us + (angle / 180.0) * (max_us - min_us)
-    ticks = int(pulse / pulse_length)
+    ticks = int(pulse / pulse_length)  # 0–4095
 
-    pca.channels[channel].duty_cycle = ticks
+    # Scale 12-bit ticks (0–4095) to 16-bit duty cycle (0–65535)
+    pca.channels[channel].duty_cycle = int(ticks / 4096 * 0xFFFF)
+
 
 
 def set_motor_speed(channel_forward, channel_reverse, speed, frequency=1000):
