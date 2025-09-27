@@ -17,24 +17,12 @@
 #     Triggered when front distance < configured turn trigger.
 #     Robot chooses the side with the greater distance (left or right) to turn toward.
 #     Moves forward while steering to avoid the obstacle.
-#     Turn ends when front sensor reads clear OR timeout reached.
-# - PID wall-following:
+#     Turn ends when front sensor reads clear AND (timeout reached OR side distance is reached OR gyroscope degrees reached)
+# - Wall-following:
 #     Compares left and right distances to maintain a centered path between walls.
-#     Adjusts servo angle based on PID output to correct robot heading.
+#     Adjusts servo angle based on distance to correct robot heading.
 #     Applies a deadzone to ignore small deviations and prevent oscillations.
-#     Uses adaptive PID gains to respond more aggressively to larger errors.
-# - Continuous forward motion: Robot moves at configured cruise speed unless turning or stopped.
-# - Integrates real-time sensor input, PID steering, and turning logic for autonomous navigation and obstacle avoidance.
 #-----------------------------------------------------------------------------------------------------------------------
-# Features:
-# - Continuous sensor reading (front, left, right)
-# - Emergency stop if obstacle too close
-# - Turn decision: turn only if front < trigger AND a side > 100cm
-# - PID wall-following between walls
-# - Tkinter GUI with integer/float sliders for robot parameters
-# - Matplotlib plots embedded in GUI
-# - Safe shutdown and cleanup
-#----------------------------------------------------------------------------------------------------------------------
 
 import threading
 import time
