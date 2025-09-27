@@ -346,7 +346,7 @@ def launch_gui():
     global ax_front, ax_side, ax_angle
     global front_line, left_line, right_line, angle_line
     global status_circle, status_canvas, status_text_id, lbl_status
-    global sliders_frame, slider_vars
+    global sliders_frame, slider_vars, btn_export
 
     root = tk.Tk()
     root.title("VivaLaVida Robot Control")
@@ -357,13 +357,11 @@ def launch_gui():
     fig, (ax_front, ax_side, ax_angle) = plt.subplots(3, 1, figsize=(6, 8))
     fig.tight_layout(pad=3.0)
 
-    # Front sensor plot
     ax_front.set_ylim(0, 350)
     ax_front.set_title("Front Sensor")
     ax_front.grid(True)
     front_line, = ax_front.plot([], [], color="blue")
 
-    # Side sensors plot
     ax_side.set_ylim(-150, 150)
     ax_side.set_title("Left (+Y) vs Right (-Y) Sensors")
     ax_side.grid(True)
@@ -371,7 +369,6 @@ def launch_gui():
     left_line, = ax_side.plot([], [], color="green")
     right_line, = ax_side.plot([], [], color="orange")
 
-    # Yaw angle plot
     ax_angle.set_ylim(-180, 180)
     ax_angle.set_title("Yaw Angle")
     ax_angle.grid(True)
@@ -385,10 +382,6 @@ def launch_gui():
     btn_stop = tk.Button(root, text="Stop Loop", command=stop_loop,
                          width=20, height=2, bg="red", fg="white", state="disabled")
 
-    btn_export = tk.Button(sliders_frame, text="Export CSV", command=export_data_csv,
-                       width=20, height=2, bg="purple", fg="white")
-    btn_export.pack(pady=10, fill="x")
-
     # ---------- Status Labels ----------
     lbl_status = tk.Label(root, text="Idle", font=("Arial", 14))
     lbl_turns = tk.Label(root, text=f"Turns: {turn_count}", font=("Arial", 14))
@@ -401,6 +394,7 @@ def launch_gui():
 
     # ---------- Sliders Frame ----------
     sliders_frame = tk.LabelFrame(root, text="Parameters", padx=10, pady=10)
+    sliders_frame.grid(row=0, column=1, rowspan=8, sticky="ns", padx=10, pady=5)
 
     # ---------- Two-column layout ----------
     # Left column (column 0) - buttons, status, counters, circle
@@ -412,13 +406,11 @@ def launch_gui():
     lbl_laps.grid(row=5, column=0, pady=2)
     status_canvas.grid(row=6, column=0, pady=5)
 
-    # Right column (column 1) - all sliders stacked vertically
-    sliders_frame.grid(row=0, column=1, rowspan=8, sticky="ns", padx=10, pady=5)
-
     # Embed matplotlib figure under left column
     canvas = FigureCanvasTkAgg(fig, master=root)
     canvas.get_tk_widget().grid(row=7, column=0, sticky="nsew", padx=5, pady=5)
 
+    # Make left column and plots stretchable
     root.grid_columnconfigure(0, weight=1)
     root.grid_columnconfigure(1, weight=0)
     root.grid_rowconfigure(7, weight=1)
@@ -429,22 +421,18 @@ def launch_gui():
         ("Turn Speed", "SPEED_TURN", 0, 100, "int"),
         ("Safe Margin", "SAFE_MARGIN", 0, 100, "int"),
         ("Soft Margin", "SOFT_MARGIN", 0, 100, "int"),
-        ("Max Correction", "MAX_CORRECTION", 0, 30, "int"),
+        ("Max Correction", "MAX_CORRECTION", 0, 45, "int"),
         ("Stop Threshold", "STOP_THRESHOLD", 0, 100, "int"),
-        ("Front Turn Trigger", "FRONT_TURN_TRIGGER", 50, 150, "int"),
+        ("Front Turn Trigger", "FRONT_TURN_TRIGGER", 0, 200, "int"),
         ("Turn Decision Threshold", "TURN_DECISION_THRESHOLD", 0, 200, "int"),
-        ("Turn Timeout (s)", "TURN_TIMEOUT", 1, 5, "float"),
-        ("Turn Lockout (s)", "TURN_LOCKOUT", 1, 5, "float"),
+        ("Turn Timeout (s)", "TURN_TIMEOUT", 1, 10, "float"),
+        ("Turn Lockout (s)", "TURN_LOCKOUT", 1, 10, "float"),
         ("Post Turn Duration (s)", "POST_TURN_DURATION", 0.1, 5, "float"),
-        ("Min Turn Angle", "MIN_TURN_ANGLE", 30, 90, "int"),
-        ("Max Turn Angle", "MAX_TURN_ANGLE", 90, 120, "int"),
-        ("Sensor Filter N", "N_READINGS", 1, 15, "int"),
+        ("Min Turn Angle", "MIN_TURN_ANGLE", 0, 180, "int"),
+        ("Max Turn Angle", "MAX_TURN_ANGLE", 0, 180, "int"),
+        ("Sensor Filter N", "N_READINGS", 1, 20, "int"),
         ("Max Laps", "MAX_LAPS", 0, 20, "int"),
     ]
-
-    # ---------- Helper function ----------
-    def update_var(name, tk_var):
-        globals()[name] = tk_var.get()
 
     # ---------- Create sliders ----------
     for label_text, var_name, vmin, vmax, vartype in slider_defs:
@@ -453,38 +441,38 @@ def launch_gui():
 
         if vartype == "float":
             var = tk.DoubleVar(value=globals()[var_name])
-            resolution = 0.1
+            res = 0.1
         else:
             var = tk.IntVar(value=globals()[var_name])
-            resolution = 1
+            res = 1
 
         slider_vars[var_name] = var
 
         scale = tk.Scale(frame, from_=vmin, to=vmax, orient="horizontal",
-                         variable=var, resolution=resolution)
+                         variable=var, resolution=res)
         scale.pack(side="left", fill="x", expand=True)
 
-        def format_value(name, value):
-            if name == "MAX_LAPS" and value == 0:
-                return "∞"
-            if isinstance(value, float):
-                return f"{value:.1f}"
-            return str(value)
-
-        lbl_val = tk.Label(frame, text=f"{label_text}: {format_value(var_name, var.get())}",
-                           width=20, anchor="w")
+        lbl_val = tk.Label(frame, text=f"{label_text}: {var.get()}", width=20, anchor="w")
         lbl_val.pack(side="right", padx=5)
 
         def make_callback(lbl, name, var):
             def callback(value):
-                update_var(name, var)
-                lbl.config(text=f"{label_text}: {format_value(name, var.get())}")
+                globals()[name] = var.get()
+                if name == "MAX_LAPS" and var.get() == 0:
+                    lbl.config(text=f"{label_text}: ∞")
+                else:
+                    lbl.config(text=f"{label_text}: {var.get():.1f}" if isinstance(var.get(), float) else f"{label_text}: {var.get()}")
             return callback
 
         scale.config(command=make_callback(lbl_val, var_name, var))
 
+    # ---------- Export CSV button under sliders ----------
+    btn_export = tk.Button(sliders_frame, text="Export CSV", command=export_data_csv,
+                           width=20, height=2, bg="purple", fg="white")
+    btn_export.pack(pady=10, fill="x")
+
     # ===============================
-    # GUI Update Functions
+    # GUI UPDATE FUNCTIONS
     # ===============================
     def status_color(state: str) -> str:
         if "Stopped" in state:
