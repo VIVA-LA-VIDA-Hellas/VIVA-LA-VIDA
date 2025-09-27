@@ -417,55 +417,62 @@ def launch_gui():
     # Sliders
     # -------------------------
     slider_defs = [
-        ("Cruise Speed","SPEED_CRUISE",0,100),
-        ("Turn Speed","SPEED_TURN",0,100),
-        ("Safe Margin","SAFE_MARGIN",0,100),
-        ("Soft Margin","SOFT_MARGIN",0,100),
-        ("Max Correction","MAX_CORRECTION",0,45),
-        ("Stop Threshold","STOP_THRESHOLD",0,100),
-        ("Front Turn Trigger","FRONT_TURN_TRIGGER",0,200),
-        ("Turn Decision Threshold","TURN_DECISION_THRESHOLD",0,200),
-        ("Turn Timeout (s)","TURN_TIMEOUT",1,10),
-        ("Turn Lockout (s)","TURN_LOCKOUT",1,10),
-        ("Post Turn Duration (s)","POST_TURN_DURATION",0.1,5),
-        ("Min Turn Angle","MIN_TURN_ANGLE",0,180),
-        ("Max Turn Angle","MAX_TURN_ANGLE",0,180),
-        ("Sensor Filter N","N_READINGS",1,20),
-        ("Max Laps","MAX_LAPS",0,20),
-    ]
+    ("Cruise Speed", "SPEED_CRUISE", 0, 100, "int"),
+    ("Turn Speed", "SPEED_TURN", 0, 100, "int"),
+    ("Safe Margin", "SAFE_MARGIN", 0, 100, "int"),
+    ("Soft Margin", "SOFT_MARGIN", 0, 100, "int"),
+    ("Max Correction", "MAX_CORRECTION", 0, 45, "int"),
+    ("Stop Threshold", "STOP_THRESHOLD", 0, 100, "int"),
+    ("Front Turn Trigger", "FRONT_TURN_TRIGGER", 0, 200, "int"),
+    ("Turn Decision Threshold", "TURN_DECISION_THRESHOLD", 0, 200, "int"),
+    ("Turn Timeout (s)", "TURN_TIMEOUT", 1, 10, "float"),
+    ("Turn Lockout (s)", "TURN_LOCKOUT", 1, 10, "float"),
+    ("Post Turn Duration (s)", "POST_TURN_DURATION", 0.1, 5, "float"),
+    ("Min Turn Angle", "MIN_TURN_ANGLE", 0, 180, "int"),
+    ("Max Turn Angle", "MAX_TURN_ANGLE", 0, 180, "int"),
+    ("Sensor Filter N", "N_READINGS", 1, 20, "int"),
+    ("Max Laps", "MAX_LAPS", 0, 20, "int"),
+]
 
-    def update_var(name, tk_var):
-        globals()[name] = tk_var.get()
+slider_vars = {}
 
-    for label, var_name, vmin, vmax in slider_defs:
-        frame = tk.Frame(sliders_frame)
-        frame.pack(fill="x", pady=2)
+for label_text, var_name, vmin, vmax, vartype in slider_defs:
+    frame = tk.Frame(sliders_frame)
+    frame.pack(fill="x", pady=2)
 
-        if var_name in ["TURN_TIMEOUT","TURN_LOCKOUT","POST_TURN_DURATION"]:
-            var = tk.DoubleVar(value=globals()[var_name])
-            res = 0.1
-        else:
-            var = tk.IntVar(value=globals()[var_name])
-            res = 1
+    if vartype == "float":
+        var = tk.DoubleVar(value=globals()[var_name])
+        res = 0.1
+    else:
+        var = tk.IntVar(value=globals()[var_name])
+        res = 1
 
-        slider_vars[var_name] = var
+    slider_vars[var_name] = var
 
-        scale = tk.Scale(frame, from_=vmin, to=vmax, orient="horizontal",
-                         variable=var, resolution=res)
-        scale.pack(side="left", fill="x", expand=True)
+    scale = tk.Scale(frame, from_=vmin, to=vmax, orient="horizontal",
+                     variable=var, resolution=res)
+    scale.pack(side="left", fill="x", expand=True)
 
-        lbl_val = tk.Label(frame, text=f"{label}: {var.get():.1f}" if isinstance(var.get(), float) else f"{label}: {var.get()}", width=20, anchor="w")
-        lbl_val.pack(side="right", padx=5)
+    lbl_val = tk.Label(frame, width=20, anchor="w")
+    lbl_val.pack(side="right", padx=5)
 
-        def make_callback(lbl, name, var):
-            def callback(value):
-                update_var(name,var)
-                if name=="MAX_LAPS" and var.get()==0:
-                    lbl.config(text=f"{label}: ∞")
-                else:
-                    lbl.config(text=f"{label}: {var.get():.1f}" if isinstance(var.get(), float) else f"{label}: {var.get()}")
-            return callback
-        scale.config(command=make_callback(lbl_val,var_name,var))
+    # Function to format slider label text
+    def format_label(name, val):
+        if name == "MAX_LAPS" and val == 0:
+            return f"{label_text}: ∞"
+        if isinstance(val, float):
+            return f"{label_text}: {val:.1f}"
+        return f"{label_text}: {val}"
+
+    # Callback for slider value change
+    def make_callback(lbl, name, var):
+        def callback(value):
+            globals()[name] = var.get()
+            lbl.config(text=format_label(name, var.get()))
+        return callback
+
+    scale.config(command=make_callback(lbl_val, var_name, var))
+    lbl_val.config(text=format_label(var_name, var.get()))
 
     # -------------------------
     # GUI Update
