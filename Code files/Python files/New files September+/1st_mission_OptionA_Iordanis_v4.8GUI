@@ -322,7 +322,7 @@ def robot_loop():
             global turn_count, lap_count
             turn_count += 1
             if turn_count % 4 == 0:
-            lap_count += 1
+                lap_count += 1
             
             # Post-turn straight drive
             if post_turn_wait:
