@@ -1,3 +1,4 @@
+'''accel,gyro,dis,colour sensors'''
 import time
 import RPi.GPIO as GPIO
 

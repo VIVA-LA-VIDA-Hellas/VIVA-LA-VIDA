@@ -1,3 +1,5 @@
+'''No pid steering, find direction with distance sensors, no loops'''
+
 import board
 import busio
 import time

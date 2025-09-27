@@ -1,4 +1,4 @@
-Improved version of MIDDLE_LANE_CANNY also using picamera library'
+'''Improved version of MIDDLE_LANE_CANNY also using picamera library'''
 import board
 import busio
 import digitalio

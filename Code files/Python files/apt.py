@@ -1,3 +1,4 @@
+''' detect direction with camera, middle lane canny follow, not working'''
 import board
 import busio
 import digitalio

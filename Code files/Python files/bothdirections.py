@@ -1,3 +1,4 @@
+'''pid directions with dis sens, older version working(?)'''
 import board
 import busio
 import time

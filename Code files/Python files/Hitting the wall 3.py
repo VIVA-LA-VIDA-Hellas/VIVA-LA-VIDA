@@ -1,3 +1,4 @@
+'''no pid, no servo coms, detect direction with camera (not working, unfinished) -updated version, has more targeted readings'''
 import board
 import busio
 import digitalio
