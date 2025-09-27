@@ -420,20 +420,20 @@ def launch_gui():
 
     # ---------- Slider Definitions ----------
     slider_defs = [
-        ("Cruise Speed", "SPEED_CRUISE", 0, 100, "int"),
-        ("Turn Speed", "SPEED_TURN", 0, 100, "int"),
-        ("Safe Margin", "SAFE_MARGIN", 0, 100, "int"),
-        ("Soft Margin", "SOFT_MARGIN", 0, 100, "int"),
-        ("Max Correction", "MAX_CORRECTION", 0, 45, "int"),
-        ("Stop Threshold", "STOP_THRESHOLD", 0, 100, "int"),
-        ("Front Turn Trigger", "FRONT_TURN_TRIGGER", 0, 200, "int"),
-        ("Turn Decision Threshold", "TURN_DECISION_THRESHOLD", 0, 200, "int"),
+        ("Cruise Speed (%)", "SPEED_CRUISE", 0, 100, "int"),
+        ("Turn Speed (%)", "SPEED_TURN", 0, 100, "int"),
+        ("Safe Margin (cm)", "SAFE_MARGIN", 0, 100, "int"),
+        ("Soft Margin (cm)", "SOFT_MARGIN", 0, 100, "int"),
+        ("Max Angle Correction at Soft Margin (o)", "MAX_CORRECTION", 0, 45, "int"),
+        ("Stop Threshold (cm)", "STOP_THRESHOLD", 0, 100, "int"),
+        ("Front Turn Trigger (cm)", "FRONT_TURN_TRIGGER", 50, 150, "int"),
+        ("Turn Decision Threshold (Left/Right) (cm)", "TURN_DECISION_THRESHOLD", 0, 200, "int"),
         ("Turn Timeout (s)", "TURN_TIMEOUT", 1, 10, "float"),
         ("Turn Lockout (s)", "TURN_LOCKOUT", 1, 10, "float"),
         ("Post Turn Duration (s)", "POST_TURN_DURATION", 0.1, 5, "float"),
-        ("Min Turn Angle", "MIN_TURN_ANGLE", 0, 180, "int"),
-        ("Max Turn Angle", "MAX_TURN_ANGLE", 0, 180, "int"),
-        ("Sensor Filter N", "N_READINGS", 1, 20, "int"),
+        ("Min Turn Angle (o)", "MIN_TURN_ANGLE", 60, 90, "int"),
+        ("Max Turn Angle (o)", "MAX_TURN_ANGLE", 90, 120, "int"),
+        ("Sensor Filter N (Median)", "N_READINGS", 1, 20, "int"),
         ("Max Laps", "MAX_LAPS", 0, 20, "int"),
     ]
 
