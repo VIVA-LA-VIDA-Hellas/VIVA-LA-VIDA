@@ -245,7 +245,7 @@ robot = RobotController(pca)
 # ROBOT MAIN LOOP
 # ===============================
 def robot_loop():
-    global loop_flag, readings_flag, status_text
+    global loop_flag, readings_flag, status_text, turn_count, lap_count
     turning = False
     turn_start_time = 0
     last_turn_time = -TURN_LOCKOUT
@@ -259,27 +259,28 @@ def robot_loop():
     last_time = time.monotonic()
     start_time = time.monotonic()
 
+    # Initialize sensor vars to safe defaults
+    d_front = None
+    d_left = None
+    d_right = None
+    yaw = 0.0
+
     while True:
         current_time = time.monotonic()
         dt = current_time - last_time
 
+        # Reset sensor/readout vars each loop (prevents UnboundLocal usage)
         if readings_flag:
             d_front = robot.filtered_distance(TRIG_FRONT, ECHO_FRONT, robot.front_history)
-            d_left = robot.filtered_distance(TRIG_LEFT, ECHO_LEFT, robot.left_history)
+            d_left  = robot.filtered_distance(TRIG_LEFT, ECHO_LEFT, robot.left_history)
             d_right = robot.filtered_distance(TRIG_RIGHT, ECHO_RIGHT, robot.right_history)
 
-            # ---------- MPU6050 Yaw Integration ----------
-            #gyro_z = mpu.gyro[2]                      # rad/s
-            #gyro_z_deg = gyro_z * (180 / 3.14159265)  # convert to deg/s
-            #last_yaw += gyro_z_deg * dt               # integrate to get yaw
-            #last_time = current_time
-            #yaw = last_yaw
+            # MPU6050 yaw integration
             gyro_z = mpu.gyro[2] - bias
             gyro_z_deg = gyro_z * (180 / 3.14159265)
             last_yaw += gyro_z_deg * dt
             last_time = current_time
             yaw = last_yaw
-            # ---------------------------------------------
 
             elapsed_time = current_time - start_time
             time_data.append(elapsed_time)
@@ -287,6 +288,9 @@ def robot_loop():
             left_data.append(d_left or 0)
             right_data.append(d_right or 0)
             angle_data.append(yaw)
+        else:
+            # If readings are not active, keep dt/yaw timing sane
+            last_time = current_time
 
         if loop_flag:
             # Emergency stop
@@ -296,16 +300,25 @@ def robot_loop():
                 time.sleep(LOOP_DELAY)
                 continue
 
-            # Turn initiation
-            if (not turning and not post_turn_wait and d_front is not None and d_front < FRONT_TURN_TRIGGER
-                and (d_left and d_left > TURN_DECISION_THRESHOLD or d_right and d_right > TURN_DECISION_THRESHOLD)
-                and time.monotonic() - last_turn_time >= TURN_LOCKOUT):
+            # Turn initiation: clearer None checks and parentheses
+            can_trigger_turn = (
+                (d_front is not None and d_front < FRONT_TURN_TRIGGER)
+                and (
+                    (d_left is not None and d_left > TURN_DECISION_THRESHOLD)
+                    or (d_right is not None and d_right > TURN_DECISION_THRESHOLD)
+                )
+                and (time.monotonic() - last_turn_time >= TURN_LOCKOUT)
+            )
 
+            if (not turning) and (not post_turn_wait) and can_trigger_turn:
                 direction = robot.turn_decision(d_left, d_right)
                 turning = True
                 turn_start_time = time.monotonic()
                 turn_start_yaw = yaw
                 status_text = f"Turning {direction}"
+                turn_count += 1                  # increment when a turn actually starts
+                if turn_count % 4 == 0:
+                    lap_count += 1
 
             # Turn logic
             if turning:
@@ -314,13 +327,13 @@ def robot_loop():
                 robot.set_servo(angle)
                 robot.rotate_motor(SPEED_TURN)
 
-                turn_angle = abs(yaw - turn_start_yaw)
+                turn_angle = abs(yaw - (turn_start_yaw or 0.0))
 
                 stop_condition = (
-                    (d_front and d_front > FRONT_SAFE_DISTANCE and side_distance and side_distance > TARGET_DISTANCE)
+                    (d_front is not None and d_front > FRONT_SAFE_DISTANCE and side_distance is not None and side_distance > TARGET_DISTANCE)
                     or (time.monotonic() - turn_start_time > TURN_TIMEOUT)
                     or (turn_angle >= MAX_TURN_ANGLE)
-                    or (turn_angle >= MIN_TURN_ANGLE and side_distance and side_distance > TARGET_DISTANCE)
+                    or (turn_angle >= MIN_TURN_ANGLE and side_distance is not None and side_distance > TARGET_DISTANCE)
                 )
 
                 if stop_condition:
@@ -335,20 +348,22 @@ def robot_loop():
                     turn_start_yaw = None
                     status_text = "Driving (post-turn)"
 
-            # --- Update counters ---
-            global turn_count, lap_count
-            turn_count += 1
-            if turn_count % 4 == 0:
-                lap_count += 1
-            
             # Post-turn straight drive
-            if post_turn_wait:
+            elif post_turn_wait:
                 if time.monotonic() - post_turn_start < POST_TURN_DURATION:
                     robot.set_servo(SERVO_CENTER)
                     robot.rotate_motor(SPEED_CRUISE)
                     status_text = "Driving (post-turn)"
                 else:
                     post_turn_wait = False
+
+            # Normal cruise + wall-following steering when not turning or post-turning
+            else:
+                # Compute safe straight steering (uses available side distances)
+                servo_angle = robot.safe_straight_control(d_left, d_right)
+                robot.set_servo(servo_angle)
+                robot.rotate_motor(SPEED_CRUISE)
+                status_text = "Driving (cruise)"
 
         time.sleep(LOOP_DELAY)
 
