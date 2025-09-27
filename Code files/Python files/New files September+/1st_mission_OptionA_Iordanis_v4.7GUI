@@ -50,10 +50,22 @@ from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 # CONFIGURATION VARIABLES
 # ===============================
 
-# ---------- Distance thresholds ----------
+# ---------- Driving ----------
+STOP_THRESHOLD = 20           # Front distance threshold to stop immediately (cm) - emergency stop
+N_READINGS = 5                # Number of readings to store for median filtering
+SAFE_MARGIN = 20              # Margin for safe distance
+SOFT_MARGIN = 30              # Soft margin for steering corrections
+MAX_CORRECTION = 15           # Maximum steering correction in degrees
+
+# ---------- Turning ----------
 TARGET_DISTANCE = 40          # Desired distance from side obstacles (cm) - turning stop
 FRONT_TURN_TRIGGER = 80       # Front distance threshold to start a turn (cm) - turning start
-STOP_THRESHOLD = 20           # Front distance threshold to stop immediately (cm) - emergency stop
+TURN_ANGLE_LEFT = 65          # Angle for left turn
+TURN_ANGLE_RIGHT = 115        # Angle for right turn
+TURN_TIMEOUT = 3.0                   # Maximum time allowed for a turn (seconds)
+TURN_LOCKOUT = 4.0                   # Minimum interval between turns (seconds)
+TURN_DECISION_THRESHOLD = 100        # Distance threshold to decide turn direction
+POST_TURN_DURATION = 0.5             # Time to drive straight after turn (seconds)
 
 # ---------- Speeds ----------
 SPEED_CRUISE = 20             # Motor speed for normal straight driving (0-100%)
@@ -64,8 +76,6 @@ SERVO_CHANNEL = 0             # PCA9685 channel for servo
 SERVO_CENTER = 90             # Center position of the servo (degrees)
 SERVO_MIN_ANGLE = 50          # Minimum servo angle (degrees)
 SERVO_MAX_ANGLE = 130         # Maximum servo angle (degrees)
-TURN_ANGLE_LEFT = 65          # Angle for left turn
-TURN_ANGLE_RIGHT = 115        # Angle for right turn
 
 SERVO_PULSE_MIN = 1000        # Servo min pulse width (microseconds)
 SERVO_PULSE_MAX = 2000        # Servo max pulse width (microseconds)
@@ -82,18 +92,6 @@ TRIG_RIGHT, ECHO_RIGHT = 5, 6      # GPIO pins for right sensor
 
 ULTRASONIC_TIMEOUT = 0.02          # Timeout for sensor reading (seconds)
 SOUND_SPEED = 17150                # Speed of sound in cm/s
-
-# ---------- Sensor data filtering ----------
-N_READINGS = 5                      # Number of readings to store for median filtering
-SAFE_MARGIN = 20                     # Margin for safe distance
-SOFT_MARGIN = 30                     # Soft margin for steering corrections
-MAX_CORRECTION = 15                  # Maximum steering correction in degrees
-
-# ---------- Turn management ----------
-TURN_TIMEOUT = 3.0                   # Maximum time allowed for a turn (seconds)
-TURN_LOCKOUT = 4.0                   # Minimum interval between turns (seconds)
-TURN_DECISION_THRESHOLD = 100        # Distance threshold to decide turn direction
-POST_TURN_DURATION = 0.5             # Time to drive straight after turn (seconds)
 
 # ---------- Loop timing ----------
 LOOP_DELAY = 0.05                    # Main loop delay (seconds)
