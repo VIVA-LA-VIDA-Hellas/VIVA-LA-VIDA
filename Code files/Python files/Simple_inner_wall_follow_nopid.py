@@ -1,4 +1,4 @@
-'''No pid steering, find direction with distance sensors, no loops'''
+'''No pid steering, find direction with distance sensors, no loops simple inner wall follow'''
 
 import board
 import busio

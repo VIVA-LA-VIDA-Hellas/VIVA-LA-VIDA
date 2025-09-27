@@ -1,3 +1,4 @@
+'''created june 2025, detects direction with camera'''
 import board
 import busio
 import digitalio
