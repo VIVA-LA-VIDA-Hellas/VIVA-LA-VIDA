@@ -65,18 +65,17 @@ STOP_THRESHOLD = 20           # Front distance threshold (cm) to stop immediatel
 # ---------- Turn management ----------
 FRONT_TURN_TRIGGER = 90       # Front distance threshold (cm) to trigger a turn
 TURN_DECISION_THRESHOLD = 100 # Minimum side distance (cm) to allow turn in that direction
-
 TURN_ANGLE_LEFT = 65          # Servo angle for left turn
 TURN_ANGLE_RIGHT = 115        # Servo angle for right turn
-
-MIN_TURN_ANGLE = 80           # Minimum yaw change (degrees) before turn can stop
-MAX_TURN_ANGLE = 95           # Maximum yaw change (degrees) to force stop turn
 FRONT_SAFE_DISTANCE = 200     # Front distance considered safe to end a turn (cm)
 TARGET_DISTANCE = 40          # Desired distance from side walls (cm)
 TURN_TIMEOUT = 3.0            # Maximum time allowed for a turn (seconds)
 TURN_LOCKOUT = 4.0            # Minimum interval between consecutive turns (seconds)
-
 POST_TURN_DURATION = 0.5      # Time to drive straight after a turn (seconds)
+
+# ---------- Turn angle constraints ----------
+MIN_TURN_ANGLE = 10           # Minimum yaw change (degrees) before turn can stop
+MAX_TURN_ANGLE = 90           # Maximum yaw change (degrees) to force stop turn
 
 # ---------- Servo ----------
 SERVO_CHANNEL = 0             # PCA9685 channel controlling steering servo
@@ -142,7 +141,7 @@ time_data = deque(maxlen=MAX_POINTS)   # Time stamps for plotting
 front_data = deque(maxlen=MAX_POINTS)  # Front ultrasonic distances
 left_data = deque(maxlen=MAX_POINTS)   # Left ultrasonic distances
 right_data = deque(maxlen=MAX_POINTS)  # Right ultrasonic distances
-angle_data = deque(maxlen=MAX_POINTS)  # Yaw angle readings from MPU6050
+angle_data = deque(maxlen=MAX_POINTS)  # Integrated yaw angle from MPU6050
 
 # ===============================
 # ROBOT CONTROLLER CLASS
@@ -150,12 +149,11 @@ angle_data = deque(maxlen=MAX_POINTS)  # Yaw angle readings from MPU6050
 class RobotController:
     def __init__(self, pca):
         self.pca = pca
-        self.front_history = deque(maxlen=N_READINGS)  # Recent front readings for median filter
-        self.left_history = deque(maxlen=N_READINGS)   # Recent left readings for median filter
-        self.right_history = deque(maxlen=N_READINGS)  # Recent right readings for median filter
+        self.front_history = deque(maxlen=N_READINGS)
+        self.left_history = deque(maxlen=N_READINGS)
+        self.right_history = deque(maxlen=N_READINGS)
 
     def set_servo(self, angle):
-        """Set servo to desired angle, limited by min/max, converted to PWM."""
         angle = max(SERVO_MIN_ANGLE, min(SERVO_MAX_ANGLE, angle))
         pulse = int(
             SERVO_PULSE_MIN + (SERVO_PULSE_MAX - SERVO_PULSE_MIN) *
@@ -164,7 +162,6 @@ class RobotController:
         self.pca.channels[SERVO_CHANNEL].duty_cycle = int(pulse * 65535 / SERVO_PERIOD)
 
     def rotate_motor(self, speed):
-        """Rotate motor forward or backward based on speed (-100 to 100)."""
         duty_cycle = int(min(max(abs(speed), 0), 100) / 100 * 65535)
         if speed >= 0:
             self.pca.channels[MOTOR_FWD].duty_cycle = duty_cycle
@@ -174,12 +171,10 @@ class RobotController:
             self.pca.channels[MOTOR_REV].duty_cycle = duty_cycle
 
     def stop_motor(self):
-        """Stop all motor movement."""
         self.pca.channels[MOTOR_FWD].duty_cycle = 0
         self.pca.channels[MOTOR_REV].duty_cycle = 0
 
     def get_distance(self, trig, echo):
-        """Return distance in cm from ultrasonic sensor."""
         try:
             GPIO.output(trig, True)
             time.sleep(TRIG_PULSE_DURATION)
@@ -198,7 +193,6 @@ class RobotController:
             return None
 
     def filtered_distance(self, trig, echo, history):
-        """Return median-filtered distance from ultrasonic sensor."""
         d = self.get_distance(trig, echo)
         if d is not None:
             history.append(d)
@@ -212,7 +206,6 @@ class RobotController:
         return None
 
     def safe_straight_control(self, d_left, d_right):
-        """Compute servo correction to maintain centered path."""
         correction = 0
         if d_left is not None and d_left < SOFT_MARGIN:
             correction = (SOFT_MARGIN - d_left) * 2
@@ -222,7 +215,6 @@ class RobotController:
         return SERVO_CENTER + correction
 
     def turn_decision(self, d_left, d_right):
-        """Return preferred turn direction based on side distances."""
         if d_left is not None and d_left > TURN_DECISION_THRESHOLD:
             return "LEFT"
         elif d_right is not None and d_right > TURN_DECISION_THRESHOLD:
@@ -250,20 +242,30 @@ def robot_loop():
     direction = None
     turn_start_yaw = None
 
+    # For MPU6050 yaw integration
+    last_yaw = 0.0
+    last_time = time.monotonic()
     start_time = time.monotonic()
 
     while True:
-        if readings_flag:
-            current_time = time.monotonic() - start_time
+        current_time = time.monotonic()
+        dt = current_time - last_time
 
+        if readings_flag:
             d_front = robot.filtered_distance(TRIG_FRONT, ECHO_FRONT, robot.front_history)
             d_left = robot.filtered_distance(TRIG_LEFT, ECHO_LEFT, robot.left_history)
             d_right = robot.filtered_distance(TRIG_RIGHT, ECHO_RIGHT, robot.right_history)
 
-            # MPU6050 yaw reading
-            yaw = mpu.euler[0]
+            # ---------- MPU6050 Yaw Integration ----------
+            gyro_z = mpu.gyro[2]                      # rad/s
+            gyro_z_deg = gyro_z * (180 / 3.14159265)  # convert to deg/s
+            last_yaw += gyro_z_deg * dt               # integrate to get yaw
+            last_time = current_time
+            yaw = last_yaw
+            # ---------------------------------------------
 
-            time_data.append(current_time)
+            elapsed_time = current_time - start_time
+            time_data.append(elapsed_time)
             front_data.append(d_front or 0)
             left_data.append(d_left or 0)
             right_data.append(d_right or 0)
@@ -324,7 +326,7 @@ def robot_loop():
                     post_turn_wait = False
 
         time.sleep(LOOP_DELAY)
-        
+
 # ===============================
 # START / STOP FUNCTIONS
 # ===============================
@@ -353,12 +355,14 @@ def stop_loop():
     btn_start.config(state="normal")
     btn_stop.config(state="disabled")
 
+
 # ===============================
 # GUI SECTION
 # ===============================
 def launch_gui():
     """Initialize Tkinter GUI, matplotlib plots, and status indicators."""
-    global btn_readings, btn_start, btn_stop, root, canvas, ax_front, ax_side, ax_angle
+    global btn_readings, btn_start, btn_stop, root, canvas
+    global ax_front, ax_side, ax_angle
     global front_line, left_line, right_line, angle_line
     global status_circle, status_canvas, status_text_id, lbl_status
 
@@ -389,7 +393,7 @@ def launch_gui():
     status_text_id = status_canvas.create_text(50, 50, text="IDLE", fill="white", font=("Arial", 14, "bold"))
 
     # ---------- Matplotlib Figure ----------
-    fig, (ax_front, ax_side, ax_angle) = plt.subplots(3, 1, figsize=(6,8))
+    fig, (ax_front, ax_side, ax_angle) = plt.subplots(3, 1, figsize=(6, 8))
     fig.tight_layout(pad=3.0)
 
     # Front sensor plot
@@ -457,18 +461,30 @@ def launch_gui():
         root.after(200, update_status)
 
     def update_plot():
-        """Update matplotlib plots with latest sensor and yaw data."""
+        """Update sensor and yaw plots every 100ms."""
         if time_data:
+            # Update sensor data lines
             front_line.set_data(range(len(front_data)), front_data)
             left_line.set_data(range(len(left_data)), left_data)
             right_line.set_data(range(len(right_data)), [-v for v in right_data])
             angle_line.set_data(range(len(angle_data)), angle_data)
 
+            # X-axis limits
             ax_front.set_xlim(0, MAX_POINTS)
             ax_side.set_xlim(0, MAX_POINTS)
             ax_angle.set_xlim(0, MAX_POINTS)
 
+            # Auto-scale yaw plot Y-axis if needed
+            if angle_data:
+                min_angle = min(angle_data)
+                max_angle = max(angle_data)
+                if max_angle - min_angle > 180:
+                    ax_angle.set_ylim(-180, 180)
+                else:
+                    ax_angle.set_ylim(min_angle - 10, max_angle + 10)
+
             canvas.draw()
+
         root.after(100, update_plot)
 
     # ===============================
@@ -485,10 +501,10 @@ def launch_gui():
     update_plot()
     root.mainloop()
 
+
 # ===============================
 # MAIN
 # ===============================
-# Start robot loop in background thread
 threading.Thread(target=robot_loop, daemon=True).start()
 
 if __name__ == "__main__":
