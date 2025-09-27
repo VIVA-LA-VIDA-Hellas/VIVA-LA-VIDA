@@ -36,6 +36,8 @@ from adafruit_pca9685 import PCA9685
 import adafruit_mpu6050
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+import csv
+from datetime import datetime
 
 # ===============================
 # CONFIGURATION VARIABLES
@@ -383,6 +385,10 @@ def launch_gui():
     btn_stop = tk.Button(root, text="Stop Loop", command=stop_loop,
                          width=20, height=2, bg="red", fg="white", state="disabled")
 
+btn_export = tk.Button(root, text="Export CSV", command=export_data_csv,
+                       width=20, height=2, bg="purple", fg="white")
+btn_export.grid(row=3, column=1, sticky="ew", padx=5, pady=2)
+
     # ---------- Status Labels ----------
     lbl_status = tk.Label(root, text="Idle", font=("Arial", 14))
     lbl_turns = tk.Label(root, text=f"Turns: {turn_count}", font=("Arial", 14))
@@ -571,6 +577,40 @@ def stop_loop():
     status_text = "Stopped"
     btn_start.config(state="normal")
     btn_stop.config(state="disabled")
+
+# -------------------------
+# Export to CSV
+# -------------------------
+
+def export_data_csv():
+    """Export all sensor, yaw readings, and current slider settings to a CSV file with timestamp."""
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    filename = f"robot_data_{timestamp}.csv"
+
+    # Collect current slider values
+    slider_values = {name: var.get() for name, var in slider_vars.items()}
+
+    length = len(time_data)
+    with open(filename, mode='w', newline='') as file:
+        writer = csv.writer(file)
+
+        # Write sliders first
+        writer.writerow(["Parameter", "Value"])
+        for name, value in slider_values.items():
+            writer.writerow([name, value])
+        writer.writerow([])  # empty line before readings
+
+        # Write sensor data headers
+        writer.writerow(["Time_s", "Front_cm", "Left_cm", "Right_cm", "Yaw_deg"])
+        for i in range(length):
+            writer.writerow([
+                time_data[i],
+                front_data[i],
+                left_data[i],
+                right_data[i],
+                angle_data[i]
+            ])
+    print(f"Data exported to {filename}")
 
 # ===============================
 # MAIN
