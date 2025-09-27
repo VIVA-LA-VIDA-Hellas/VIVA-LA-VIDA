@@ -499,6 +499,13 @@ def launch_gui():
         ("Max Laps", "MAX_LAPS", 0, 20),
     ]
 
+# -----------------------------
+# Helper function to update global variables from sliders
+# -----------------------------
+def update_var(name, tk_var):
+    """Update the corresponding global variable with the value from the slider."""
+    globals()[name] = tk_var.get()
+
     # ---------- Create Sliders ----------
     for label, var_name, vmin, vmax in slider_defs:
         frame = tk.Frame(sliders_frame)
