@@ -1,3 +1,4 @@
+'''pid with direction detection using colour sensor, original semi working version'''
 import board
 import busio
 import time

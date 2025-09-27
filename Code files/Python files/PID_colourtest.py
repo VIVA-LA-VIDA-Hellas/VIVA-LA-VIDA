@@ -1,3 +1,4 @@
+'''pid only left process of detecting direction with colour sen'''
 import board
 import busio
 import time

@@ -1,3 +1,4 @@
+'''pid with direction detection, working version with tweaked pid values'''
 import board
 import busio
 import time

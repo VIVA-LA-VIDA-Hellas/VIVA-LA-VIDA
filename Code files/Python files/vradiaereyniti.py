@@ -1,6 +1,6 @@
-#test for terminal output left right when detecting red/green pillars
 import cv2
 import numpy as np
+import time
 
 # ==== CAMERA CALIBRATION PARAMETERS FOR FISHEYE CORRECTION ====
 K = np.array([[320, 0, 320],
@@ -35,29 +35,26 @@ def get_largest_contour_corners(contours):
 
     return top_left, top_right, bottom_left, bottom_right, largest_contour
 
+last_update = time.time()
+decision = "No object detected"
+
 while True:
     ret, img = cap.read()
     if not ret:
         print("Error: Cannot read frame")
         break
 
-    DIM = img.shape[1], img.shape[0]
-    map1, map2 = cv2.fisheye.initUndistortRectifyMap(
-        K, D, np.eye(3), K, DIM, cv2.CV_16SC2
-    )
-    # img = cv2.remap(img, map1, map2, interpolation=cv2.INTER_LINEAR)  # Uncomment if fisheye correction is needed
-
     # Convert the image to HSV
     imgHSV = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
 
     # Red color mask (two ranges for hue spectrum)
-    red_lower1 = np.array([0, 140, 100])
-    red_upper1 = np.array([60, 255, 255])
+    red_lower1 = np.array([0, 100, 150])
+    red_upper1 = np.array([20, 255, 255])
     mask_red = cv2.inRange(imgHSV, red_lower1, red_upper1)
 
     # Green color mask
-    green_lower = np.array([40, 60, 20])
-    green_upper = np.array([100, 140, 155])
+    green_lower = np.array([50, 160, 100])
+    green_upper = np.array([100, 255, 255])
     mask_green = cv2.inRange(imgHSV, green_lower, green_upper)
 
     # Edge detection on masks
@@ -80,27 +77,31 @@ while True:
     if red_data:
         corners_red, largest_red_contour = red_data[:-1], red_data[-1]
         cv2.drawContours(img_contours, [largest_red_contour], -1, (0, 0, 255), 2)
-        cv2.rectangle(img_contours, corners_red[0], corners_red[3], (0, 0, 255), 2)
-        cv2.line(img_contours, corners_red[1], corners_red[3], (0, 255, 255), 2)
-        print("Red object corners:", corners_red)
         red_area = cv2.contourArea(largest_red_contour)
 
     if green_data:
         corners_green, largest_green_contour = green_data[:-1], green_data[-1]
         cv2.drawContours(img_contours, [largest_green_contour], -1, (0, 255, 0), 2)
-        cv2.rectangle(img_contours, corners_green[0], corners_green[3], (0, 255, 0), 2)
-        cv2.line(img_contours, corners_green[0], corners_green[2], (255, 0, 0), 2)
-        print("Green object corners:", corners_green)
         green_area = cv2.contourArea(largest_green_contour)
       
-    if green_area > red_area and green_area > 20:
-        print("turn left")
-    elif red_area > green_area and red_area > 20:
-        print("turn right")
-    else:
-        print("No object detected")
+    # Update decision every 0.3s
+    if time.time() - last_update > 0.3:
+        if green_area > red_area and green_area > 20:
+            decision = "TURN LEFT"
+        elif red_area > green_area and red_area > 20:
+            decision = "TURN RIGHT"
+        else:
+            decision = "NO OBJECT DETECTED"
+        last_update = time.time()
 
+    # Create output window for decision
+    decision_img = np.zeros((200, 400, 3), dtype=np.uint8)
+    cv2.putText(decision_img, decision, (30, 120),
+                cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 255), 2, cv2.LINE_AA)
+
+    # Show both windows
     cv2.imshow('Contours', img_contours)
+    cv2.imshow('Decision', decision_img)
 
     key = cv2.waitKey(5) & 0xFF
     if key == ord('q') or key == 27:

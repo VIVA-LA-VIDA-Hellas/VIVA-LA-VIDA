@@ -1,3 +1,4 @@
+'''colour sensor direction detection, no pid'''
 import board
 import busio
 import time

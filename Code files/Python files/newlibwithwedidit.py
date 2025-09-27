@@ -3,23 +3,62 @@ import board
 import busio
 import time
 #import adafruit_tcs34725
-from adafruit_servokit import ServoKit
-from adafruit_motorkit import MotorKit
+from adafruit_pca9685 import PCA9685
+from board import SCL, SDA
+from pca9685_control import set_motor_speed
+from pca9685_control import set_servo_angle
 import RPi.GPIO as GPIO
+
 
 turns_completed = 0
 direction = "undefined"
 # --- Initialize I2C ---
 i2c = busio.I2C(board.SCL, board.SDA)
 
+# PCA setup
+# Initialize I2C and PCA9685 once
+i2c = busio.I2C(SCL, SDA)
+pca = PCA9685(i2c)
+
+def set_servo_angle(channel, angle, min_us=500, max_us=2500, frequency=50):
+    if angle < 0: angle = 0
+    if angle > 180: angle = 180
+
+    pca.frequency = frequency
+    pulse_length = 1000000 / pca.frequency / 4096  # microseconds per tick
+    pulse = min_us + (angle / 180.0) * (max_us - min_us)
+    ticks = int(pulse / pulse_length)  # 0–4095
+
+    # Scale 12-bit ticks (0–4095) to 16-bit duty cycle (0–65535)
+    pca.channels[channel].duty_cycle = int(ticks / 4096 * 0xFFFF)
+
+
+
+def set_motor_speed(channel_forward, channel_reverse, speed, frequency=1000):
+    if speed > 100: speed = 100
+    if speed < -100: speed = -100
+
+    pca.frequency = frequency
+    duty_cycle = int(abs(speed) / 100.0 * 0xFFFF)
+
+    if speed > 0:
+        pca.channels[channel_forward].duty_cycle = duty_cycle
+        pca.channels[channel_reverse].duty_cycle = 0
+    elif speed < 0:
+        pca.channels[channel_forward].duty_cycle = 0
+        pca.channels[channel_reverse].duty_cycle = duty_cycle
+    else:
+        pca.channels[channel_forward].duty_cycle = 0
+        pca.channels[channel_reverse].duty_cycle = 0
 # --- Color Sensor Setup ---
 # sensor_color = adafruit_tcs34725.TCS34725(i2c)
 # sensor_color.gain = 16
 # sensor_color.integration_time = 2.4
 
 # --- Servo Driver Setup ---
-kit = ServoKit(channels=8, i2c=i2c, address=0x40)
-kit.servo[0].angle = 90
+
+MOTOR_FWD = 11   # forward channel
+MOTOR_REV = 7   # reverse channel
 
 # --- Color Classification ---
 def classify_color(r, g, b):
@@ -37,15 +76,15 @@ KD = 2.3
 
 integral = 0
 last_error = 0
+SERVO_CHANNEL = 0
 
-kit_motor = MotorKit()
-
-TRIG_1 = 27
-ECHO_1 = 17
-TRIG_2 = 23
-ECHO_2 = 22
-TRIG_3 = 5
-ECHO_3 = 6
+GPIO.setmode(GPIO.BCM)
+TRIG_1 = 22
+ECHO_1 = 23
+TRIG_2 = 5
+ECHO_2 = 6
+TRIG_3 = 27
+ECHO_3 = 17
 
 # Set up Trigger pins as output and Echo pins as input
 GPIO.setup(TRIG_1, GPIO.OUT)
@@ -55,27 +94,31 @@ GPIO.setup(ECHO_2, GPIO.IN)
 GPIO.setup(TRIG_3, GPIO.OUT)
 GPIO.setup(ECHO_3, GPIO.IN)
 
+
 # Ensure all Triggers are low initially
 GPIO.output(TRIG_1, GPIO.LOW)
 GPIO.output(TRIG_2, GPIO.LOW)
 GPIO.output(TRIG_3, GPIO.LOW) 	
 
+MOTOR_FWD = 1
+MOTOR_REV = 0
+
 # Motor control functions
 def slow_start():
     print("Starting motor slowly")
-    kit_motor.motor3.throttle = 0.7  # Slow start
+    set_motor_speed(MOTOR_FWD, MOTOR_REV, 30)
 
 def rotate_motor_forward(): 
     print("Rotating motor forward")
-    kit_motor.motor3.throttle = 0.85#speed forward
+    set_motor_speed(MOTOR_FWD, MOTOR_REV, 80)
 
 def rotate_motor_backward():
     print("Rotating motor backward")
-    kit_motor.motor3.throttle = -0.9#speed backward
+    set_motor_speed(MOTOR_FWD, MOTOR_REV, -50)
 
 def stop_motor():
     print("Stopping motor")
-    kit_motor.motor3.throttle = 0.0  # Stop the motor
+    set_motor_speed(MOTOR_FWD, MOTOR_REV, 0)
 
 
 # def detect_direction():
@@ -148,12 +191,12 @@ while True:
         if distance > 100 and distance_front < 120:
             if direction == "left":
                 print("Wall lost! Making sharp left turn...")
-                kit.servo[0].angle = 45  # Sharp left
+                set_servo_angle(SERVO_CHANNEL, 40)   # Sharp left
                 if distance_right>100:
-                    kit.servo[0].angle = 110
+                    set_servo_angle(SERVO_CHANNEL, 110) 
             else:  # direction == "right"
                 print("Wall lost! Making sharp right turn...")
-                kit.servo[0].angle = 135  # Sharp right (mirror)
+                set_servo_angle(SERVO_CHANNEL, 135) 
             time.sleep(0.1)
             turns_completed += 1
             print(f"Turns completed: {turns_completed}")
@@ -171,7 +214,7 @@ while True:
             new_angle = max(60, min(120, 90 + output))
         else:  # direction == "right"
             new_angle = max(60, min(120, 90 - output))  # Mirror for right wall
-        kit.servo[0].angle = new_angle
+        set_servo_angle(SERVO_CHANNEL, new_angle) 
 
         print(f"Distance: {distance} cm | Error: {error:.2f} | Servo: {new_angle:.1f}")
         print(f"Turns completed: {turns_completed}")

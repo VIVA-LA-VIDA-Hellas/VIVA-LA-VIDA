@@ -1,3 +1,4 @@
+'''first pid version(?) no direction no turn count'''
 import board
 import busio
 import time

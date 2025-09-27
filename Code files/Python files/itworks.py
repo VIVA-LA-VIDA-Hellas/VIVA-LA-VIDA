@@ -1,3 +1,4 @@
+'''most primal version of pid follow with direction detection, does not include edits for moving walls'''
 import board
 import busio
 import time
