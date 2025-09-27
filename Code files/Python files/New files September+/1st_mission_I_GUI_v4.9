@@ -385,9 +385,9 @@ def launch_gui():
     btn_stop = tk.Button(root, text="Stop Loop", command=stop_loop,
                          width=20, height=2, bg="red", fg="white", state="disabled")
 
-btn_export = tk.Button(root, text="Export CSV", command=export_data_csv,
+    btn_export = tk.Button(root, text="Export CSV", command=export_data_csv,
                        width=20, height=2, bg="purple", fg="white")
-btn_export.grid(row=3, column=1, sticky="ew", padx=5, pady=2)
+    btn_export.grid(row=3, column=1, sticky="ew", padx=5, pady=2)
 
     # ---------- Status Labels ----------
     lbl_status = tk.Label(root, text="Idle", font=("Arial", 14))
