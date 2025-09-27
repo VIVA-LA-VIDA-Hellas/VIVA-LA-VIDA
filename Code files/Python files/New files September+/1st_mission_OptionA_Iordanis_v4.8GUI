@@ -133,6 +133,8 @@ for echo in [ECHO_FRONT, ECHO_LEFT, ECHO_RIGHT]:
 loop_flag = False                  # Main loop running flag
 readings_flag = False              # Sensor reading active flag
 status_text = "Idle"               # Current robot status text
+turn_count = 0
+lap_count = 0
 
 # ===============================
 # SENSOR DATA STORAGE
@@ -316,6 +318,12 @@ def robot_loop():
                     turn_start_yaw = None
                     status_text = "Driving (post-turn)"
 
+            # --- Update counters ---
+            global turn_count, lap_count
+            turn_count += 1
+            if turn_count % 4 == 0:
+            lap_count += 1
+            
             # Post-turn straight drive
             if post_turn_wait:
                 if time.monotonic() - post_turn_start < POST_TURN_DURATION:
@@ -385,6 +393,13 @@ def launch_gui():
     # ---------- Status Label ----------
     lbl_status = tk.Label(root, text="Idle", font=("Arial", 14))
     lbl_status.pack(pady=5)
+
+    # ---------- Counters ----------
+    lbl_turns = tk.Label(root, text=f"Turns: {turn_count}", font=("Arial", 14))
+    lbl_turns.pack(pady=2)
+
+    lbl_laps = tk.Label(root, text=f"Laps: {lap_count}", font=("Arial", 14))
+    lbl_laps.pack(pady=2)
 
     # ---------- Circular Status Indicator ----------
     status_canvas = tk.Canvas(root, width=100, height=100, highlightthickness=0, bg=root.cget("bg"))
@@ -458,6 +473,11 @@ def launch_gui():
         lbl_status.config(text=status_text)
         status_canvas.itemconfig(status_circle, fill=status_color(status_text))
         status_canvas.itemconfig(status_text_id, text=status_label(status_text))
+
+        # Update counters
+        lbl_turns.config(text=f"Turns: {turn_count}")
+        lbl_laps.config(text=f"Laps: {lap_count}")
+
         root.after(200, update_status)
 
     def update_plot():
