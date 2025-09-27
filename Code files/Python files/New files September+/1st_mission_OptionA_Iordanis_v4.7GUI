@@ -61,13 +61,13 @@ MAX_CORRECTION = 15           # Maximum steering correction in degrees
 STOP_THRESHOLD = 20           # Front distance threshold to stop immediately (cm)
 
 # ---------- Turn management ----------
-FRONT_TURN_TRIGGER = 80       # Front distance threshold to start a turn (cm)
+FRONT_TURN_TRIGGER = 90       # Front distance threshold to start a turn (cm)
 TURN_DECISION_THRESHOLD = 100        # Distance threshold to decide turn direction
 
 TURN_ANGLE_LEFT = 65          # Angle for left turn
 TURN_ANGLE_RIGHT = 115        # Angle for right turn
 
-FRONT_SAFE_DISTANCE = 100     # Front distance considered safe to end a turn (cm)
+FRONT_SAFE_DISTANCE = 200     # Front distance considered safe to end a turn (cm)
 TARGET_DISTANCE = 40          # Desired distance from side obstacles (cm)
 TURN_TIMEOUT = 3.0            # Maximum time allowed for a turn (seconds)
 TURN_LOCKOUT = 4.0            # Minimum interval between turns (seconds)
