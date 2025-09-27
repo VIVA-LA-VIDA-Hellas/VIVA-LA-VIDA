@@ -342,62 +342,68 @@ def robot_loop():
         time.sleep(LOOP_DELAY)
 
 # ===============================
-# GUI
+# GUI SECTION
 # ===============================
 def launch_gui():
-    global root, slider_vars, btn_readings, btn_start, btn_stop
+    """Initialize Tkinter GUI, matplotlib plots, sliders, and status indicators."""
+    global btn_readings, btn_start, btn_stop, root, canvas
+    global ax_front, ax_side, ax_angle
     global front_line, left_line, right_line, angle_line
-    global status_canvas, status_circle, status_text_id, lbl_status, lbl_turns, lbl_laps
+    global status_circle, status_canvas, status_text_id, lbl_status
+    global sliders_frame, slider_vars
 
     root = tk.Tk()
     root.title("VivaLaVida Robot Control")
 
     slider_vars = {}
 
-    # Matplotlib figure
+    # ---------- Matplotlib Figure ----------
     fig, (ax_front, ax_side, ax_angle) = plt.subplots(3, 1, figsize=(6, 8))
     fig.tight_layout(pad=3.0)
 
+    # Front sensor plot
     ax_front.set_ylim(0, 350)
     ax_front.set_title("Front Sensor")
     ax_front.grid(True)
     front_line, = ax_front.plot([], [], color="blue")
 
+    # Side sensors plot
     ax_side.set_ylim(-150, 150)
-    ax_side.set_title("Left (+) / Right (-)")
+    ax_side.set_title("Left (+Y) vs Right (-Y) Sensors")
     ax_side.grid(True)
     ax_side.axhline(0, color="black")
     left_line, = ax_side.plot([], [], color="green")
     right_line, = ax_side.plot([], [], color="orange")
 
+    # Yaw angle plot
     ax_angle.set_ylim(-180, 180)
     ax_angle.set_title("Yaw Angle")
     ax_angle.grid(True)
     angle_line, = ax_angle.plot([], [], color="purple")
 
-    # Buttons
-    btn_readings = tk.Button(root, text="Start Readings", width=20, height=2, bg="blue", fg="white",
-                             command=lambda: start_readings())
-    btn_start = tk.Button(root, text="Start Loop", width=20, height=2, bg="green", fg="white", state="disabled",
-                          command=lambda: start_loop())
-    btn_stop = tk.Button(root, text="Stop Loop", width=20, height=2, bg="red", fg="white", state="disabled",
-                         command=lambda: stop_loop())
+    # ---------- Buttons ----------
+    btn_readings = tk.Button(root, text="Start Readings", command=start_readings,
+                             width=20, height=2, bg="blue", fg="white")
+    btn_start = tk.Button(root, text="Start Loop", command=start_loop,
+                          width=20, height=2, bg="green", fg="white", state="disabled")
+    btn_stop = tk.Button(root, text="Stop Loop", command=stop_loop,
+                         width=20, height=2, bg="red", fg="white", state="disabled")
 
-    # Status labels
+    # ---------- Status Labels ----------
     lbl_status = tk.Label(root, text="Idle", font=("Arial", 14))
     lbl_turns = tk.Label(root, text=f"Turns: {turn_count}", font=("Arial", 14))
     lbl_laps = tk.Label(root, text=f"Laps: {lap_count}", font=("Arial", 14))
 
-    # Status circle
-    status_canvas = tk.Canvas(root, width=100, height=100, bg=root.cget("bg"), highlightthickness=0)
-    status_circle = status_canvas.create_oval(10,10,90,90, fill="grey", outline="")
-    status_text_id = status_canvas.create_text(50,50,text="IDLE", fill="white", font=("Arial",14,"bold"))
+    # ---------- Circular Status Indicator ----------
+    status_canvas = tk.Canvas(root, width=100, height=100, highlightthickness=0, bg=root.cget("bg"))
+    status_circle = status_canvas.create_oval(10, 10, 90, 90, fill="grey", outline="")
+    status_text_id = status_canvas.create_text(50, 50, text="IDLE", fill="white", font=("Arial", 14, "bold"))
 
-    # Sliders frame
+    # ---------- Sliders Frame ----------
     sliders_frame = tk.LabelFrame(root, text="Parameters", padx=10, pady=10)
-    sliders_frame.grid(row=0, column=1, rowspan=8, sticky="ns", padx=10, pady=5)
 
-    # Left column layout
+    # ---------- Two-column layout ----------
+    # Left column (column 0) - buttons, status, counters, circle
     btn_readings.grid(row=0, column=0, sticky="ew", padx=5, pady=2)
     btn_start.grid(row=1, column=0, sticky="ew", padx=5, pady=2)
     btn_stop.grid(row=2, column=0, sticky="ew", padx=5, pady=2)
@@ -406,78 +412,81 @@ def launch_gui():
     lbl_laps.grid(row=5, column=0, pady=2)
     status_canvas.grid(row=6, column=0, pady=5)
 
-    # Embed plot
+    # Right column (column 1) - all sliders stacked vertically
+    sliders_frame.grid(row=0, column=1, rowspan=8, sticky="ns", padx=10, pady=5)
+
+    # Embed matplotlib figure under left column
     canvas = FigureCanvasTkAgg(fig, master=root)
     canvas.get_tk_widget().grid(row=7, column=0, sticky="nsew", padx=5, pady=5)
+
     root.grid_columnconfigure(0, weight=1)
     root.grid_columnconfigure(1, weight=0)
     root.grid_rowconfigure(7, weight=1)
 
-    # -------------------------
-    # Sliders
-    # -------------------------
+    # ---------- Slider Definitions ----------
     slider_defs = [
-    ("Cruise Speed", "SPEED_CRUISE", 0, 100, "int"),
-    ("Turn Speed", "SPEED_TURN", 0, 100, "int"),
-    ("Safe Margin", "SAFE_MARGIN", 0, 100, "int"),
-    ("Soft Margin", "SOFT_MARGIN", 0, 100, "int"),
-    ("Max Correction", "MAX_CORRECTION", 0, 45, "int"),
-    ("Stop Threshold", "STOP_THRESHOLD", 0, 100, "int"),
-    ("Front Turn Trigger", "FRONT_TURN_TRIGGER", 0, 200, "int"),
-    ("Turn Decision Threshold", "TURN_DECISION_THRESHOLD", 0, 200, "int"),
-    ("Turn Timeout (s)", "TURN_TIMEOUT", 1, 10, "float"),
-    ("Turn Lockout (s)", "TURN_LOCKOUT", 1, 10, "float"),
-    ("Post Turn Duration (s)", "POST_TURN_DURATION", 0.1, 5, "float"),
-    ("Min Turn Angle", "MIN_TURN_ANGLE", 0, 180, "int"),
-    ("Max Turn Angle", "MAX_TURN_ANGLE", 0, 180, "int"),
-    ("Sensor Filter N", "N_READINGS", 1, 20, "int"),
-    ("Max Laps", "MAX_LAPS", 0, 20, "int"),
-]
+        ("Cruise Speed", "SPEED_CRUISE", 0, 100, "int"),
+        ("Turn Speed", "SPEED_TURN", 0, 100, "int"),
+        ("Safe Margin", "SAFE_MARGIN", 0, 100, "int"),
+        ("Soft Margin", "SOFT_MARGIN", 0, 100, "int"),
+        ("Max Correction", "MAX_CORRECTION", 0, 45, "int"),
+        ("Stop Threshold", "STOP_THRESHOLD", 0, 100, "int"),
+        ("Front Turn Trigger", "FRONT_TURN_TRIGGER", 0, 200, "int"),
+        ("Turn Decision Threshold", "TURN_DECISION_THRESHOLD", 0, 200, "int"),
+        ("Turn Timeout (s)", "TURN_TIMEOUT", 1, 10, "float"),
+        ("Turn Lockout (s)", "TURN_LOCKOUT", 1, 10, "float"),
+        ("Post Turn Duration (s)", "POST_TURN_DURATION", 0.1, 5, "float"),
+        ("Min Turn Angle", "MIN_TURN_ANGLE", 0, 180, "int"),
+        ("Max Turn Angle", "MAX_TURN_ANGLE", 0, 180, "int"),
+        ("Sensor Filter N", "N_READINGS", 1, 20, "int"),
+        ("Max Laps", "MAX_LAPS", 0, 20, "int"),
+    ]
 
-slider_vars = {}
+    # ---------- Helper function ----------
+    def update_var(name, tk_var):
+        globals()[name] = tk_var.get()
 
-for label_text, var_name, vmin, vmax, vartype in slider_defs:
-    frame = tk.Frame(sliders_frame)
-    frame.pack(fill="x", pady=2)
+    # ---------- Create sliders ----------
+    for label_text, var_name, vmin, vmax, vartype in slider_defs:
+        frame = tk.Frame(sliders_frame)
+        frame.pack(fill="x", pady=2)
 
-    if vartype == "float":
-        var = tk.DoubleVar(value=globals()[var_name])
-        res = 0.1
-    else:
-        var = tk.IntVar(value=globals()[var_name])
-        res = 1
+        if vartype == "float":
+            var = tk.DoubleVar(value=globals()[var_name])
+            resolution = 0.1
+        else:
+            var = tk.IntVar(value=globals()[var_name])
+            resolution = 1
 
-    slider_vars[var_name] = var
+        slider_vars[var_name] = var
 
-    scale = tk.Scale(frame, from_=vmin, to=vmax, orient="horizontal",
-                     variable=var, resolution=res)
-    scale.pack(side="left", fill="x", expand=True)
+        scale = tk.Scale(frame, from_=vmin, to=vmax, orient="horizontal",
+                         variable=var, resolution=resolution)
+        scale.pack(side="left", fill="x", expand=True)
 
-    lbl_val = tk.Label(frame, width=20, anchor="w")
-    lbl_val.pack(side="right", padx=5)
+        def format_value(name, value):
+            if name == "MAX_LAPS" and value == 0:
+                return "∞"
+            if isinstance(value, float):
+                return f"{value:.1f}"
+            return str(value)
 
-    # Function to format slider label text
-    def format_label(name, val):
-        if name == "MAX_LAPS" and val == 0:
-            return f"{label_text}: ∞"
-        if isinstance(val, float):
-            return f"{label_text}: {val:.1f}"
-        return f"{label_text}: {val}"
+        lbl_val = tk.Label(frame, text=f"{label_text}: {format_value(var_name, var.get())}",
+                           width=20, anchor="w")
+        lbl_val.pack(side="right", padx=5)
 
-    # Callback for slider value change
-    def make_callback(lbl, name, var):
-        def callback(value):
-            globals()[name] = var.get()
-            lbl.config(text=format_label(name, var.get()))
-        return callback
+        def make_callback(lbl, name, var):
+            def callback(value):
+                update_var(name, var)
+                lbl.config(text=f"{label_text}: {format_value(name, var.get())}")
+            return callback
 
-    scale.config(command=make_callback(lbl_val, var_name, var))
-    lbl_val.config(text=format_label(var_name, var.get()))
+        scale.config(command=make_callback(lbl_val, var_name, var))
 
-    # -------------------------
-    # GUI Update
-    # -------------------------
-    def status_color(state):
+    # ===============================
+    # GUI Update Functions
+    # ===============================
+    def status_color(state: str) -> str:
         if "Stopped" in state:
             return "red"
         elif "Turning" in state:
@@ -486,9 +495,10 @@ for label_text, var_name, vmin, vmax, vartype in slider_defs:
             return "green"
         elif "Loop Started" in state or "Sensor readings started" in state:
             return "blue"
-        return "grey"
+        else:
+            return "grey"
 
-    def status_label(state):
+    def status_label(state: str) -> str:
         if "Stopped" in state:
             return "STOP"
         elif "Turning" in state:
@@ -499,14 +509,15 @@ for label_text, var_name, vmin, vmax, vartype in slider_defs:
             return "LOOP"
         elif "Sensor readings started" in state:
             return "READ"
-        return "IDLE"
+        else:
+            return "IDLE"
 
     def update_status():
         lbl_status.config(text=status_text)
         status_canvas.itemconfig(status_circle, fill=status_color(status_text))
         status_canvas.itemconfig(status_text_id, text=status_label(status_text))
         lbl_turns.config(text=f"Turns: {turn_count}")
-        lbl_laps.config(text=f"Laps: {lap_count}" if slider_vars["MAX_LAPS"].get()>0 else f"Laps: {lap_count}/∞")
+        lbl_laps.config(text=f"Laps: {lap_count}" if slider_vars["MAX_LAPS"].get() > 0 else f"Laps: {lap_count}/∞")
         root.after(200, update_status)
 
     def update_plot():
@@ -515,10 +526,21 @@ for label_text, var_name, vmin, vmax, vartype in slider_defs:
             left_line.set_data(range(len(left_data)), left_data)
             right_line.set_data(range(len(right_data)), [-v for v in right_data])
             angle_line.set_data(range(len(angle_data)), angle_data)
+
             ax_front.set_xlim(0, MAX_POINTS)
             ax_side.set_xlim(0, MAX_POINTS)
             ax_angle.set_xlim(0, MAX_POINTS)
+
+            if angle_data:
+                min_angle = min(angle_data)
+                max_angle = max(angle_data)
+                if max_angle - min_angle > 180:
+                    ax_angle.set_ylim(-180, 180)
+                else:
+                    ax_angle.set_ylim(min_angle - 10, max_angle + 10)
+
             canvas.draw()
+
         root.after(100, update_plot)
 
     def on_closing():
