@@ -17,24 +17,12 @@
 #     Triggered when front distance < configured turn trigger.
 #     Robot chooses the side with the greater distance (left or right) to turn toward.
 #     Moves forward while steering to avoid the obstacle.
-#     Turn ends when front sensor reads clear OR timeout reached.
-# - PID wall-following:
+#     Turn ends when front sensor reads clear AND (timeout reached OR side distance is reached OR gyroscope degrees reached)
+# - Wall-following:
 #     Compares left and right distances to maintain a centered path between walls.
-#     Adjusts servo angle based on PID output to correct robot heading.
+#     Adjusts servo angle based on distance to correct robot heading.
 #     Applies a deadzone to ignore small deviations and prevent oscillations.
-#     Uses adaptive PID gains to respond more aggressively to larger errors.
-# - Continuous forward motion: Robot moves at configured cruise speed unless turning or stopped.
-# - Integrates real-time sensor input, PID steering, and turning logic for autonomous navigation and obstacle avoidance.
 #-----------------------------------------------------------------------------------------------------------------------
-# Features:
-# - Continuous sensor reading (front, left, right)
-# - Emergency stop if obstacle too close
-# - Turn decision: turn only if front < trigger AND a side > 100cm
-# - PID wall-following between walls
-# - Tkinter GUI with integer/float sliders for robot parameters
-# - Matplotlib plots embedded in GUI
-# - Safe shutdown and cleanup
-#----------------------------------------------------------------------------------------------------------------------
 
 import threading
 import time
@@ -59,23 +47,23 @@ SPEED_TURN = 20               # Motor speed when turning (0-100%)
 # ---------- Driving ----------
 SAFE_MARGIN = 20              # Minimum safe distance to walls for emergency correction
 SOFT_MARGIN = 30              # Margin within which steering starts adjusting
-MAX_CORRECTION = 15           # Maximum servo correction in degrees
+MAX_CORRECTION = 10           # Maximum servo correction in degrees
 STOP_THRESHOLD = 20           # Front distance threshold (cm) to stop immediately
 
 # ---------- Turn management ----------
-FRONT_TURN_TRIGGER = 90       # Front distance threshold (cm) to trigger a turn
+FRONT_TURN_TRIGGER = 80       # Front distance threshold (cm) to trigger a turn
 TURN_DECISION_THRESHOLD = 100 # Minimum side distance (cm) to allow turn in that direction
-TURN_ANGLE_LEFT = 65          # Servo angle for left turn
-TURN_ANGLE_RIGHT = 115        # Servo angle for right turn
+TURN_ANGLE_LEFT = 55          # Servo angle for left turn
+TURN_ANGLE_RIGHT = 125        # Servo angle for right turn
 FRONT_SAFE_DISTANCE = 200     # Front distance considered safe to end a turn (cm)
-TARGET_DISTANCE = 40          # Desired distance from side walls (cm)
+TARGET_DISTANCE = 30          # Desired distance from side walls (cm)
 TURN_TIMEOUT = 3.0            # Maximum time allowed for a turn (seconds)
-TURN_LOCKOUT = 4.0            # Minimum interval between consecutive turns (seconds)
-POST_TURN_DURATION = 0.5      # Time to drive straight after a turn (seconds)
+TURN_LOCKOUT = 3.0            # Minimum interval between consecutive turns (seconds)
+POST_TURN_DURATION = 0.7      # Time to drive straight after a turn (seconds)
 
 # ---------- Turn angle constraints ----------
-MIN_TURN_ANGLE = 10           # Minimum yaw change (degrees) before turn can stop
-MAX_TURN_ANGLE = 90           # Maximum yaw change (degrees) to force stop turn
+MIN_TURN_ANGLE = 75           # Minimum yaw change (degrees) before turn can stop
+MAX_TURN_ANGLE = 105          # Maximum yaw change (degrees) to force stop turn
 
 # ---------- Servo ----------
 SERVO_CHANNEL = 0             # PCA9685 channel controlling steering servo
