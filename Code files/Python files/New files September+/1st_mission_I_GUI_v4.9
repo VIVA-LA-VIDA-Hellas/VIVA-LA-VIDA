@@ -316,7 +316,7 @@ def robot_loop():
                 turn_count += 1                  # increment when a turn actually starts
                 if turn_count % 4 == 0:
                     lap_count += 1
-                    if lap_count >= MAX_LAPS:
+                    if MAX_LAPS > 0 and lap_count >= MAX_LAPS:
                         robot.stop_motor()
                         loop_flag = False
                         status_text = f"Stopped - Max Laps ({MAX_LAPS}) reached"
@@ -561,7 +561,10 @@ def launch_gui():
 
         # Update counters
         lbl_turns.config(text=f"Turns: {turn_count}")
-        lbl_laps.config(text=f"Laps: {lap_count}")
+        if MAX_LAPS == 0:
+            lbl_laps.config(text=f"Laps: {lap_count} / ∞")
+        else:
+            lbl_laps.config(text=f"Laps: {lap_count} / {MAX_LAPS}")
 
         root.after(200, update_status)
 
