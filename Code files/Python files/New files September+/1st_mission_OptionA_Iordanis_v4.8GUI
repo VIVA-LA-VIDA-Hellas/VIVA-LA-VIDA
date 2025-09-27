@@ -1,8 +1,39 @@
-
-
 #----------------------------------------------------------------------------------------------------------------------
 # Autonomous drive - VivaLaVida
-# v4.8 - MPU6050 integration, min/max turn angle, yaw plotting - 27/9/2025
+# v4 - 23/9/2025
+# v4.1 - remove camera, add logging - 24/9/2025
+# v4.2 - improved turn logic and timeout slider - 24/9/2025
+# v4.3 - graph and turn improvements - 25/9/2025
+# v4.5 - rewrite
+# v4.5 - new turn logic with PID clear after turn
+# v4.6 - new wall following rules - 26/9/2025
+# v4.7 - new GUI, rewrite
+# v4.8 - added gyroscope
+#
+# Logic description
+# - Continuously read ultrasonic sensor distances: front, left, and right.
+# - Emergency stop: If front distance < stop threshold, halt immediately to prevent collisions.
+# - Initiate turn:
+#     Triggered when front distance < configured turn trigger.
+#     Robot chooses the side with the greater distance (left or right) to turn toward.
+#     Moves forward while steering to avoid the obstacle.
+#     Turn ends when front sensor reads clear OR timeout reached.
+# - PID wall-following:
+#     Compares left and right distances to maintain a centered path between walls.
+#     Adjusts servo angle based on PID output to correct robot heading.
+#     Applies a deadzone to ignore small deviations and prevent oscillations.
+#     Uses adaptive PID gains to respond more aggressively to larger errors.
+# - Continuous forward motion: Robot moves at configured cruise speed unless turning or stopped.
+# - Integrates real-time sensor input, PID steering, and turning logic for autonomous navigation and obstacle avoidance.
+#-----------------------------------------------------------------------------------------------------------------------
+# Features:
+# - Continuous sensor reading (front, left, right)
+# - Emergency stop if obstacle too close
+# - Turn decision: turn only if front < trigger AND a side > 100cm
+# - PID wall-following between walls
+# - Tkinter GUI with integer/float sliders for robot parameters
+# - Matplotlib plots embedded in GUI
+# - Safe shutdown and cleanup
 #----------------------------------------------------------------------------------------------------------------------
 
 import threading
@@ -34,17 +65,18 @@ STOP_THRESHOLD = 20           # Front distance threshold (cm) to stop immediatel
 # ---------- Turn management ----------
 FRONT_TURN_TRIGGER = 90       # Front distance threshold (cm) to trigger a turn
 TURN_DECISION_THRESHOLD = 100 # Minimum side distance (cm) to allow turn in that direction
+
 TURN_ANGLE_LEFT = 65          # Servo angle for left turn
 TURN_ANGLE_RIGHT = 115        # Servo angle for right turn
+
+MIN_TURN_ANGLE = 80           # Minimum yaw change (degrees) before turn can stop
+MAX_TURN_ANGLE = 95           # Maximum yaw change (degrees) to force stop turn
 FRONT_SAFE_DISTANCE = 200     # Front distance considered safe to end a turn (cm)
 TARGET_DISTANCE = 40          # Desired distance from side walls (cm)
 TURN_TIMEOUT = 3.0            # Maximum time allowed for a turn (seconds)
 TURN_LOCKOUT = 4.0            # Minimum interval between consecutive turns (seconds)
-POST_TURN_DURATION = 0.5      # Time to drive straight after a turn (seconds)
 
-# ---------- Turn angle constraints ----------
-MIN_TURN_ANGLE = 10           # Minimum yaw change (degrees) before turn can stop
-MAX_TURN_ANGLE = 90           # Maximum yaw change (degrees) to force stop turn
+POST_TURN_DURATION = 0.5      # Time to drive straight after a turn (seconds)
 
 # ---------- Servo ----------
 SERVO_CHANNEL = 0             # PCA9685 channel controlling steering servo
