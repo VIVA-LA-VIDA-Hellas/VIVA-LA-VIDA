@@ -90,6 +90,7 @@ TRIG_LEFT, ECHO_LEFT = 27, 17    # GPIO pins for left sensor
 TRIG_RIGHT, ECHO_RIGHT = 5, 6    # GPIO pins for right sensor
 
 ULTRASONIC_TIMEOUT = 0.02        # Timeout for ultrasonic sensor reading (seconds)
+# Max distance measurable by a sensor = timeout×17150 - 0.02x17150=343cm maximum distance
 SOUND_SPEED = 17150              # Speed of sound in cm/s for distance calculation
 
 # ---------- Sensor data filtering ----------
