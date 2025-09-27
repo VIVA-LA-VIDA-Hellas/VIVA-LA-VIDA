@@ -58,8 +58,8 @@ SPEED_TURN = 20               # Motor speed when turning (0-100%)
 
 # ---------- Driving ----------
 SAFE_MARGIN = 20              # Minimum safe distance to walls for emergency correction
-SOFT_MARGIN = 40              # Margin within which steering starts adjusting
-MAX_CORRECTION = 15           # Maximum servo correction in degrees
+SOFT_MARGIN = 30              # Margin within which steering starts adjusting
+MAX_CORRECTION = 10           # Maximum servo correction in degrees
 STOP_THRESHOLD = 20           # Front distance threshold (cm) to stop immediately
 
 # ---------- Turn management ----------
