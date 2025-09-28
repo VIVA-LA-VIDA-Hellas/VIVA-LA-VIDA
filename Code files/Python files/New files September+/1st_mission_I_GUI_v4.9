@@ -573,6 +573,10 @@ def start_loop():
     btn_start.config(state="disabled")
     btn_stop.config(state="normal")
 
+    if not hasattr(start_loop, "thread_started"):
+        threading.Thread(target=robot_loop, daemon=True).start()
+        start_loop.thread_started = True
+
 def stop_loop():
     global loop_flag, status_text
     loop_flag = False
@@ -634,5 +638,5 @@ def load_sliders_json():
 # MAIN
 # ===============================
 if __name__ == "__main__":
-    threading.Thread(target=robot_loop, daemon=True).start()
+    #threading.Thread(target=robot_loop, daemon=True).start()
     launch_gui()
