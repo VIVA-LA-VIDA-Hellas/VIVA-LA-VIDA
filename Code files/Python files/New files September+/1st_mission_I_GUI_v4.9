@@ -346,29 +346,35 @@ def robot_loop():
 # GUI SECTION
 # ===============================
 def launch_gui():
+    """Initialize Tkinter GUI, matplotlib plots, sliders, and status indicators."""
     global btn_readings, btn_start, btn_stop, root, canvas
     global ax_front, ax_side, ax_angle
     global front_line, left_line, right_line, angle_line
     global status_circle, status_canvas, status_text_id, lbl_status
+    global lbl_turns, lbl_laps
     global sliders_frame, slider_vars, btn_export
 
     root = tk.Tk()
     root.title("VivaLaVida Robot Control")
+
     slider_vars = {}
 
     # ---------- Matplotlib Figure ----------
     fig, (ax_front, ax_side, ax_angle) = plt.subplots(3, 1, figsize=(6, 8))
     fig.tight_layout(pad=3.0)
+
     ax_front.set_ylim(0, 350)
     ax_front.set_title("Front Sensor")
     ax_front.grid(True)
     front_line, = ax_front.plot([], [], color="blue")
+
     ax_side.set_ylim(-150, 150)
     ax_side.set_title("Left (+Y) vs Right (-Y) Sensors")
     ax_side.grid(True)
     ax_side.axhline(0, color="black")
     left_line, = ax_side.plot([], [], color="green")
     right_line, = ax_side.plot([], [], color="orange")
+
     ax_angle.set_ylim(-180, 180)
     ax_angle.set_title("Yaw Angle")
     ax_angle.grid(True)
@@ -412,7 +418,7 @@ def launch_gui():
     root.grid_columnconfigure(1, weight=0)
     root.grid_rowconfigure(7, weight=1)
 
-    # ---------- Grouped Slider Definitions ----------
+    # ---------- Slider Definitions ----------
     slider_groups = {
         "Speeds": [
             ("Cruise Speed (%)", "SPEED_CRUISE", 0, 100, "int"),
@@ -426,7 +432,7 @@ def launch_gui():
         ],
         "Turns - how to initiate": [
             ("Front Turn Trigger (cm)", "FRONT_TURN_TRIGGER", 50, 150, "int"),
-            ("Turn Decision Threshold (Left/Right) (cm)", "TURN_DECISION_THRESHOLD", 0, 200, "int"),
+            ("Turn Decision Threshold (Left/Right) (cm)", "TURN_DECISION_THRESHOLD", 0, 200, "int")
         ],
         "Turns - how to end": [
             ("Turn Timeout (s)", "TURN_TIMEOUT", 1, 10, "float"),
@@ -434,31 +440,35 @@ def launch_gui():
             ("Min Turn Angle (o)", "MIN_TURN_ANGLE", 60, 90, "int"),
             ("Max Turn Angle (o)", "MAX_TURN_ANGLE", 90, 120, "int"),
             ("Post Turn Duration (s)", "POST_TURN_DURATION", 0.1, 5, "float"),
-            ("Turn Lockout (s)", "TURN_LOCKOUT", 1, 10, "float"),
+            ("Turn Lockout (s)", "TURN_LOCKOUT", 1, 10, "float")
         ],
         "Other": [
             ("Sensor Filter N (Median)", "N_READINGS", 1, 20, "int"),
-            ("Max Laps - 0 for infinite", "MAX_LAPS", 0, 20, "int"),
+            ("Max Laps - 0 for infinite", "MAX_LAPS", 0, 20, "int")
         ]
     }
 
-    # Create sliders
+    # ---------- Create Sliders ----------
     for group_name, sliders in slider_groups.items():
         group_frame = tk.LabelFrame(sliders_frame, text=group_name, padx=5, pady=5)
         group_frame.pack(fill="x", pady=5)
         for label_text, var_name, vmin, vmax, vartype in sliders:
             frame = tk.Frame(group_frame)
             frame.pack(fill="x", pady=2)
+
             if vartype == "float":
                 var = tk.DoubleVar(value=globals()[var_name])
                 res = 0.1
             else:
                 var = tk.IntVar(value=globals()[var_name])
                 res = 1
+
             slider_vars[var_name] = var
+
             scale = tk.Scale(frame, from_=vmin, to=vmax, orient="horizontal",
                              variable=var, resolution=res)
             scale.pack(side="left", fill="x", expand=True)
+
             lbl_val = tk.Label(frame, text=f"{label_text}: {var.get()}", width=25, anchor="w")
             lbl_val.pack(side="right", padx=5)
 
@@ -485,6 +495,71 @@ def launch_gui():
     btn_load_sliders = tk.Button(sliders_frame, text="Load Sliders", command=load_sliders_json,
                                  width=20, height=2, bg="blue", fg="white")
     btn_load_sliders.pack(pady=5, fill="x")
+
+    # ===============================
+    # GUI Update Functions (nested)
+    # ===============================
+    def status_color(state: str) -> str:
+        if "Stopped" in state:
+            return "red"
+        elif "Turning" in state:
+            return "yellow"
+        elif "Driving" in state:
+            return "green"
+        elif "Loop Started" in state or "Sensor readings started" in state:
+            return "blue"
+        else:
+            return "grey"
+
+    def status_label(state: str) -> str:
+        if "Stopped" in state:
+            return "STOP"
+        elif "Turning" in state:
+            return "TURN"
+        elif "Driving" in state:
+            return "GO"
+        elif "Loop Started" in state:
+            return "LOOP"
+        elif "Sensor readings started" in state:
+            return "READ"
+        else:
+            return "IDLE"
+
+    def update_status():
+        lbl_status.config(text=status_text)
+        status_canvas.itemconfig(status_circle, fill=status_color(status_text))
+        status_canvas.itemconfig(status_text_id, text=status_label(status_text))
+        lbl_turns.config(text=f"Turns: {turn_count}")
+        lbl_laps.config(text=f"Laps: {lap_count}" if slider_vars["MAX_LAPS"].get() > 0 else f"Laps: {lap_count}/∞")
+        root.after(200, update_status)
+
+    def update_plot():
+        if time_data:
+            front_line.set_data(range(len(front_data)), front_data)
+            left_line.set_data(range(len(left_data)), left_data)
+            right_line.set_data(range(len(right_data)), [-v for v in right_data])
+            angle_line.set_data(range(len(angle_data)), angle_data)
+
+            ax_front.set_xlim(0, MAX_POINTS)
+            ax_side.set_xlim(0, MAX_POINTS)
+            ax_angle.set_xlim(0, MAX_POINTS)
+
+            if angle_data:
+                min_angle = min(angle_data)
+                max_angle = max(angle_data)
+                if max_angle - min_angle > 180:
+                    ax_angle.set_ylim(-180, 180)
+                else:
+                    ax_angle.set_ylim(min_angle - 10, max_angle + 10)
+
+            canvas.draw()
+
+        root.after(100, update_plot)
+
+    def on_closing():
+        stop_loop()
+        GPIO.cleanup()
+        root.destroy()
 
     root.protocol("WM_DELETE_WINDOW", on_closing)
     update_status()
