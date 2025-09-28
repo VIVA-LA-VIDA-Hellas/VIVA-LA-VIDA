@@ -417,6 +417,10 @@ def launch_gui():
     sliders_frame = tk.LabelFrame(root, text="Parameters", padx=10, pady=10)
     sliders_frame.grid(row=0, column=1, rowspan=8, sticky="ns", padx=10, pady=5)
 
+    # Column 3 frame for actions
+    actions_frame = tk.LabelFrame(root, text="Actions", padx=10, pady=10)
+    actions_frame.grid(row=0, column=2, rowspan=8, sticky="ns", padx=10, pady=5)
+
     # ---------- Two-column layout ----------
     btn_readings.grid(row=0, column=0, sticky="ew", padx=5, pady=2)
     btn_start.grid(row=1, column=0, sticky="ew", padx=5, pady=2)
@@ -429,9 +433,10 @@ def launch_gui():
     canvas = FigureCanvasTkAgg(fig, master=root)
     canvas.get_tk_widget().grid(row=7, column=0, sticky="nsew", padx=5, pady=5)
 
-    root.grid_columnconfigure(0, weight=1)
-    root.grid_columnconfigure(1, weight=0)
-    root.grid_rowconfigure(7, weight=1)
+    root.grid_columnconfigure(0, weight=1)  # main buttons + plots
+    root.grid_columnconfigure(1, weight=0)  # sliders
+    root.grid_columnconfigure(2, weight=0)  # actions
+    root.grid_rowconfigure(7, weight=1)     # plot row
 
     # ---------- Slider Definitions ----------
     slider_groups = {
@@ -499,17 +504,17 @@ def launch_gui():
             scale.config(command=make_callback(lbl_val, var_name, var))
 
     # ---------- Buttons under sliders ----------
-    btn_export = tk.Button(sliders_frame, text="Export CSV", command=export_data_csv,
-                           width=20, height=2, bg="purple", fg="white")
-    btn_export.pack(pady=10, fill="x")
+    btn_export = tk.Button(actions_frame, text="Export CSV", command=export_data_csv,
+                       width=20, height=2, bg="purple", fg="white")
+btn_export.pack(pady=10, fill="x")
 
-    btn_save_sliders = tk.Button(sliders_frame, text="Save Sliders", command=save_sliders_json,
-                                 width=20, height=2, bg="green", fg="white")
-    btn_save_sliders.pack(pady=5, fill="x")
+btn_save_sliders = tk.Button(actions_frame, text="Save Sliders", command=save_sliders_json,
+                             width=20, height=2, bg="green", fg="white")
+btn_save_sliders.pack(pady=5, fill="x")
 
-    btn_load_sliders = tk.Button(sliders_frame, text="Load Sliders", command=load_sliders_json,
-                                 width=20, height=2, bg="blue", fg="white")
-    btn_load_sliders.pack(pady=5, fill="x")
+btn_load_sliders = tk.Button(actions_frame, text="Load Sliders", command=load_sliders_json,
+                             width=20, height=2, bg="blue", fg="white")
+btn_load_sliders.pack(pady=5, fill="x")
 
     # ===============================
     # GUI Update Functions (nested)
