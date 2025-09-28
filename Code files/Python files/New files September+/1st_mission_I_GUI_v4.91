@@ -516,11 +516,6 @@ def launch_gui():
                              width=20, height=2, bg="blue", fg="white")
     btn_load_sliders.pack(pady=5, fill="x")
 
-    # ---------- Exit Button ----------
-    btn_exit = tk.Button(actions_frame, text="Exit", command=on_closing,
-                     width=20, height=2, bg="red", fg="white")
-    btn_exit.pack(pady=5, fill="x")
-
     # ===============================
     # GUI Update Functions (nested)
     # ===============================
