@@ -71,6 +71,7 @@ MAX_TURN_ANGLE = 105          # Maximum yaw change (degrees) to force stop turn
 
 # ---------- Laps ----------
 MAX_LAPS = 3                  # Maximum number of laps before stopping (0 = unlimited)
+POST_LAP_DURATION = 1.0       # Time to drive forward after final lap before stopping (seconds)
 
 # ---------- Servo ----------
 SERVO_CHANNEL = 0             # PCA9685 channel controlling steering servo
@@ -296,9 +297,14 @@ def robot_loop():
                 if turn_count % 4 == 0:
                     lap_count += 1
                     if MAX_LAPS > 0 and lap_count >= MAX_LAPS:
+                        # Drive forward a little before stopping
+                        robot.set_servo(SERVO_CENTER)
+                        robot.rotate_motor(SPEED_CRUISE)
+                        time.sleep(POST_LAP_DURATION)
                         robot.stop_motor()
                         loop_flag = False
-                        status_text = f"Stopped - Max Laps ({MAX_LAPS}) reached"
+                        status_text = f"Stopped - Max Laps ({MAX_LAPS}) reached (rollout {POST_LAP_DURATION}s)"
+                        continue
                         continue
 
             # Turn logic
