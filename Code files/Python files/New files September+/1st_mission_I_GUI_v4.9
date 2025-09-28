@@ -249,6 +249,9 @@ def robot_loop():
         current_time = time.monotonic()
         dt = current_time - last_time
 
+        # ----------------------------
+        # Only read sensors if readings_flag is True
+        # ----------------------------
         if readings_flag:
             d_front = robot.filtered_distance(TRIG_FRONT, ECHO_FRONT, robot.front_history)
             d_left = robot.filtered_distance(TRIG_LEFT, ECHO_LEFT, robot.left_history)
@@ -265,10 +268,18 @@ def robot_loop():
             left_data.append(d_left or 0)
             right_data.append(d_right or 0)
             angle_data.append(yaw)
-            state_data.append(status_text)
+            state_data.append(status_text) 
         else:
+            # Reset last_time to avoid large dt jumps when readings start
             last_time = current_time
+            # Stop motors just in case
+            robot.stop_motor()
+            time.sleep(LOOP_DELAY)
+            continue
 
+        # ----------------------------
+        # Only move robot if loop_flag is True
+        # ----------------------------
         if loop_flag:
             # Emergency stop
             if d_front is not None and d_front < STOP_THRESHOLD:
@@ -299,46 +310,50 @@ def robot_loop():
                         time.sleep(POST_LAP_DURATION)
                         robot.stop_motor()
                         loop_flag = False
-                        status_text = f"Stopped - Max Laps ({MAX_LAPS}) reached (rollout {POST_LAP_DURATION}s)"
+                        status_text = f"Stopped - Max Laps ({MAX_LAPS}) reached"
                         continue
 
-        # Turn logic
-        if turning:
-            angle = TURN_ANGLE_LEFT if direction == "LEFT" else TURN_ANGLE_RIGHT
-            side_distance = d_left if direction == "LEFT" else d_right
-            robot.set_servo(angle)
-            robot.rotate_motor(SPEED_TURN)
-            turn_angle = abs(yaw - (turn_start_yaw or 0))
-            stop_condition = (d_front and d_front > FRONT_SAFE_DISTANCE and side_distance and side_distance > TARGET_DISTANCE) or \
-                             (current_time - turn_start_time > TURN_TIMEOUT) or \
-                             (turn_angle >= MAX_TURN_ANGLE) or \
-                             (turn_angle >= MIN_TURN_ANGLE and side_distance and side_distance > TARGET_DISTANCE)
-            if stop_condition:
-                robot.stop_motor()
-                robot.set_servo(SERVO_CENTER)
-                turning = False
-                last_turn_time = current_time
-                post_turn_wait = True
-                post_turn_start = current_time
-                last_yaw = 0.0
-                turn_start_yaw = None
-                status_text = "Driving (post-turn)"
+            # Turn logic
+            if turning:
+                angle = TURN_ANGLE_LEFT if direction == "LEFT" else TURN_ANGLE_RIGHT
+                side_distance = d_left if direction == "LEFT" else d_right
+                robot.set_servo(angle)
+                robot.rotate_motor(SPEED_TURN)
+                turn_angle = abs(yaw - (turn_start_yaw or 0))
+                stop_condition = (d_front and d_front > FRONT_SAFE_DISTANCE and side_distance and side_distance > TARGET_DISTANCE) or \
+                                 (current_time - turn_start_time > TURN_TIMEOUT) or \
+                                 (turn_angle >= MAX_TURN_ANGLE) or \
+                                 (turn_angle >= MIN_TURN_ANGLE and side_distance and side_distance > TARGET_DISTANCE)
+                if stop_condition:
+                    robot.stop_motor()
+                    robot.set_servo(SERVO_CENTER)
+                    turning = False
+                    last_turn_time = current_time
+                    post_turn_wait = True
+                    post_turn_start = current_time
+                    last_yaw = 0.0
+                    turn_start_yaw = None
+                    status_text = "Driving (post-turn)"
 
-        # Post-turn
-        elif post_turn_wait:
-            if current_time - post_turn_start < POST_TURN_DURATION:
-                robot.set_servo(SERVO_CENTER)
-                robot.rotate_motor(SPEED_CRUISE)
-                status_text = "Driving (post-turn)"
+            # Post-turn
+            elif post_turn_wait:
+                if current_time - post_turn_start < POST_TURN_DURATION:
+                    robot.set_servo(SERVO_CENTER)
+                    robot.rotate_motor(SPEED_CRUISE)
+                    status_text = "Driving (post-turn)"
+                else:
+                    post_turn_wait = False
+
+            # Normal cruise
             else:
-                post_turn_wait = False
-
-        # Normal cruise
+                servo_angle = robot.safe_straight_control(d_left, d_right)
+                robot.set_servo(servo_angle)
+                robot.rotate_motor(SPEED_CRUISE)
+                status_text = "Driving (cruise)"
         else:
-            servo_angle = robot.safe_straight_control(d_left, d_right)
-            robot.set_servo(servo_angle)
-            robot.rotate_motor(SPEED_CRUISE)
-            status_text = "Driving (cruise)"
+            # If loop not started, stop motors
+            robot.stop_motor()
+            status_text = "Ready (readings started, loop not started)"
 
         time.sleep(LOOP_DELAY)
 
@@ -635,24 +650,32 @@ def on_closing():
 # Start / Stop
 # -------------------------
 def start_readings():
+    """Enable sensor readings and allow loop start."""
     global readings_flag, status_text
     readings_flag = True
     status_text = "Sensor readings started"
     btn_readings.config(state="disabled")
     btn_start.config(state="normal")
 
+    # Automatically start robot_loop thread once
+    if not hasattr(start_readings, "thread_started"):
+        threading.Thread(target=robot_loop, daemon=True).start()
+        start_readings.thread_started = True
+
 def start_loop():
+    """Start the robot driving loop."""
     global loop_flag, status_text
+    if not readings_flag:
+        print("Start sensor readings first!")
+        return
+
     loop_flag = True
     status_text = "Loop Started"
     btn_start.config(state="disabled")
     btn_stop.config(state="normal")
 
-    if not hasattr(start_loop, "thread_started"):
-        threading.Thread(target=robot_loop, daemon=True).start()
-        start_loop.thread_started = True
-
 def stop_loop():
+    """Stop the robot loop and motor."""
     global loop_flag, status_text
     loop_flag = False
     robot.stop_motor()
