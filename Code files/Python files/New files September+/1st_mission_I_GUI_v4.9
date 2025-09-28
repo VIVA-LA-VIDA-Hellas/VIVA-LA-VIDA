@@ -443,9 +443,9 @@ slider_groups = {
             ],
     "Turns - how to end": [
         ("Turn Timeout (s)", "TURN_TIMEOUT", 1, 10, "float"),
-        ("Target Distance from turn side (cm)", "TARGET_DISTANCE", 10, 100, "int")
+        ("Target Distance from turn side (cm)", "TARGET_DISTANCE", 10, 100, "int"),
         ("Min Turn Angle (o)", "MIN_TURN_ANGLE", 60, 90, "int"),
-        ("Max Turn Angle (o)", "MAX_TURN_ANGLE", 90, 120, "int")
+        ("Max Turn Angle (o)", "MAX_TURN_ANGLE", 90, 120, "int"),
         ("Post Turn Duration (s)", "POST_TURN_DURATION", 0.1, 5, "float"),
         ("Turn Lockout (s)", "TURN_LOCKOUT", 1, 10, "float"),
             ],
@@ -457,40 +457,40 @@ slider_groups = {
 
 slider_vars = {}
 
-for group_name, sliders in slider_groups.items():
-    group_frame = tk.LabelFrame(sliders_frame, text=group_name, padx=5, pady=5)
-    group_frame.pack(fill="x", pady=5)
-    
-    for label_text, var_name, vmin, vmax, vartype in sliders:
-        frame = tk.Frame(group_frame)
-        frame.pack(fill="x", pady=2)
+        for group_name, sliders in slider_groups.items():
+        group_frame = tk.LabelFrame(sliders_frame, text=group_name, padx=5, pady=5)
+        group_frame.pack(fill="x", pady=5)
+        
+        for label_text, var_name, vmin, vmax, vartype in sliders:
+            frame = tk.Frame(group_frame)
+            frame.pack(fill="x", pady=2)
 
         if vartype == "float":
-            var = tk.DoubleVar(value=globals()[var_name])
-            res = 0.1
+                var = tk.DoubleVar(value=globals()[var_name])
+                res = 0.1
         else:
-            var = tk.IntVar(value=globals()[var_name])
-            res = 1
+                var = tk.IntVar(value=globals()[var_name])
+                res = 1
 
-        slider_vars[var_name] = var
+slider_vars[var_name] = var
 
-        scale = tk.Scale(frame, from_=vmin, to=vmax, orient="horizontal",
-                         variable=var, resolution=res)
-        scale.pack(side="left", fill="x", expand=True)
+scale = tk.Scale(frame, from_=vmin, to=vmax, orient="horizontal",
+                            variable=var, resolution=res)
+scale.pack(side="left", fill="x", expand=True)
 
-        lbl_val = tk.Label(frame, text=f"{label_text}: {var.get()}", width=25, anchor="w")
-        lbl_val.pack(side="right", padx=5)
+lbl_val = tk.Label(frame, text=f"{label_text}: {var.get()}", width=25, anchor="w")
+lbl_val.pack(side="right", padx=5)
 
-        def make_callback(lbl, name, var):
-            def callback(value):
-                globals()[name] = var.get()
-                if name == "MAX_LAPS" and var.get() == 0:
-                    lbl.config(text=f"{label_text}: ∞")
-                else:
-                    lbl.config(text=f"{label_text}: {var.get():.1f}" if isinstance(var.get(), float) else f"{label_text}: {var.get()}")
-            return callback
+def make_callback(lbl, name, var):
+                def callback(value):
+                    globals()[name] = var.get()
+                    if name == "MAX_LAPS" and var.get() == 0:
+                        lbl.config(text=f"{label_text}: ∞")
+                    else:
+                        lbl.config(text=f"{label_text}: {var.get():.1f}" if isinstance(var.get(), float) else f"{label_text}: {var.get()}")
+                return callback
 
-        scale.config(command=make_callback(lbl_val, var_name, var))
+scale.config(command=make_callback(lbl_val, var_name, var))
 
     # ---------- Buttons under sliders ----------
 btn_export = tk.Button(sliders_frame, text="Export CSV", command=export_data_csv,
@@ -508,7 +508,7 @@ btn_load_sliders.pack(pady=5, fill="x")
     # ===============================
     # GUI UPDATE FUNCTIONS
     # ===============================
-    def status_color(state: str) -> str:
+def status_color(state: str) -> str:
         if "Stopped" in state:
             return "red"
         elif "Turning" in state:
@@ -520,7 +520,7 @@ btn_load_sliders.pack(pady=5, fill="x")
         else:
             return "grey"
 
-    def status_label(state: str) -> str:
+def status_label(state: str) -> str:
         if "Stopped" in state:
             return "STOP"
         elif "Turning" in state:
@@ -534,7 +534,7 @@ btn_load_sliders.pack(pady=5, fill="x")
         else:
             return "IDLE"
 
-    def update_status():
+def update_status():
         lbl_status.config(text=status_text)
         status_canvas.itemconfig(status_circle, fill=status_color(status_text))
         status_canvas.itemconfig(status_text_id, text=status_label(status_text))
@@ -542,7 +542,7 @@ btn_load_sliders.pack(pady=5, fill="x")
         lbl_laps.config(text=f"Laps: {lap_count}" if slider_vars["MAX_LAPS"].get() > 0 else f"Laps: {lap_count}/∞")
         root.after(200, update_status)
 
-    def update_plot():
+def update_plot():
         if time_data:
             front_line.set_data(range(len(front_data)), front_data)
             left_line.set_data(range(len(left_data)), left_data)
@@ -565,15 +565,15 @@ btn_load_sliders.pack(pady=5, fill="x")
 
         root.after(100, update_plot)
 
-    def on_closing():
+def on_closing():
         stop_loop()
         GPIO.cleanup()
         root.destroy()
 
-    root.protocol("WM_DELETE_WINDOW", on_closing)
-    update_status()
-    update_plot()
-    root.mainloop()
+root.protocol("WM_DELETE_WINDOW", on_closing)
+update_status()
+update_plot()
+root.mainloop()
 
 # -------------------------
 # Start / Stop
@@ -667,4 +667,3 @@ def load_sliders_json():
 if __name__ == "__main__":
     threading.Thread(target=robot_loop, daemon=True).start()
     launch_gui()
-
