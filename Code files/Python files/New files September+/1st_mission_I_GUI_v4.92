@@ -736,7 +736,7 @@ def save_sliders_json():
         data = {name: var.get() for name, var in slider_vars.items()}
         with open(file_path, "w") as f:
             json.dump(data, f, indent=4)
-        print(f"Slider values saved to {file_path}"))
+        print(f"Slider values saved to {file_path}")
 
 def load_sliders_json():
     file_path = fd.askopenfilename(initialdir=BASE_DIR,
