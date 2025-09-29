@@ -10,6 +10,7 @@
 # v4.7 - new GUI, rewrite
 # v4.8 - added gyroscope
 # v4.9 - added sliders, max lap, save/load slide values, csv export with data
+# v4.92 - check servo correction during cruise
 #
 # Logic description
 # - Continuously read ultrasonic sensor distances: front, left, and right.
@@ -218,6 +219,9 @@ class RobotController:
             correction = -(SOFT_MARGIN - d_right)*2
         correction = max(-MAX_CORRECTION, min(MAX_CORRECTION, correction))
         return SERVO_CENTER + correction
+     
+        # Stay corrected while obstacle present, snap back instantly when clear
+        # return SERVO_CENTER + correction if correction != 0 else SERVO_CENTER
 
     def turn_decision(self, d_left, d_right):
         if d_left is not None and d_left > TURN_DECISION_THRESHOLD:
