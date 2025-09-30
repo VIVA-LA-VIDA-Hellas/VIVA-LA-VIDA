@@ -11,7 +11,8 @@
 # v4.8 - added gyroscope
 # v4.9 - added sliders, max lap, save/load slide values, csv export with data
 # v4.92 - check servo correction during cruise
-# to do: device Stuck detection policy, only trigger turn if front is below threshold and was previously above it
+# to do: device Stuck detection policy, only trigger turn if front is below threshold and was previously above it,
+# use reference yaw to calculate angles
 #
 # Logic description
 # - Continuously read ultrasonic sensor distances: front, left, and right.
