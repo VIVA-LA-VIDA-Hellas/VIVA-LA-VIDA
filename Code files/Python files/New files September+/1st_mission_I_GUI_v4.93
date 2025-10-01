@@ -385,6 +385,24 @@ def launch_gui():
     root = tk.Tk()
     root.title("VivaLaVida Robot Control")
 
+    # Create a canvas + scrollbar + scrollable frame
+    canvas = tk.Canvas(root)
+    scrollbar = tk.Scrollbar(root, orient="vertical", command=canvas.yview)
+    scrollable_frame = tk.Frame(canvas)
+
+    scrollable_frame.bind(
+        "<Configure>",
+        lambda e: canvas.configure(
+            scrollregion=canvas.bbox("all")
+        )
+    )
+
+canvas.create_window((0, 0), window=scrollable_frame, anchor="nw")
+canvas.configure(yscrollcommand=scrollbar.set)
+
+canvas.pack(side="left", fill="both", expand=True)
+scrollbar.pack(side="right", fill="y")
+
     slider_vars = {}
 
     # ---------- Matplotlib Figure ----------
@@ -485,7 +503,8 @@ def launch_gui():
 
     # ---------- Create Sliders ----------
     for group_name, sliders in slider_groups.items():
-        group_frame = tk.LabelFrame(sliders_frame, text=group_name, padx=5, pady=5)
+        #group_frame = tk.LabelFrame(sliders_frame, text=group_name, padx=5, pady=5)
+        group_frame = tk.LabelFrame(scrollable_frame, text=group_name, padx=10, pady=10)
         group_frame.pack(fill="x", pady=5)
         for label_text, var_name, vmin, vmax, vartype in sliders:
             frame = tk.Frame(group_frame)
