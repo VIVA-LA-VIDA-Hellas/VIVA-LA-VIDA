@@ -130,7 +130,17 @@ for trig in [TRIG_FRONT, TRIG_LEFT, TRIG_RIGHT]:
 for echo in [ECHO_FRONT, ECHO_LEFT, ECHO_RIGHT]:
     GPIO.setup(echo, GPIO.IN)
 
-bias = sum(mpu.gyro[2] for _ in range(500)) / 500
+#bias = sum(mpu.gyro[2] for _ in range(500)) / 500
+
+# ---------- Calibrate gyro bias at startup ----------
+print("Calibrating gyro...")
+N = 500
+bias = 0
+for _ in range(N):
+    bias += mpu.gyro[2]
+    time.sleep(0.005)
+bias /= N
+print(f"Gyro bias: {bias}")
 
 # ===============================
 # CONTROL FLAGS
