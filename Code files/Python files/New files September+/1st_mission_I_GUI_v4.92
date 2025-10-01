@@ -54,8 +54,8 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 # ===============================
 
 # ---------- Speeds ----------
-SPEED_CRUISE = 30             # Motor speed for normal straight driving (0-100%)
-SPEED_TURN = 20               # Motor speed during turns (0-100%)
+SPEED_CRUISE = 20             # Motor speed for normal straight driving (0-100%)
+SPEED_TURN = 15               # Motor speed during turns (0-100%)
 
 # ---------- Driving ----------
 SAFE_MARGIN = 20              # Minimum safe distance from walls (cm) for emergency correction
@@ -64,27 +64,27 @@ MAX_CORRECTION = 7            # Maximum servo correction applied for wall-follow
 STOP_THRESHOLD = 20           # Front distance (cm) at which robot stops immediately
 
 # ---------- Turn management ----------
-FRONT_TURN_TRIGGER = 90       # Front distance (cm) at which a turn is triggered
+FRONT_TURN_TRIGGER = 80       # Front distance (cm) at which a turn is triggered
 TURN_DECISION_THRESHOLD = 100 # Minimum side distance (cm) to allow turn in that direction
-TURN_ANGLE_LEFT = 55          # Servo angle for left turn
-TURN_ANGLE_RIGHT = 125        # Servo angle for right turn
+TURN_ANGLE_LEFT = 60          # Servo angle for left turn
+TURN_ANGLE_RIGHT = 120        # Servo angle for right turn
 FRONT_SAFE_DISTANCE = 200     # Front distance considered safe to end a turn (cm)
 TARGET_DISTANCE = 30          # Desired distance from side walls (cm)
-TURN_TIMEOUT = 3.0            # Maximum time allowed for a turn (seconds)
-TURN_LOCKOUT = 2.0            # Minimum interval between consecutive turns (seconds)
-POST_TURN_DURATION = 1.0      # Time to drive straight after a turn (seconds)
+TURN_TIMEOUT = 1.0            # Maximum time allowed for a turn (seconds)
+TURN_LOCKOUT = 1.0            # Minimum interval between consecutive turns (seconds)
+POST_TURN_DURATION = 0.5      # Time to drive straight after a turn (seconds)
 
 # ---------- Turn angle constraints ----------
 MIN_TURN_ANGLE = 75           # Minimum yaw change (degrees) before turn can stop
 MAX_TURN_ANGLE = 105          # Maximum yaw change (degrees) to force stop turn
 
 # ---------- Laps ----------
-MAX_LAPS = 3                  # Maximum number of laps before stopping (0 = unlimited)
-POST_LAP_DURATION = 1.0       # Time to drive forward after final lap before stopping (seconds)
+MAX_LAPS = 0                  # Maximum number of laps before stopping (0 = unlimited)
+POST_LAP_DURATION = 0.5       # Time to drive forward after final lap before stopping (seconds)
 
 # ---------- Servo ----------
 SERVO_CHANNEL = 0             # PCA9685 channel controlling steering servo
-SERVO_CENTER = 90             # Neutral servo angle (degrees)
+SERVO_CENTER = 90            # Neutral servo angle (degrees)
 SERVO_MIN_ANGLE = 50          # Minimum physical servo angle (degrees)
 SERVO_MAX_ANGLE = 130         # Maximum physical servo angle (degrees)
 SERVO_PULSE_MIN = 1000        # Minimum PWM pulse width (microseconds)
@@ -108,7 +108,7 @@ SOUND_SPEED = 17150              # Speed of sound in cm/s for distance calculati
 N_READINGS = 5                    # Number of readings stored for median filtering
 
 # ---------- Loop timing ----------
-LOOP_DELAY = 0.05                 # Delay between main loop iterations (seconds)
+LOOP_DELAY = 0.025                 # Delay between main loop iterations (seconds)
 TRIG_PULSE_DURATION = 0.00001    # Trigger pulse duration for ultrasonic sensor (seconds)
 
 # ---------- Plotting ----------
@@ -230,10 +230,10 @@ class RobotController:
         elif d_right is not None and d_right < SOFT_MARGIN:
             correction = -(SOFT_MARGIN - d_right)*2
         correction = max(-MAX_CORRECTION, min(MAX_CORRECTION, correction))
-        # return SERVO_CENTER + correction
+        return SERVO_CENTER + correction
      
         # Stay corrected while obstacle present, snap back instantly when clear
-        return SERVO_CENTER + correction if correction != 0 else SERVO_CENTER
+        # return SERVO_CENTER + correction if correction != 0 else SERVO_CENTER
 
     def turn_decision(self, d_left, d_right):
         if d_left is not None and d_left > TURN_DECISION_THRESHOLD:
