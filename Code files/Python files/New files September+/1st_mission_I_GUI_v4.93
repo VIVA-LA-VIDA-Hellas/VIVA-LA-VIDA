@@ -465,8 +465,8 @@ def launch_gui():
         "Turns - how to initiate": [
             ("Front Turn Trigger (cm)", "FRONT_TURN_TRIGGER", 50, 150, "int"),
             ("Turn Decision Threshold (Left/Right) (cm)", "TURN_DECISION_THRESHOLD", 0, 200, "int"),
-            ("Turn Angle Left (°)", "TURN_ANGLE_LEFT", 40, 90, "int"),
-            ("Turn Angle Right (°)", "TURN_ANGLE_RIGHT", 90, 140, "int")
+            ("Turn Angle Left (°)", "TURN_ANGLE_LEFT", 50, 90, "int"),
+            ("Turn Angle Right (°)", "TURN_ANGLE_RIGHT", 90, 130, "int")
         ],
         "Turns - how to end": [
             ("Turn Timeout (s)", "TURN_TIMEOUT", 1, 10, "float"),
@@ -478,7 +478,7 @@ def launch_gui():
             ("Front Safe Distance (cm)", "FRONT_SAFE_DISTANCE", 50, 300, "int")
         ],
         "Other": [
-            ("Sensor Filter N (Median)", "N_READINGS", 1, 20, "int"),
+            ("Sensor Filter N (Median)", "N_READINGS", 1, 10, "int"),
             ("Max Laps - 0 for infinite", "MAX_LAPS", 0, 20, "int")
         ]
     }
