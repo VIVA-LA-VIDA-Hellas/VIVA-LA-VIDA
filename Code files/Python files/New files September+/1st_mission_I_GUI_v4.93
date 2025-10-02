@@ -473,21 +473,20 @@ def launch_gui():
         "Driving & Safety, Wall following, Turns": [
             ("Turn angle Left", "TURN_ANGLE_LEFT", 55, 90, "int"),
             ("Turn angle Right", "TURN_ANGLE_RIGHT", 90, 125, "int"),
-            ("Safe side Margin (cm)", "SAFE_MARGIN", 0, 100, "int"),
-            ("Soft side Margin (cm)", "SOFT_MARGIN", 0, 100, "int"),
+            ("Soft side Margin (cm)", "SOFT_MARGIN", 0, 75, "int"),
             ("Max Angle Correction dif at Soft Margin (o)", "MAX_CORRECTION", 0, 45, "int"),
             ("Stop Threshold (cm)", "STOP_THRESHOLD", 0, 100, "int"),
             ("Front Turn Trigger (cm)", "FRONT_TURN_TRIGGER", 50, 150, "int"),
             ("Turn Decision Threshold (Left/Right) (cm)", "TURN_DECISION_THRESHOLD", 0, 200, "int"),
-            ("Turn Timeout (s)", "TURN_TIMEOUT", 1, 10, "float"),
+            ("Turn Timeout (s)", "TURN_TIMEOUT", 0.1, 10, "float"),
             ("Target Distance from turn side (cm)", "TARGET_DISTANCE", 10, 100, "int"),
             ("Min Turn Angle (o)", "MIN_TURN_ANGLE", 60, 90, "int"),
             ("Max Turn Angle (o)", "MAX_TURN_ANGLE", 90, 120, "int"),
-            ("Post Turn Duration (s)", "POST_TURN_DURATION", 0.1, 5, "float"),
-            ("Turn Lockout (s)", "TURN_LOCKOUT", 1, 10, "float")
+            ("Post Turn Duration (s)", "POST_TURN_DURATION", 0, 5, "float"),
+            ("Turn Lockout (s)", "TURN_LOCKOUT", 0.1, 5, "float")
         ],
         "Other": [
-            ("Sensor Filter N (Median)", "N_READINGS", 1, 20, "int"),
+            ("Sensor Filter N (Median)", "N_READINGS", 0, 10, "int"),
             ("Max Laps - 0 for infinite", "MAX_LAPS", 0, 20, "int")
         ]
     }
