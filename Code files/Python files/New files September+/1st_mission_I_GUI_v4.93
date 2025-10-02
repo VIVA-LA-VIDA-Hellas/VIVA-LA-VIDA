@@ -101,7 +101,7 @@ TRIG_FRONT, ECHO_FRONT = 22, 23  # GPIO pins for front sensor
 TRIG_LEFT, ECHO_LEFT = 27, 17    # GPIO pins for left sensor
 TRIG_RIGHT, ECHO_RIGHT = 5, 6    # GPIO pins for right sensor
 
-ULTRASONIC_TIMEOUT = 0.02        # Timeout for ultrasonic sensor reading (seconds)
+ULTRASONIC_TIMEOUT = 0.04        # Timeout for ultrasonic sensor reading (seconds)
 # Max distance measurable by a sensor = timeout×17150 - 0.02x17150=343cm maximum distance
 SOUND_SPEED = 17150              # Speed of sound in cm/s for distance calculation for a round trip
 
@@ -425,9 +425,9 @@ def launch_gui():
                           width=20, height=2, bg="green", fg="white", state="disabled")
     btn_stop = tk.Button(root, text="Stop Loop", command=stop_loop,
                          width=20, height=2, bg="red", fg="white", state="disabled")
-    btn_reset = tk.Button(root, text="Reset Counters", command=self.reset_counters,
-                         width=20, height=1, bg="white", fg="red")
-    self.reset_button.pack()
+    #btn_reset = tk.Button(root, text="Reset Counters", command=self.reset_counters,
+    #                     width=20, height=1, bg="white", fg="red")
+    #self.reset_button.pack()
 
     # ---------- Status Labels ----------
     lbl_status = tk.Label(root, text="Idle", font=("Arial", 14))
@@ -525,8 +525,8 @@ def launch_gui():
                         lbl.config(text=f"{text}: {var.get():.1f}" if isinstance(var.get(), float) else f"{text}: {var.get()}")
                 return callback
 
-            #scale.config(command=make_callback(lbl_val, var_name, var))
-            scale.config(command=make_callback(lbl_val, var_name, var, label_text))
+            scale.config(command=make_callback(lbl_val, var_name, var))
+            #scale.config(command=make_callback(lbl_val, var_name, var, label_text))
 
     # ---------- Buttons under sliders ----------
     btn_export = tk.Button(actions_frame, text="Export CSV", command=export_data_csv,
