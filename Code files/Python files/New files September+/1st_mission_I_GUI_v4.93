@@ -523,7 +523,7 @@ def launch_gui():
                     else:
                         #lbl.config(text=f"{label_text}: {var.get():.1f}" if isinstance(var.get(), float) else f"{label_text}: {var.get()}")
                         lbl.config(text=f"{text}: {var.get():.1f}" if isinstance(var.get(), float) else f"{text}: {var.get()}")
-                   return callback
+                return callback
 
             #scale.config(command=make_callback(lbl_val, var_name, var))
             scale.config(command=make_callback(lbl_val, var_name, var, label_text))
