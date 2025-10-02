@@ -11,7 +11,7 @@
 # v4.8 - added gyroscope
 # v4.9 - added sliders, max lap, save/load slide values, csv export with data
 # v4.92 - check servo correction during cruise
-# v4.93 - add lap reset button
+# v4.93 - add lap reset button, slider name correction
 # to do: device Stuck detection policy, only trigger turn if front is below threshold and was previously above it,
 # use reference yaw to calculate angles
 #
@@ -425,8 +425,9 @@ def launch_gui():
                           width=20, height=2, bg="green", fg="white", state="disabled")
     btn_stop = tk.Button(root, text="Stop Loop", command=stop_loop,
                          width=20, height=2, bg="red", fg="white", state="disabled")
-    btn_reset = tk.Button(root, text="Reset Counters", command=self.reset_counters)
-                          self.reset_button.pack()
+    btn_reset = tk.Button(root, text="Reset Counters", command=self.reset_counters,
+                         width=20, height=1, bg="white", fg="red")
+    self.reset_button.pack()
 
     # ---------- Status Labels ----------
     lbl_status = tk.Label(root, text="Idle", font=("Arial", 14))
@@ -469,17 +470,15 @@ def launch_gui():
             ("Cruise Speed (%)", "SPEED_CRUISE", 0, 100, "int"),
             ("Turn Speed (%)", "SPEED_TURN", 0, 100, "int")
         ],
-        "Driving & Safety, Wall following": [
+        "Driving & Safety, Wall following, Turns": [
+            ("Turn angle Left", "TURN_ANGLE_LEFT", 55, 90, "int"),
+            ("Turn angle Right", "TURN_ANGLE_RIGHT", 90, 125, "int"),
             ("Safe side Margin (cm)", "SAFE_MARGIN", 0, 100, "int"),
             ("Soft side Margin (cm)", "SOFT_MARGIN", 0, 100, "int"),
             ("Max Angle Correction dif at Soft Margin (o)", "MAX_CORRECTION", 0, 45, "int"),
-            ("Stop Threshold (cm)", "STOP_THRESHOLD", 0, 100, "int")
-        ],
-        "Turns - how to initiate": [
+            ("Stop Threshold (cm)", "STOP_THRESHOLD", 0, 100, "int"),
             ("Front Turn Trigger (cm)", "FRONT_TURN_TRIGGER", 50, 150, "int"),
-            ("Turn Decision Threshold (Left/Right) (cm)", "TURN_DECISION_THRESHOLD", 0, 200, "int")
-        ],
-        "Turns - how to end": [
+            ("Turn Decision Threshold (Left/Right) (cm)", "TURN_DECISION_THRESHOLD", 0, 200, "int"),
             ("Turn Timeout (s)", "TURN_TIMEOUT", 1, 10, "float"),
             ("Target Distance from turn side (cm)", "TARGET_DISTANCE", 10, 100, "int"),
             ("Min Turn Angle (o)", "MIN_TURN_ANGLE", 60, 90, "int"),
