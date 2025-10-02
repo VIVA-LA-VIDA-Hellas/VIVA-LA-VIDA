@@ -6,10 +6,15 @@ After the summer holidays ended, we had a plethora undocumented meetings, during
 The compartments we 3d printed are listen bellow
 
 > Base for differential and motor
+> 
 > Chasis
+>
 > Base for TOF (time of flight) sensors
+>
 > Ultrasonic sensor (updated)
+>
 > Camera base (updated)
+>
 > Servo base
 
 Additionally, we changed our servo to a model that can withstand more force, due to the previous ones often breaking
