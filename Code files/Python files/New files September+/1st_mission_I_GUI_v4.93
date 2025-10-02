@@ -713,10 +713,16 @@ def stop_loop():
     btn_start.config(state="normal")
     btn_stop.config(state="disabled")
 
-def reset_counters(self):
-    self.lap_count = 0
-    self.turn_count = 0
-    self.update_labels()  
+    # Reset counters
+    turn_count = 0
+    lap_count = 0
+    lbl_turns.config(text=f"Turns: {turn_count}")
+    lbl_laps.config(text=f"Laps: {lap_count}")
+
+#def reset_counters(self):
+#    self.lap_count = 0
+#    self.turn_count = 0
+#    self.update_labels()  
 
 # -------------------------
 # Export to CSV
