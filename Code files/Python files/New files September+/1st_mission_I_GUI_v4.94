@@ -110,7 +110,7 @@ N_READINGS = 4                    # Number of readings stored for median filteri
 
 # ---------- Loop timing ----------
 LOOP_DELAY = 0.025                 # Delay between main loop iterations (seconds)
-TRIG_PULSE_DURATION = 0.000015     # Trigger pulse duration for ultrasonic sensor (seconds) - was 0.00001
+TRIG_PULSE_DURATION = 0.000010     # Trigger pulse duration for ultrasonic sensor (seconds) - was 0.00001
 
 # ---------- Plotting ----------
 MAX_POINTS = 400                   # Maximum number of points to store for plotting
