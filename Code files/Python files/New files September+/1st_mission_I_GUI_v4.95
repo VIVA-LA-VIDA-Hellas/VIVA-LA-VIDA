@@ -425,6 +425,12 @@ def launch_gui():
     root = tk.Tk()
     root.title("VivaLaVida Robot Control")
 
+    # --- Mode selection (Auto / Manual) ---
+    mode_var = tk.StringVar(value="auto")
+    frm_mode = ttk.LabelFrame(root, text="Mode", padding=10)
+    frm_mode.pack(fill="x", padx=10, pady=5)
+    ttk.Radiobutton(frm_mode, text="Auto", variable=mode_var, value="auto").pack(side="left", padx=5)
+    ttk.Radiobutton(frm_mode, text="Manual", variable=mode_var, value="manual").pack(side="left", padx=5)
     slider_vars = {}
 
     # ---------- Matplotlib Figure ----------
