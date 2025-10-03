@@ -110,7 +110,7 @@ SOUND_SPEED = 17150              # Speed of sound in cm/s for distance calculati
 N_READINGS = 4                    # Number of readings stored for median filtering
 
 # ---------- Loop timing ----------
-LOOP_DELAY = 0.03                 # Delay between main loop iterations (seconds)
+LOOP_DELAY = 0.025                 # Delay between main loop iterations (seconds)
 TRIG_PULSE_DURATION = 0.00001    # Trigger pulse duration for ultrasonic sensor (seconds)
 
 # ---------- Plotting ----------
