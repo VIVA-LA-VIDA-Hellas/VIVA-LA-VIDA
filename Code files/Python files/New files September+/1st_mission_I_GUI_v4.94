@@ -12,7 +12,7 @@
 # v4.9 - added sliders, max lap, save/load slide values, csv export with data
 # v4.92 - check servo correction during cruise
 # v4.93 - add lap reset button (stop loop), slider name correction
-# v4.94 - Sensor readings filtering improvements
+# v4.94 - Sensor readings filtering improvements, read in sequence
 # to do: device Stuck detection policy, only trigger turn if front is below threshold and was previously above it,
 # use reference yaw to calculate angles
 #
