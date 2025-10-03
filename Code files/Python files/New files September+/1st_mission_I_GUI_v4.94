@@ -221,19 +221,22 @@ class RobotController:
 
     def filtered_distance(self, trig, echo, history):
         d = self.get_distance(trig, echo)
-        if d is not None:
-            history.append(d)
-        if history:
-            # Step 1: Median Filter
-            s = sorted(history)
-            mid = len(s)//2
-            #return (s[mid-1]+s[mid])/2 if len(s)%2==0 else s[mid]
-            median_val = (s[mid-1] + s[mid]) / 2 if len(s) % 2 == 0 else s[mid]
-            # Step 2: Moving average
-            avg_val = sum(history) / len(history)
-            # Step 3: Moving average over history
-            # return (median_val + avg_val) / 2
-            return 0.7 * median_val + 0.3 * avg_val  # more weight on median
+        history.append(d)
+        # If last N readings are all None → sensor blind
+        if all(x is None for x in history):
+            return None
+        # Filter only valid values
+        valid = [x for x in history if x is not None]
+        if not valid:
+            return None
+        # Step 1: Median Filter
+        s = sorted(valid)
+        mid = len(s) // 2
+        median_val = (s[mid - 1] + s[mid]) / 2 if len(s) % 2 == 0 else s[mid]
+        # Step 2: Moving average
+        avg_val = sum(valid) / len(valid)
+        # Step 3: Weighted combination (more weight on median)
+        return 0.7 * median_val + 0.3 * avg_val
         return None
 
     def safe_straight_control(self, d_left, d_right):
@@ -733,7 +736,7 @@ def start_loop():
 
 def stop_loop():
     """Stop the robot loop and motor."""
-    global loop_flag, status_text
+    global loop_flag, status_text, turn_count, lap_count
     loop_flag = False
     robot.stop_motor()
     status_text = "Stopped"
