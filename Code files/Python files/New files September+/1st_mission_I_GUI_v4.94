@@ -247,9 +247,6 @@ class RobotController:
         correction = max(-MAX_CORRECTION, min(MAX_CORRECTION, correction))
         return SERVO_CENTER + correction
      
-        # Stay corrected while obstacle present, snap back instantly when clear
-        # return SERVO_CENTER + correction if correction != 0 else SERVO_CENTER
-
     def turn_decision(self, d_left, d_right):
         if d_left is not None and d_left > TURN_DECISION_THRESHOLD:
             return "LEFT"
@@ -304,7 +301,7 @@ def robot_loop():
             elif robot.sensor_index == 2:
                 val = robot.filtered_distance(TRIG_RIGHT, ECHO_RIGHT, robot.right_history)
                 if val is not None:
-                      robot.d_right = val
+                    robot.d_right = val
 
             robot.sensor_index = (robot.sensor_index + 1) % 3
 
@@ -544,7 +541,7 @@ def launch_gui():
             lbl_val = tk.Label(frame, text=f"{label_text}: {var.get()}", width=25, anchor="w")
             lbl_val.pack(side="right", padx=5)
 
-            def make_callback(lbl, name, var, label_tect):
+            def make_callback(lbl, name, var, label_text):
                 def callback(value, label_text=label_text):
                     globals()[name] = var.get()
                     if name == "MAX_LAPS" and var.get() == 0:
