@@ -111,7 +111,7 @@ N_READINGS = 4                    # Number of readings stored for median filteri
 
 # ---------- Loop timing ----------
 LOOP_DELAY = 0.025                 # Delay between main loop iterations (seconds)
-TRIG_PULSE_DURATION = 0.00001    # Trigger pulse duration for ultrasonic sensor (seconds)
+TRIG_PULSE_DURATION = 0.000015     # Trigger pulse duration for ultrasonic sensor (seconds) - was 0.00001
 
 # ---------- Plotting ----------
 MAX_POINTS = 400                   # Maximum number of points to store for plotting
@@ -236,10 +236,10 @@ class RobotController:
             return 0.7 * median_val + 0.3 * avg_val  # more weight on median
         return None
 
-    def safe_straight_control(self, robot.d_left, robot.d_right):
+    def safe_straight_control(self, d_left, d_right):
         correction = 0
-        if robot.d_left is not None and robot.d_left < SOFT_MARGIN:
-            correction = (SOFT_MARGIN - robot.d_left)*2
+        if d_left is not None and d_left < SOFT_MARGIN:
+            correction = (SOFT_MARGIN - d_left)*2
         elif d_right is not None and d_right < SOFT_MARGIN:
             correction = -(SOFT_MARGIN - d_right)*2
         correction = max(-MAX_CORRECTION, min(MAX_CORRECTION, correction))
@@ -248,16 +248,16 @@ class RobotController:
         # Stay corrected while obstacle present, snap back instantly when clear
         # return SERVO_CENTER + correction if correction != 0 else SERVO_CENTER
 
-    def turn_decision(self, robot.d_left, robot.d_right):
-        if robot.d_left is not None and robot.d_left > TURN_DECISION_THRESHOLD:
+    def turn_decision(self, d_left, d_right):
+        if d_left is not None and d_left > TURN_DECISION_THRESHOLD:
             return "LEFT"
-        if robot.d_right is not None and robot.d_right > TURN_DECISION_THRESHOLD:
+        if d_right is not None and d_right > TURN_DECISION_THRESHOLD:
             return "RIGHT"
-        if robot.d_left is not None and robot.d_right is not None:
-            return "LEFT" if robot.d_left > robot.d_right else "RIGHT"
-        if robot.d_left is not None:
+        if d_left is not None and d_right is not None:
+            return "LEFT" if d_left > d_right else "RIGHT"
+        if d_left is not None:
             return "LEFT"
-        if robot.d_right is not None:
+        if d_right is not None:
             return "RIGHT"
         return "LEFT"
 
@@ -370,7 +370,7 @@ def robot_loop():
                 robot.set_servo(angle)
                 robot.rotate_motor(SPEED_TURN)
                 turn_angle = abs(yaw - (turn_start_yaw or 0))
-                stop_condition = (robot.d_front and robot.d_front > FRONT_SAFE_DISTANCE and side_distance and side_distance > TARGET_DISTANCE) or \
+                stop_condition = (robot.d_front is not None and robot.d_front > FRONT_SAFE_DISTANCE and side_distance and side_distance > TARGET_DISTANCE) or \
                                  (current_time - turn_start_time > TURN_TIMEOUT) or \
                                  (turn_angle >= MAX_TURN_ANGLE) or \
                                  (turn_angle >= MIN_TURN_ANGLE and side_distance and side_distance > TARGET_DISTANCE)
@@ -549,7 +549,7 @@ def launch_gui():
                         lbl.config(text=f"{label_text}: ∞")
                     else:
                         #lbl.config(text=f"{label_text}: {var.get():.1f}" if isinstance(var.get(), float) else f"{label_text}: {var.get()}")
-                        lbl.config(text=f"{text}: {var.get():.1f}" if isinstance(var.get(), float) else f"{text}: {var.get()}")
+                        lbl.config(text=f"{label_text}: {var.get():.1f}" if isinstance(var.get(), float) else f"{label_text}: {var.get()}")
                 return callback
 
             scale.config(command=make_callback(lbl_val, var_name, var))
