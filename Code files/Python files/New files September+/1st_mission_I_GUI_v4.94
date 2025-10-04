@@ -430,7 +430,6 @@ def robot_loop():
                     post_turn_wait = False
 
             # Normal cruise
-            # Normal cruise
             else:
                 # ===== POST-TURN WALL BALANCE =====
                 if use_post_turn_ref and robot.d_left is not None and robot.d_right is not None:
@@ -448,9 +447,9 @@ def robot_loop():
                 robot.set_servo(servo_angle)
                 robot.rotate_motor(SPEED_CRUISE)
 
-            else:
-                # Compute normal correction
-                servo_angle = robot.safe_straight_control(robot.d_left, robot.d_right)
+          #  else:
+          #      # Compute normal correction
+          #      servo_angle = robot.safe_straight_control(robot.d_left, robot.d_right)
 
                 # ===== APPLY POST-TURN REFERENCE =====
                 if use_post_turn_ref and robot.d_left > SOFT_MARGIN and robot.d_right > SOFT_MARGIN:
