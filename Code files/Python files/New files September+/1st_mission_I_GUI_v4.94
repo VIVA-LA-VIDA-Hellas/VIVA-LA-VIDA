@@ -278,7 +278,13 @@ def robot_loop():
     last_time = time.monotonic()
     start_time = time.monotonic()
     d_front = d_left = d_right = yaw = 0.0
+    post_turn_ref_diff = 0
+    use_post_turn_ref = False
     locked_turn_direction = None  # "LEFT" or "RIGHT" after first turn
+    # ===== NEW VARIABLES FOR POST-TURN WALL BALANCE =====
+    post_turn_ref_diff = None   # Stores left-right difference after a turn
+    use_post_turn_ref = False   # Flag to enable post-turn reference
+    
     while True:
         current_time = time.monotonic()
         dt = current_time - last_time
@@ -346,6 +352,9 @@ def robot_loop():
             #if (not turning) and (not post_turn_wait) and can_trigger:
             #    direction = robot.turn_decision(robot.d_left, robot.d_right)
             if (not turning) and (not post_turn_wait) and can_trigger:
+                # ===== RESET POST-TURN WALL REFERENCE =====
+                use_post_turn_ref = False
+                post_turn_ref_diff = None
                 # Determine initial direction
                 proposed_direction = robot.turn_decision(robot.d_left, robot.d_right)
                 # If no direction locked yet → lock on first turn
@@ -360,7 +369,8 @@ def robot_loop():
                     continue
                 # Apply the allowed direction
                 direction = locked_turn_direction
-                    
+
+                use_post_turn_ref = False
                 turning = True
                 turn_start_time = current_time
                 turn_start_yaw = yaw
@@ -398,7 +408,17 @@ def robot_loop():
                     post_turn_start = current_time
                     last_yaw = 0.0
                     turn_start_yaw = None
+                    
+                    if robot.d_left is not None and robot.d_right is not None:
+                        post_turn_ref_diff = (robot.d_left or 0) - (robot.d_right or 0)
+                        use_post_turn_ref = True
+                    else:
+                        use_post_turn_ref = False
                     status_text = "Driving (post-turn)"
+                    # ===== SAVE POST-TURN WALL REFERENCE =====
+                    if robot.d_left is not None and robot.d_right is not None:
+                        post_turn_ref_diff = robot.d_left - robot.d_right
+                        use_post_turn_ref = True
 
             # Post-turn
             elif post_turn_wait:
@@ -410,8 +430,34 @@ def robot_loop():
                     post_turn_wait = False
 
             # Normal cruise
+            # Normal cruise
             else:
+                # ===== POST-TURN WALL BALANCE =====
+                if use_post_turn_ref and robot.d_left is not None and robot.d_right is not None:
+                    current_diff = robot.d_left - robot.d_right
+                    diff_error = post_turn_ref_diff - current_diff
+                    servo_angle = SERVO_CENTER + diff_error * 0.3  # gain factor, adjust if too strong/weak
+                    # Clamp servo to limits
+                    servo_angle = max(SERVO_MIN_ANGLE, min(SERVO_MAX_ANGLE, servo_angle))
+                    status_text = "Driving (post-turn balance)"
+                else:
+                    # Normal safe-straight control
+                    servo_angle = robot.safe_straight_control(robot.d_left, robot.d_right)
+                    status_text = "Driving (cruise)"
+
+                robot.set_servo(servo_angle)
+                robot.rotate_motor(SPEED_CRUISE)
+
+            else:
+                # Compute normal correction
                 servo_angle = robot.safe_straight_control(robot.d_left, robot.d_right)
+
+                # ===== APPLY POST-TURN REFERENCE =====
+                if use_post_turn_ref and robot.d_left > SOFT_MARGIN and robot.d_right > SOFT_MARGIN:
+                    current_diff = robot.d_left - robot.d_right
+                    diff_error = post_turn_ref_diff - current_diff
+                    servo_angle += diff_error * 0.3  # gain factor; adjust if too strong/weak
+
                 robot.set_servo(servo_angle)
                 robot.rotate_motor(SPEED_CRUISE)
                 status_text = "Driving (cruise)"
