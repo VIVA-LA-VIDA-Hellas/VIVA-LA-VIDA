@@ -12,7 +12,7 @@
 # v4.9 - added sliders, max lap, save/load slide values, csv export with data
 # v4.92 - check servo correction during cruise
 # v4.93 - add lap reset button (stop loop), slider name correction
-# v4.94 - Sensor readings filtering improvements, read in sequence
+# v4.94 - Sensor readings filtering improvements, read in sequence. Lock turn side.
 # to do: device Stuck detection policy, only trigger turn if front is below threshold and was previously above it,
 # use reference yaw to calculate angles
 #
@@ -278,7 +278,7 @@ def robot_loop():
     last_time = time.monotonic()
     start_time = time.monotonic()
     d_front = d_left = d_right = yaw = 0.0
-
+    locked_turn_direction = None  # "LEFT" or "RIGHT" after first turn
     while True:
         current_time = time.monotonic()
         dt = current_time - last_time
@@ -343,8 +343,24 @@ def robot_loop():
                            (robot.d_right is not None and robot.d_right > TURN_DECISION_THRESHOLD)) and \
                           (current_time - last_turn_time >= TURN_LOCKOUT)
 
+            #if (not turning) and (not post_turn_wait) and can_trigger:
+            #    direction = robot.turn_decision(robot.d_left, robot.d_right)
             if (not turning) and (not post_turn_wait) and can_trigger:
-                direction = robot.turn_decision(robot.d_left, robot.d_right)
+                # Determine initial direction
+                proposed_direction = robot.turn_decision(robot.d_left, robot.d_right)
+                # If no direction locked yet → lock on first turn
+                if locked_turn_direction is None:
+                    locked_turn_direction = proposed_direction
+                    print(f"Turn direction locked to {locked_turn_direction}")
+                # If opposite turn requested → ignore and keep driving
+                elif proposed_direction != locked_turn_direction:
+                    # Ignore this turn trigger, continue forward
+                    status_text = f"Ignoring {proposed_direction} (locked to {locked_turn_direction})"
+                    time.sleep(LOOP_DELAY)
+                    continue
+                # Apply the allowed direction
+                direction = locked_turn_direction
+                    
                 turning = True
                 turn_start_time = current_time
                 turn_start_yaw = yaw
@@ -744,6 +760,10 @@ def stop_loop():
     lap_count = 0
     lbl_turns.config(text=f"Turns: {turn_count}")
     lbl_laps.config(text=f"Laps: {lap_count}")
+
+    # Reset direction lock so a new session can re-choose
+    global locked_turn_direction
+    locked_turn_direction = None
 
 #def reset_counters(self):
 #    self.lap_count = 0
