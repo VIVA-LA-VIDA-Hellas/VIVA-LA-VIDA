@@ -53,7 +53,7 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 # ===============================
 
 # ---------- Speeds ----------
-SPEED_CRUISE = 20             # Motor speed for normal straight driving (0-100%)
+SPEED_CRUISE = 25             # Motor speed for normal straight driving (0-100%)
 SPEED_TURN = 15               # Motor speed during turns (0-100%)
 
 # ---------- Driving ----------
@@ -65,8 +65,8 @@ STOP_THRESHOLD = 20           # Front distance (cm) at which robot stops immedia
 # ---------- Turn management ----------
 FRONT_TURN_TRIGGER = 90       # Front distance (cm) at which a turn is triggered
 TURN_DECISION_THRESHOLD = 100 # Minimum side distance (cm) to allow turn in that direction
-TURN_ANGLE_LEFT = 55          # Servo angle for left turn
-TURN_ANGLE_RIGHT = 125        # Servo angle for right turn
+TURN_ANGLE_LEFT = 60          # Servo angle for left turn
+TURN_ANGLE_RIGHT = 120        # Servo angle for right turn
 FRONT_SAFE_DISTANCE = 100     # Front distance considered safe to end a turn (cm)
 TARGET_DISTANCE = 30          # Desired distance from side walls (cm)
 TURN_TIMEOUT = 1.5            # Maximum time allowed for a turn (seconds)
