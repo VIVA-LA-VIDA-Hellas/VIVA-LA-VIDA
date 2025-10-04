@@ -1,0 +1,551 @@
+#----------------------------------------------------------------------------------------------------------------------
+# Autonomous drive - VivaLaVida
+# v4 - 23/9/2025
+# v4.1 - remove camera, add logging - 24/9/2025
+# v4.2 - improved turn logic and timeout slider - 24/9/2025
+# v4.3 - graph and turn improvements - 25/9/2025
+# v4.5 - rewrite
+# v4.5 - new turn logic with PID clear after turn
+# v4.6 - new wall following rules - 26/9/2025
+# v4.7 - new GUI, rewrite
+# v4.8 - added gyroscope
+#
+# Logic description
+# - Continuously read ultrasonic sensor distances: front, left, and right.
+# - Emergency stop: If front distance < stop threshold, halt immediately to prevent collisions.
+# - Initiate turn:
+#     Triggered when front distance < configured turn trigger.
+#     Robot chooses the side with the greater distance (left or right) to turn toward.
+#     Moves forward while steering to avoid the obstacle.
+#     Turn ends when front sensor reads clear AND (timeout reached OR side distance is reached OR gyroscope degrees reached)
+# - Wall-following:
+#     Compares left and right distances to maintain a centered path between walls.
+#     Adjusts servo angle based on distance to correct robot heading.
+#     Applies a deadzone to ignore small deviations and prevent oscillations.
+#-----------------------------------------------------------------------------------------------------------------------
+
+import threading
+import time
+import tkinter as tk
+from collections import deque
+import RPi.GPIO as GPIO
+from board import SCL, SDA
+import busio
+from adafruit_pca9685 import PCA9685
+import adafruit_mpu6050
+import matplotlib.pyplot as plt
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+
+# ===============================
+# CONFIGURATION VARIABLES
+# ===============================
+
+# ---------- Speeds ----------
+SPEED_CRUISE = 30               # Motor speed for normal straight driving (0-100%)
+SPEED_TURN = 15           # Motor speed when turning (0-100%)
+
+# ---------- Driving ----------
+SAFE_MARGIN = 10              # Minimum safe distance to walls for emergency correction
+SOFT_MARGIN = 35              # Margin within which steering starts adjusting
+MAX_CORRECTION = 15           # Maximum servo correction in degrees
+STOP_THRESHOLD = 10          # Front distance threshold (cm) to stop immediately
+
+# ---------- Turn management ----------
+FRONT_TURN_TRIGGER = 90       # Front distance threshold (cm) to trigger a turn
+TURN_DECISION_THRESHOLD = 100 # Minimum side distance (cm) to allow turn in that direction
+TURN_ANGLE_LEFT = 55          # Servo angle for left turn 55
+TURN_ANGLE_RIGHT = 115        # Servo angle for right turn 125
+FRONT_SAFE_DISTANCE = 200     # Front distance considered safe to end a turn (cm)
+TARGET_DISTANCE = 20          # Desired distance from side walls (cm)
+TURN_TIMEOUT = 2.5           # Maximum time allowed for a turn (seconds)
+TURN_LOCKOUT = 1.5            # Minimum interval between consecutive turns (seconds)
+POST_TURN_DURATION = 0.9      # Time to drive straight after a turn (seconds)
+
+# ---------- Turn angle constraints ----------
+MIN_TURN_ANGLE = 75           # Minimum yaw change (degrees) before turn can stop
+MAX_TURN_ANGLE = 105          # Maximum yaw change (degrees) to force stop turn
+
+# ---------- Servo ----------
+SERVO_CHANNEL = 0             # PCA9685 channel controlling steering servo
+SERVO_CENTER = 92             # Center (neutral) servo angle
+SERVO_MIN_ANGLE = 50          # Minimum physical servo angle
+SERVO_MAX_ANGLE = 130         # Maximum physical servo angle
+SERVO_PULSE_MIN = 1000        # Minimum PWM pulse width (microseconds)
+SERVO_PULSE_MAX = 2000        # Maximum PWM pulse width (microseconds)
+SERVO_PERIOD = 20000          # Servo PWM period (microseconds)
+
+# ---------- Motor ----------
+MOTOR_FWD = 1                 # PCA9685 channel for forward motor control
+MOTOR_REV = 2                 # PCA9685 channel for reverse motor control
+
+# ---------- Ultrasonic sensor pins ----------
+TRIG_FRONT, ECHO_FRONT = 22, 23  # GPIO pins for front sensor
+TRIG_LEFT, ECHO_LEFT = 27, 17    # GPIO pins for left sensor
+TRIG_RIGHT, ECHO_RIGHT = 5, 6    # GPIO pins for right sensor
+
+ULTRASONIC_TIMEOUT = 0.02        # Timeout for ultrasonic sensor reading (seconds)
+SOUND_SPEED = 17150              # Speed of sound in cm/s for distance calculation
+
+# ---------- Sensor data filtering ----------
+N_READINGS = 2                    # Number of readings to store for median filtering
+
+# ---------- Loop timing ----------
+LOOP_DELAY = 0.01                 # Delay between main loop iterations (seconds)
+TRIG_PULSE_DURATION = 0.00001    # Trigger pulse duration for ultrasonic sensor (seconds)
+
+# ---------- Plotting ----------
+MAX_POINTS = 100                   # Maximum number of points to store for plotting
+
+# ===============================
+# HARDWARE SETUP
+# ===============================
+GPIO.setmode(GPIO.BCM)
+GPIO.setwarnings(False)
+
+i2c = busio.I2C(SCL, SDA)         # I2C bus for PCA9685 and MPU6050
+pca = PCA9685(i2c)
+pca.frequency = 50                 # PWM frequency for servo
+mpu = adafruit_mpu6050.MPU6050(i2c) # MPU6050 IMU
+
+# Setup GPIO for ultrasonic sensors
+for trig in [TRIG_FRONT, TRIG_LEFT, TRIG_RIGHT]:
+    GPIO.setup(trig, GPIO.OUT)
+    GPIO.output(trig, GPIO.LOW)
+
+for echo in [ECHO_FRONT, ECHO_LEFT, ECHO_RIGHT]:
+    GPIO.setup(echo, GPIO.IN)
+
+# ---------- Calibrate gyro bias at startup ----------
+print("Calibrating gyro...")
+N = 500
+bias = 0
+for _ in range(N):
+    bias += mpu.gyro[2]
+    time.sleep(0.005)
+bias /= N
+print(f"Gyro bias: {bias}")
+
+# ===============================
+# CONTROL FLAGS
+# ===============================
+loop_flag = False                  # Main loop running flag
+readings_flag = False              # Sensor reading active flag
+status_text = "Idle"               # Current robot status text
+turn_count = 0
+lap_count = 0
+
+# ===============================
+# SENSOR DATA STORAGE
+# ===============================
+time_data = deque(maxlen=MAX_POINTS)   # Time stamps for plotting
+front_data = deque(maxlen=MAX_POINTS)  # Front ultrasonic distances
+left_data = deque(maxlen=MAX_POINTS)   # Left ultrasonic distances
+right_data = deque(maxlen=MAX_POINTS)  # Right ultrasonic distances
+angle_data = deque(maxlen=MAX_POINTS)  # Integrated yaw angle from MPU6050
+
+# ===============================
+# ROBOT CONTROLLER CLASS
+# ===============================
+class RobotController:
+    def __init__(self, pca):
+        self.pca = pca
+        self.front_history = deque(maxlen=N_READINGS)
+        self.left_history = deque(maxlen=N_READINGS)
+        self.right_history = deque(maxlen=N_READINGS)
+
+    def set_servo(self, angle):
+        angle = max(SERVO_MIN_ANGLE, min(SERVO_MAX_ANGLE, angle))
+        pulse = int(
+            SERVO_PULSE_MIN + (SERVO_PULSE_MAX - SERVO_PULSE_MIN) *
+            ((angle - SERVO_MIN_ANGLE) / (SERVO_MAX_ANGLE - SERVO_MIN_ANGLE))
+        )
+        self.pca.channels[SERVO_CHANNEL].duty_cycle = int(pulse * 65535 / SERVO_PERIOD)
+
+    def rotate_motor(self, speed):
+        duty_cycle = int(min(max(abs(speed), 0), 100) / 100 * 65535)
+        if speed >= 0:
+            self.pca.channels[MOTOR_FWD].duty_cycle = duty_cycle
+            self.pca.channels[MOTOR_REV].duty_cycle = 0
+        else:
+            self.pca.channels[MOTOR_FWD].duty_cycle = 0
+            self.pca.channels[MOTOR_REV].duty_cycle = duty_cycle
+
+    def stop_motor(self):
+        self.pca.channels[MOTOR_FWD].duty_cycle = 0
+        self.pca.channels[MOTOR_REV].duty_cycle = 0
+
+    def get_distance(self, trig, echo):
+        try:
+            GPIO.output(trig, True)
+            time.sleep(TRIG_PULSE_DURATION)
+            GPIO.output(trig, False)
+            start_time = time.perf_counter()
+            while GPIO.input(echo) == 0:
+                if time.perf_counter() - start_time > ULTRASONIC_TIMEOUT:
+                    return None
+            pulse_start = time.perf_counter()
+            while GPIO.input(echo) == 1:
+                if time.perf_counter() - pulse_start > ULTRASONIC_TIMEOUT:
+                    return None
+            pulse_end = time.perf_counter()
+            return (pulse_end - pulse_start) * SOUND_SPEED
+        except:
+            return None
+
+    def filtered_distance(self, trig, echo, history):
+        d = self.get_distance(trig, echo)
+        if d is not None:
+            history.append(d)
+        if history:
+            sorted_hist = sorted(history)
+            mid = len(sorted_hist)//2
+            return (
+                (sorted_hist[mid-1]+sorted_hist[mid])/2 if len(sorted_hist) % 2 == 0
+                else sorted_hist[mid]
+            )
+        return None
+
+    def safe_straight_control(self, d_left, d_right):
+        correction = 0
+        if d_left is not None and d_left < SOFT_MARGIN:
+            correction = (SOFT_MARGIN - d_left) * 2
+        elif d_right is not None and d_right < SOFT_MARGIN:
+            correction = -(SOFT_MARGIN - d_right) * 2
+        correction = max(-MAX_CORRECTION, min(MAX_CORRECTION, correction))
+        return SERVO_CENTER + correction
+
+    def turn_decision(self, d_left, d_right):
+        if d_left is not None and d_left > TURN_DECISION_THRESHOLD:
+            return "LEFT"
+        elif d_right is not None and d_right > TURN_DECISION_THRESHOLD:
+            return "RIGHT"
+        if d_left is not None and d_right is not None:
+            return "LEFT" if d_left > d_right else "RIGHT"
+        elif d_left is not None:
+            return "LEFT"
+        elif d_right is not None:
+            return "RIGHT"
+        return "LEFT"
+
+robot = RobotController(pca)
+
+# ===============================
+# ROBOT MAIN LOOP
+# ===============================
+def robot_loop():
+    global loop_flag, readings_flag, status_text, turn_count, lap_count
+    turning = False
+    turn_start_time = 0
+    last_turn_time = -TURN_LOCKOUT
+    post_turn_wait = False
+    post_turn_start = 0
+    direction = None
+    turn_start_yaw = None
+
+    # For MPU6050 yaw integration
+    last_yaw = 0.0
+    last_time = time.monotonic()
+    start_time = time.monotonic()
+
+    # Initialize sensor vars to safe defaults
+    d_front = None
+    d_left = None
+    d_right = None
+    yaw = 0.0
+
+    while True:
+        current_time = time.monotonic()
+        dt = current_time - last_time
+
+        # Reset sensor/readout vars each loop (prevents UnboundLocal usage)
+        if readings_flag:
+            d_front = robot.filtered_distance(TRIG_FRONT, ECHO_FRONT, robot.front_history)
+            d_left  = robot.filtered_distance(TRIG_LEFT, ECHO_LEFT, robot.left_history)
+            d_right = robot.filtered_distance(TRIG_RIGHT, ECHO_RIGHT, robot.right_history)
+
+            # MPU6050 yaw integration
+            gyro_z = mpu.gyro[2] - bias
+            gyro_z_deg = gyro_z * (180 / 3.14159265)
+            last_yaw += gyro_z_deg * dt
+            last_time = current_time
+            yaw = last_yaw
+
+            elapsed_time = current_time - start_time
+            time_data.append(elapsed_time)
+            front_data.append(d_front or 0)
+            left_data.append(d_left or 0)
+            right_data.append(d_right or 0)
+            angle_data.append(yaw)
+        else:
+            # If readings are not active, keep dt/yaw timing sane
+            last_time = current_time
+
+        if loop_flag:
+            # Emergency stop
+            if d_front is not None and d_front < STOP_THRESHOLD:
+                robot.stop_motor()
+                status_text = "Stopped! Obstacle ahead"
+                time.sleep(LOOP_DELAY)
+                continue
+
+            # Turn initiation: clearer None checks and parentheses
+            can_trigger_turn = (
+                (d_front is not None and d_front < FRONT_TURN_TRIGGER)
+                and (
+                    (d_left is not None and d_left > TURN_DECISION_THRESHOLD)
+                    or (d_right is not None and d_right > TURN_DECISION_THRESHOLD)
+                )
+                and (time.monotonic() - last_turn_time >= TURN_LOCKOUT)
+            )
+
+            if (not turning) and (not post_turn_wait) and can_trigger_turn:
+                direction = robot.turn_decision(d_left, d_right)
+                turning = True
+                turn_start_time = time.monotonic()
+                turn_start_yaw = yaw
+                status_text = f"Turning {direction}"
+                turn_count += 1                  # increment when a turn actually starts
+                if turn_count % 4 == 0:
+                    lap_count += 1
+
+            # Turn logic
+            if turning:
+                angle = TURN_ANGLE_LEFT if direction == "LEFT" else TURN_ANGLE_RIGHT
+                side_distance = d_left if direction == "LEFT" else d_right
+                robot.set_servo(angle)
+                robot.rotate_motor(SPEED_TURN)
+
+                turn_angle = abs(yaw - (turn_start_yaw or 0.0))
+
+                stop_condition = (
+                    (d_front is not None and d_front > FRONT_SAFE_DISTANCE and side_distance is not None and side_distance > TARGET_DISTANCE)
+                    or (time.monotonic() - turn_start_time > TURN_TIMEOUT)
+                    or (turn_angle >= MAX_TURN_ANGLE)
+                    or (turn_angle >= MIN_TURN_ANGLE and side_distance is not None and side_distance > TARGET_DISTANCE)
+                )
+
+                if stop_condition:
+                    robot.stop_motor()
+                    robot.set_servo(SERVO_CENTER)
+                    turning = False
+                    last_turn_time = time.monotonic()
+                    post_turn_wait = True
+                    post_turn_start = time.monotonic()
+                    # Reset yaw after turn
+                    last_yaw = 0.0
+                    turn_start_yaw = None
+                    status_text = "Driving (post-turn)"
+
+            # Post-turn straight drive
+            elif post_turn_wait:
+                if time.monotonic() - post_turn_start < POST_TURN_DURATION:
+                    robot.set_servo(SERVO_CENTER)
+                    robot.rotate_motor(SPEED_CRUISE)
+                    status_text = "Driving (post-turn)"
+                else:
+                    post_turn_wait = False
+
+            # Normal cruise + wall-following steering when not turning or post-turning
+            else:
+                # Compute safe straight steering (uses available side distances)
+                servo_angle = robot.safe_straight_control(d_left, d_right)
+                robot.set_servo(servo_angle)
+                robot.rotate_motor(SPEED_CRUISE)
+                status_text = "Driving (cruise)"
+
+        time.sleep(LOOP_DELAY)
+
+# ===============================
+# START / STOP FUNCTIONS
+# ===============================
+def start_readings():
+    """Enable continuous sensor readings and update status."""
+    global readings_flag, status_text
+    readings_flag = True
+    status_text = "Sensor readings started"
+    btn_readings.config(state="disabled")
+    btn_start.config(state="normal")
+
+def start_loop():
+    """Start the main autonomous driving loop."""
+    global loop_flag, status_text
+    loop_flag = True
+    status_text = "Loop Started"
+    btn_start.config(state="disabled")
+    btn_stop.config(state="normal")
+
+def stop_loop():
+    """Stop the main loop and motors, update status."""
+    global loop_flag, status_text
+    loop_flag = False
+    robot.stop_motor()
+    status_text = "Stopped"
+    btn_start.config(state="normal")
+    btn_stop.config(state="disabled")
+
+
+# ===============================
+# GUI SECTION
+# ===============================
+def launch_gui():
+    """Initialize Tkinter GUI, matplotlib plots, and status indicators."""
+    global btn_readings, btn_start, btn_stop, root, canvas
+    global ax_front, ax_side, ax_angle
+    global front_line, left_line, right_line, angle_line
+    global status_circle, status_canvas, status_text_id, lbl_status
+
+    root = tk.Tk()
+    root.title("VivaLaVida Robot Control")
+
+    # ---------- Buttons ----------
+    btn_readings = tk.Button(root, text="Start Readings", command=start_readings,
+                             width=20, height=2, bg="blue", fg="white")
+    btn_readings.pack(pady=5)
+
+    btn_start = tk.Button(root, text="Start Loop", command=start_loop,
+                          width=20, height=2, bg="green", fg="white", state="disabled")
+    btn_start.pack(pady=5)
+
+    btn_stop = tk.Button(root, text="Stop Loop", command=stop_loop,
+                         width=20, height=2, bg="red", fg="white", state="disabled")
+    btn_stop.pack(pady=5)
+
+    # ---------- Status Label ----------
+    lbl_status = tk.Label(root, text="Idle", font=("Arial", 14))
+    lbl_status.pack(pady=5)
+
+    # ---------- Counters ----------
+    lbl_turns = tk.Label(root, text=f"Turns: {turn_count}", font=("Arial", 14))
+    lbl_turns.pack(pady=2)
+
+    lbl_laps = tk.Label(root, text=f"Laps: {lap_count}", font=("Arial", 14))
+    lbl_laps.pack(pady=2)
+
+    # ---------- Circular Status Indicator ----------
+    status_canvas = tk.Canvas(root, width=100, height=100, highlightthickness=0, bg=root.cget("bg"))
+    status_canvas.pack(pady=5)
+    status_circle = status_canvas.create_oval(10, 10, 90, 90, fill="grey", outline="")
+    status_text_id = status_canvas.create_text(50, 50, text="IDLE", fill="white", font=("Arial", 14, "bold"))
+
+    # ---------- Matplotlib Figure ----------
+    fig, (ax_front, ax_side, ax_angle) = plt.subplots(3, 1, figsize=(6, 8))
+    fig.tight_layout(pad=3.0)
+
+    # Front sensor plot
+    ax_front.set_ylim(0, 350)
+    ax_front.set_title("Front Sensor")
+    ax_front.grid(True)
+    front_line, = ax_front.plot([], [], color="blue")
+
+    # Side sensors plot
+    ax_side.set_ylim(-150, 150)
+    ax_side.set_title("Left (+Y) vs Right (-Y) Sensors")
+    ax_side.grid(True)
+    ax_side.axhline(0, color="black")  # Center line
+    left_line, = ax_side.plot([], [], color="green")
+    right_line, = ax_side.plot([], [], color="orange")
+
+    # Yaw angle plot
+    ax_angle.set_ylim(-180, 180)
+    ax_angle.set_title("Yaw Angle")
+    ax_angle.grid(True)
+    angle_line, = ax_angle.plot([], [], color="purple")
+
+    # Embed figure in Tkinter
+    canvas = FigureCanvasTkAgg(fig, master=root)
+    canvas.get_tk_widget().pack()
+
+    # ===============================
+    # GUI UPDATE FUNCTIONS
+    # ===============================
+    def status_color(state: str) -> str:
+        """Return color for status indicator based on robot state."""
+        if "Stopped" in state:
+            return "red"
+        elif "Turning" in state:
+            return "yellow"
+        elif "Driving" in state:
+            return "green"
+        elif "Loop Started" in state:
+            return "blue"
+        elif "Sensor readings started" in state:
+            return "blue"
+        else:
+            return "grey"
+
+    def status_label(state: str) -> str:
+        """Return short text label for status indicator."""
+        if "Stopped" in state:
+            return "STOP"
+        elif "Turning" in state:
+            return "TURN"
+        elif "Driving" in state:
+            return "GO"
+        elif "Loop Started" in state:
+            return "LOOP"
+        elif "Sensor readings started" in state:
+            return "READ"
+        else:
+            return "IDLE"
+
+    def update_status():
+        """Update status label and circle color every 200 ms."""
+        lbl_status.config(text=status_text)
+        status_canvas.itemconfig(status_circle, fill=status_color(status_text))
+        status_canvas.itemconfig(status_text_id, text=status_label(status_text))
+
+        # Update counters
+        lbl_turns.config(text=f"Turns: {turn_count}")
+        lbl_laps.config(text=f"Laps: {lap_count}")
+
+        root.after(200, update_status)
+
+    def update_plot():
+        """Update sensor and yaw plots every 100ms."""
+        if time_data:
+            # Update sensor data lines
+            front_line.set_data(range(len(front_data)), front_data)
+            left_line.set_data(range(len(left_data)), left_data)
+            right_line.set_data(range(len(right_data)), [-v for v in right_data])
+            angle_line.set_data(range(len(angle_data)), angle_data)
+
+            # X-axis limits
+            ax_front.set_xlim(0, MAX_POINTS)
+            ax_side.set_xlim(0, MAX_POINTS)
+            ax_angle.set_xlim(0, MAX_POINTS)
+
+            # Auto-scale yaw plot Y-axis if needed
+            if angle_data:
+                min_angle = min(angle_data)
+                max_angle = max(angle_data)
+                if max_angle - min_angle > 180:
+                    ax_angle.set_ylim(-180, 180)
+                else:
+                    ax_angle.set_ylim(min_angle - 10, max_angle + 10)
+
+            canvas.draw()
+
+        root.after(100, update_plot)
+
+    # ===============================
+    # CLEANUP FUNCTION
+    # ===============================
+    def on_closing():
+        """Cleanup GPIO and stop robot on window close."""
+        stop_loop()
+        GPIO.cleanup()
+        root.destroy()
+
+    root.protocol("WM_DELETE_WINDOW", on_closing)
+    update_status()
+    update_plot()
+    root.mainloop()
+
+
+# ===============================
+# MAIN
+# ===============================
+threading.Thread(target=robot_loop, daemon=True).start()
+
+if __name__ == "__main__":
+    launch_gui()
