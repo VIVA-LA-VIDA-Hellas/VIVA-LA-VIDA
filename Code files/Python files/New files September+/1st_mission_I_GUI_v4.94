@@ -430,22 +430,28 @@ def robot_loop():
                     post_turn_wait = False
 
             # Normal cruise
+            # ===== Compute servo angle =====
+            servo_angle = SERVO_CENTER  # default
+            
+            if use_post_turn_ref and robot.d_left is not None and robot.d_right is not None:
+                # Post-turn wall balance
+                current_diff = robot.d_left - robot.d_right
+                diff_error = post_turn_ref_diff - current_diff
+                correction = diff_error * 0.3  # gain factor
+                # Clamp correction to MAX_CORRECTION
+                correction = max(-MAX_CORRECTION, min(MAX_CORRECTION, correction))
+                # Compute final servo angle
+                servo_angle = SERVO_CENTER + correction
+                status_text = "Driving (post-turn balance)"
             else:
-                # ===== POST-TURN WALL BALANCE =====
-                if use_post_turn_ref and robot.d_left is not None and robot.d_right is not None:
-                    current_diff = robot.d_left - robot.d_right
-                    diff_error = post_turn_ref_diff - current_diff
-                    servo_angle = SERVO_CENTER + diff_error * 0.3  # gain factor, adjust if too strong/weak
-                    # Clamp servo to limits
-                    servo_angle = max(SERVO_MIN_ANGLE, min(SERVO_MAX_ANGLE, servo_angle))
-                    status_text = "Driving (post-turn balance)"
-                else:
-                    # Normal safe-straight control
-                    servo_angle = robot.safe_straight_control(robot.d_left, robot.d_right)
-                    status_text = "Driving (cruise)"
+                # Normal cruise
+                servo_angle = robot.safe_straight_control(robot.d_left, robot.d_right)
+                status_text = "Driving (cruise)"
+            
+            # ===== Apply servo and motor commands only once =====
+            robot.set_servo(servo_angle)
+            robot.rotate_motor(SPEED_CRUISE)
 
-                robot.set_servo(servo_angle)
-                robot.rotate_motor(SPEED_CRUISE)
 
           #  else:
           #      # Compute normal correction
