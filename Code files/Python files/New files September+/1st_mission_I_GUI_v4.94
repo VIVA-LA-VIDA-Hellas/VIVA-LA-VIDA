@@ -266,7 +266,7 @@ robot = RobotController(pca)
 # ROBOT LOOP
 # ===============================
 def robot_loop():
-    global loop_flag, readings_flag, status_text, turn_count, lap_count
+    global loop_flag, readings_flag, status_text, turn_count, lap_count, locked_turn_direction
     turning = False
     turn_start_time = 0
     last_turn_time = -TURN_LOCKOUT
@@ -291,13 +291,13 @@ def robot_loop():
             #d_left = robot.filtered_distance(TRIG_LEFT, ECHO_LEFT, robot.left_history)
             #d_right = robot.filtered_distance(TRIG_RIGHT, ECHO_RIGHT, robot.right_history)
             if robot.sensor_index == 0:
-                val = robot.filtered_distance(TRIG_FRONT, ECHO_FRONT, robot.front_history)
-                if val is not None:
-                    robot.d_front = val
-            elif robot.sensor_index == 1:
                 val = robot.filtered_distance(TRIG_LEFT, ECHO_LEFT, robot.left_history)
                 if val is not None:
                     robot.d_left = val
+            elif robot.sensor_index == 1:
+                val = robot.filtered_distance(TRIG_FRONT, ECHO_FRONT, robot.front_history)
+                if val is not None:
+                    robot.d_front = val
             elif robot.sensor_index == 2:
                 val = robot.filtered_distance(TRIG_RIGHT, ECHO_RIGHT, robot.right_history)
                 if val is not None:
