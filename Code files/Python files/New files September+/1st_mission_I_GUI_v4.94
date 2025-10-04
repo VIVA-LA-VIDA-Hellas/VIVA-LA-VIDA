@@ -13,6 +13,7 @@
 # v4.92 - check servo correction during cruise
 # v4.93 - add lap reset button (stop loop), slider name correction
 # v4.94 - Sensor readings filtering improvements, read in sequence. Lock turn side. Improve driving between walls with new rules.
+# to do: check turn initiation logic, change how to stop turning with gyroscope
 #
 # Logic description
 # - Continuously read ultrasonic sensor distances: front, left, and right.
