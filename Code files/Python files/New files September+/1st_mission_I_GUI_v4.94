@@ -247,9 +247,9 @@ class RobotController:
         return SERVO_CENTER + correction
      
     def turn_decision(self, d_left, d_right):
-        if d_left is not None and d_left > TURN_DECISION_THRESHOLD:
+        if d_left is None or d_left > TURN_DECISION_THRESHOLD:
             return "LEFT"
-        if d_right is not None and d_right > TURN_DECISION_THRESHOLD:
+        if d_right is None or d_right > TURN_DECISION_THRESHOLD:
             return "RIGHT"
         if d_left is not None and d_right is not None:
             return "LEFT" if d_left > d_right else "RIGHT"
