@@ -435,13 +435,13 @@ def robot_loop():
             # ===== Adjust speed based on side sensor validity =====
             current_speed = SPEED_CRUISE  # default
             
-            if not turning:
+            #if not turning:
                 # Check if either side sensor is None or > 100 cm (1 m)
-                left_invalid = robot.d_left is None or robot.d_left > 100
-                right_invalid = robot.d_right is None or robot.d_right > 100
-                if left_invalid or right_invalid:
-                    current_speed = SPEED_CRUISE * 0.5  # slow down to 50% of cruise
-                    status_text = "Waiting for valid side readings"
+                #left_invalid = robot.d_left is None or robot.d_left > 100
+                #right_invalid = robot.d_right is None or robot.d_right > 100
+                #if left_invalid or right_invalid:
+                #    current_speed = SPEED_CRUISE * 0.5  # slow down to 50% of cruise
+                #    status_text = "Waiting for valid side readings"
             
             # ===== Compute servo angle =====
             servo_angle = SERVO_CENTER  # default
