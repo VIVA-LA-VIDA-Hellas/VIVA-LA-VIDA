@@ -817,7 +817,10 @@ def export_data_csv():
 
     with open(filename, mode='w', newline='') as file:
         writer = csv.writer(file)
-        header = ["Time (s)", "Front (cm)", "Left (cm)", "Right (cm)", "Yaw (deg)", "State"]
+        header = [
+            "Time (s)", "Front (cm)", "Left (cm)", "Right (cm)", "Yaw (deg)",
+            "State", "Turns", "Laps", "Servo Angle", "Speed", "Turning", "Direction"
+        ]
         header += [name for name in slider_values.keys()]
         writer.writerow(header)
 
@@ -828,12 +831,18 @@ def export_data_csv():
                 round(left_data[i], 2),
                 round(right_data[i], 2),
                 round(angle_data[i], 2),
-                state_data[i]
+                state_data[i],
+                turn_count,
+                lap_count,
+                globals().get("servo_angle", 0),  # latest steering
+                globals().get("SPEED_CRUISE", 0),
+                "YES" if "Turning" in state_data[i] else "NO",
+                globals().get("locked_turn_direction", "")
             ]
             row += [slider_values[name] for name in slider_values.keys()]
             writer.writerow(row)
 
-    print(f"Data exported to {filename}")
+    print(f"✅ Data exported to {filename}")
 
 # -------------------------
 # Save/Load Slider Config
