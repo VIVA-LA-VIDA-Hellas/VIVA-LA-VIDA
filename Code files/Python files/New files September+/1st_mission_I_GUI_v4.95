@@ -271,44 +271,38 @@ def robot_loop():
         # Only read sensors if readings_flag is True
         # ----------------------------
         if readings_flag:
-            #d_front = robot.filtered_distance(TRIG_FRONT, ECHO_FRONT, robot.front_history)
-            #d_left = robot.filtered_distance(TRIG_LEFT, ECHO_LEFT, robot.left_history)
-            #d_right = robot.filtered_distance(TRIG_RIGHT, ECHO_RIGHT, robot.right_history)
-           
-            # Always read front sensor every loop (fast reaction)
-            front_val = robot.filtered_distance(TRIG_FRONT, ECHO_FRONT, robot.front_history)
-            if front_val is not None:
-                robot.d_front = front_val
-            # Cycle left and right sensors to reduce CPU load
-            if robot.sensor_index == 0:
-                left_val = robot.filtered_distance(TRIG_LEFT, ECHO_LEFT, robot.left_history)
-                if left_val is not None:
-                    robot.d_left = left_val
-            elif robot.sensor_index == 1:
-                right_val = robot.filtered_distance(TRIG_RIGHT, ECHO_RIGHT, robot.right_history)
-                if right_val is not None:
-                    robot.d_right = right_val
-            
-            robot.sensor_index = (robot.sensor_index + 1) % 2
+            # === Read all 3 sensors each cycle ===
+            d_front = robot.filtered_distance(TRIG_FRONT, ECHO_FRONT, robot.front_history)
+            d_left  = robot.filtered_distance(TRIG_LEFT,  ECHO_LEFT,  robot.left_history)
+            d_right = robot.filtered_distance(TRIG_RIGHT, ECHO_RIGHT, robot.right_history)
 
+            # Update robot attributes if valid readings exist
+            if d_front is not None:
+                robot.d_front = d_front
+            if d_left is not None:
+                robot.d_left = d_left
+            if d_right is not None:
+                robot.d_right = d_right
+
+            # === Gyro integration ===
             raw_gyro_z = mpu.gyro[2] - bias
-            ALPHA = 0.8  # smoothing factor (0-1)
+            ALPHA = 0.8
             gyro_z_filtered = ALPHA * raw_gyro_z + (1 - ALPHA) * getattr(robot, 'gyro_z_prev', 0)
-            robot.gyro_z_prev = gyro_z_filtered  # store for next iteration
+            robot.gyro_z_prev = gyro_z_filtered
             gyro_z_deg = gyro_z_filtered * (180 / 3.14159265)
             last_yaw += gyro_z_deg * dt
             last_time = current_time
             yaw = last_yaw
-            #robot.d_front = d_front
-            #robot.d_left = d_left
-            #robot.d_right = d_right
+
+            # === Append to deques for plotting/logging ===
             elapsed_time = current_time - start_time
             time_data.append(elapsed_time)
-            front_data.append(robot.d_front or 0)
-            left_data.append(robot.d_left or 0)
-            right_data.append(robot.d_right or 0)
+            front_data.append(robot.d_front if robot.d_front is not None else 0)
+            left_data.append(robot.d_left if robot.d_left is not None else 0)
+            right_data.append(robot.d_right if robot.d_right is not None else 0)
             angle_data.append(yaw)
-            state_data.append(status_text) 
+            state_data.append(status_text)
+
         else:
             # Reset last_time to avoid large dt jumps when readings start
             last_time = current_time
