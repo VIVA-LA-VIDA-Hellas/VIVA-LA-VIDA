@@ -299,7 +299,9 @@ def robot_loop():
             last_yaw += gyro_z_deg * dt
             last_time = current_time
             yaw = last_yaw
-
+            robot.d_front = d_front
+            robot.d_left = d_left
+            robot.d_right = d_right
             elapsed_time = current_time - start_time
             time_data.append(elapsed_time)
             front_data.append(robot.d_front or 0)
