@@ -205,9 +205,9 @@ class RobotController:
         if all(x is None for x in history):
             return None
         # Filter only valid values
-        valid = [x for x in history if x is not None]
-        if not valid:
-            return None
+        #valid = [x for x in history if x is not None]
+        #if not valid:
+        #    return None
         # Step 1: Median Filter
         s = sorted(valid)
         mid = len(s) // 2
