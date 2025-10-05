@@ -205,9 +205,9 @@ class RobotController:
         if all(x is None for x in history):
             return None
         # Filter only valid values
-        #valid = [x for x in history if x is not None]
-        #if not valid:
-        #    return None
+        valid = [x for x in history if x is not None]
+        if not valid:
+            return None
         # Step 1: Median Filter
         s = sorted(valid)
         mid = len(s) // 2
@@ -271,25 +271,25 @@ def robot_loop():
         # Only read sensors if readings_flag is True
         # ----------------------------
         if readings_flag:
-            d_front = robot.filtered_distance(TRIG_FRONT, ECHO_FRONT, robot.front_history)
-            d_left = robot.filtered_distance(TRIG_LEFT, ECHO_LEFT, robot.left_history)
-            d_right = robot.filtered_distance(TRIG_RIGHT, ECHO_RIGHT, robot.right_history)
+            #d_front = robot.filtered_distance(TRIG_FRONT, ECHO_FRONT, robot.front_history)
+            #d_left = robot.filtered_distance(TRIG_LEFT, ECHO_LEFT, robot.left_history)
+            #d_right = robot.filtered_distance(TRIG_RIGHT, ECHO_RIGHT, robot.right_history)
            
             # Always read front sensor every loop (fast reaction)
-            #front_val = robot.filtered_distance(TRIG_FRONT, ECHO_FRONT, robot.front_history)
-            #if front_val is not None:
-            #    robot.d_front = front_val
+            front_val = robot.filtered_distance(TRIG_FRONT, ECHO_FRONT, robot.front_history)
+            if front_val is not None:
+                robot.d_front = front_val
             # Cycle left and right sensors to reduce CPU load
-            #if robot.sensor_index == 0:
-            #    left_val = robot.filtered_distance(TRIG_LEFT, ECHO_LEFT, robot.left_history)
-            #    if left_val is not None:
-            #        robot.d_left = left_val
-            #elif robot.sensor_index == 1:
-            #    right_val = robot.filtered_distance(TRIG_RIGHT, ECHO_RIGHT, robot.right_history)
-            #    if right_val is not None:
-            #        robot.d_right = right_val
-            #
-            #robot.sensor_index = (robot.sensor_index + 1) % 2
+            if robot.sensor_index == 0:
+                left_val = robot.filtered_distance(TRIG_LEFT, ECHO_LEFT, robot.left_history)
+                if left_val is not None:
+                    robot.d_left = left_val
+            elif robot.sensor_index == 1:
+                right_val = robot.filtered_distance(TRIG_RIGHT, ECHO_RIGHT, robot.right_history)
+                if right_val is not None:
+                    robot.d_right = right_val
+            
+            robot.sensor_index = (robot.sensor_index + 1) % 2
 
             raw_gyro_z = mpu.gyro[2] - bias
             ALPHA = 0.8  # smoothing factor (0-1)
