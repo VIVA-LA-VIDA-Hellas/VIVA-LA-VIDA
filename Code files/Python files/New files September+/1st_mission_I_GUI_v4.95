@@ -34,7 +34,7 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__)) # Get directory of the run
 # ===============================
 
 # ---------- Speeds ----------
-SPEED_CRUISE = 25             # Motor speed for normal straight driving (0-100%)
+SPEED_CRUISE = 20             # Motor speed for normal straight driving (0-100%)
 SPEED_TURN = 15               # Motor speed during turns (0-100%)
 
 # ---------- Driving ----------
@@ -43,16 +43,16 @@ MAX_CORRECTION = 8            # Maximum servo correction applied for wall-follow
 STOP_THRESHOLD = 20           # Front distance (cm) at which robot stops immediately
 
 # ---------- Turn management ----------
-FRONT_TURN_TRIGGER = 90       # Front distance (cm) at which a turn is triggered
-TURN_DECISION_THRESHOLD = 100 # Minimum side distance (cm) to allow turn in that direction
+FRONT_TURN_TRIGGER = 80       # Front distance (cm) at which a turn is triggered
+TURN_DECISION_THRESHOLD = 30 # Minimum side distance (cm) to allow turn in that direction
 TURN_ANGLE_LEFT = 60          # Servo angle for left turn
 TURN_ANGLE_RIGHT = 120        # Servo angle for right turn
 FRONT_SAFE_DISTANCE = 100     # Front distance considered safe to end a turn (cm)
 TARGET_DISTANCE = 30          # Desired distance from side walls (cm)
-TURN_TIMEOUT = 1.5            # Maximum time allowed for a turn (seconds)
+TURN_TIMEOUT = 3.5            # Maximum time allowed for a turn (seconds)
 TURN_LOCKOUT = 1.5            # Minimum interval between consecutive turns (seconds)
 POST_TURN_DURATION = 0.5      # Time to drive straight after a turn (seconds)
-LOCK_TURN_DIRECTION = 1  # 1 = enable turn lock direction after 1st turn, 0 = disable
+LOCK_TURN_DIRECTION = 0  # 1 = enable turn lock direction after 1st turn, 0 = disable
 TARGET_TURN_ANGLE = 90        # Degrees to turn per corner
 TURN_ANGLE_TOLERANCE = 5      # Acceptable overshoot (degrees)
 
@@ -271,25 +271,25 @@ def robot_loop():
         # Only read sensors if readings_flag is True
         # ----------------------------
         if readings_flag:
-            #d_front = robot.filtered_distance(TRIG_FRONT, ECHO_FRONT, robot.front_history)
-            #d_left = robot.filtered_distance(TRIG_LEFT, ECHO_LEFT, robot.left_history)
-            #d_right = robot.filtered_distance(TRIG_RIGHT, ECHO_RIGHT, robot.right_history)
+            d_front = robot.filtered_distance(TRIG_FRONT, ECHO_FRONT, robot.front_history)
+            d_left = robot.filtered_distance(TRIG_LEFT, ECHO_LEFT, robot.left_history)
+            d_right = robot.filtered_distance(TRIG_RIGHT, ECHO_RIGHT, robot.right_history)
            
             # Always read front sensor every loop (fast reaction)
-            front_val = robot.filtered_distance(TRIG_FRONT, ECHO_FRONT, robot.front_history)
-            if front_val is not None:
-                robot.d_front = front_val
+            #front_val = robot.filtered_distance(TRIG_FRONT, ECHO_FRONT, robot.front_history)
+            #if front_val is not None:
+            #    robot.d_front = front_val
             # Cycle left and right sensors to reduce CPU load
-            if robot.sensor_index == 0:
-                left_val = robot.filtered_distance(TRIG_LEFT, ECHO_LEFT, robot.left_history)
-                if left_val is not None:
-                    robot.d_left = left_val
-            elif robot.sensor_index == 1:
-                right_val = robot.filtered_distance(TRIG_RIGHT, ECHO_RIGHT, robot.right_history)
-                if right_val is not None:
-                    robot.d_right = right_val
-        
-            robot.sensor_index = (robot.sensor_index + 1) % 2
+            #if robot.sensor_index == 0:
+            #    left_val = robot.filtered_distance(TRIG_LEFT, ECHO_LEFT, robot.left_history)
+            #    if left_val is not None:
+            #        robot.d_left = left_val
+            #elif robot.sensor_index == 1:
+            #    right_val = robot.filtered_distance(TRIG_RIGHT, ECHO_RIGHT, robot.right_history)
+            #    if right_val is not None:
+            #        robot.d_right = right_val
+            #
+            #robot.sensor_index = (robot.sensor_index + 1) % 2
 
             raw_gyro_z = mpu.gyro[2] - bias
             ALPHA = 0.8  # smoothing factor (0-1)
@@ -331,6 +331,7 @@ def robot_loop():
                           ((robot.d_left is not None and robot.d_left > TURN_DECISION_THRESHOLD) or \
                            (robot.d_right is not None and robot.d_right > TURN_DECISION_THRESHOLD)) and \
                           (current_time - last_turn_time >= TURN_LOCKOUT)
+            print(f"Front: {robot.d_front}, Left: {robot.d_left}, Right: {robot.d_right}, Can trigger: {can_trigger}")
 
             #    direction = robot.turn_decision(robot.d_left, robot.d_right)
             if (not turning) and (not post_turn_wait) and can_trigger:
