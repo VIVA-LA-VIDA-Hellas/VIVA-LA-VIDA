@@ -450,8 +450,9 @@ def robot_loop():
                 status_text = "Driving (cruise)"
             
             # ===== Apply servo and motor commands only once =====
-            robot.set_servo(servo_angle)
-            robot.rotate_motor(current_speed)
+            if not turning #and not post_turn_wait:
+                robot.set_servo(servo_angle)
+                robot.rotate_motor(current_speed)
 
             # ===== Fine post-turn correction (optional) =====
             if use_post_turn_ref and robot.d_left > SOFT_MARGIN and robot.d_right > SOFT_MARGIN:
