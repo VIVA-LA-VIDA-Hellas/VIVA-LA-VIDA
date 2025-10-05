@@ -1,6 +1,6 @@
 #----------------------------------------------------------------------------------------------------------------------
 # Autonomous drive - VivaLaVida
-# # v4.8 - added gyroscope
+# v4.8 - added gyroscope
 # v4.9 - added sliders, max lap, save/load slide values, csv export with data
 # v4.92 - check servo correction during cruise
 # v4.93 - add lap reset button (stop loop), slider name correction
@@ -397,8 +397,8 @@ def robot_loop():
                     stop_condition = True
             
                 # Condition 3: enforce min/max turn angles
-                if abs(turn_angle) >= MIN_TURN_ANGLE:
-                    stop_condition = True
+                #if abs(turn_angle) >= MIN_TURN_ANGLE:
+                #    stop_condition = True
                 if abs(turn_angle) >= MAX_TURN_ANGLE:
                     stop_condition = True
             
