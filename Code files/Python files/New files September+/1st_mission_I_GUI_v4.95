@@ -565,7 +565,6 @@ def launch_gui():
             ("Front Turn Trigger (cm)", "FRONT_TURN_TRIGGER", 50, 150, "int"),
             ("Turn Decision Threshold (Left/Right) (cm)", "TURN_DECISION_THRESHOLD", 0, 200, "int"),
             ("Turn Timeout (s)", "TURN_TIMEOUT", 0.1, 10, "float"),
-            ("Target Distance from turn side (cm)", "TARGET_DISTANCE", 10, 100, "int"),
             ("Min Turn Angle (o)", "MIN_TURN_ANGLE", 60, 90, "int"),
             ("Max Turn Angle (o)", "MAX_TURN_ANGLE", 90, 120, "int"),
             ("Post Turn Duration (s)", "POST_TURN_DURATION", 0, 5, "float"),
