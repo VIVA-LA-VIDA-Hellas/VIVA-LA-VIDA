@@ -53,6 +53,8 @@ TURN_TIMEOUT = 1.5            # Maximum time allowed for a turn (seconds)
 TURN_LOCKOUT = 1.5            # Minimum interval between consecutive turns (seconds)
 POST_TURN_DURATION = 0.5      # Time to drive straight after a turn (seconds)
 LOCK_TURN_DIRECTION = 1  # 1 = enable turn lock direction after 1st turn, 0 = disable
+TARGET_TURN_ANGLE = 90        # Degrees to turn per corner
+TURN_ANGLE_TOLERANCE = 5      # Acceptable overshoot (degrees)
 
 # ---------- Turn angle constraints ----------
 MIN_TURN_ANGLE = 75           # Minimum yaw change (degrees) before turn can stop
@@ -152,6 +154,7 @@ class RobotController:
         self.d_left = None
         self.d_right = None
         self.sensor_index = 0
+        self.gyro_z_prev = 0
 
     def set_filter_size(self, n):
         self.front_history = deque(list(self.front_history)[-n:], maxlen=n)
@@ -288,8 +291,11 @@ def robot_loop():
         
             robot.sensor_index = (robot.sensor_index + 1) % 2
 
-            gyro_z = mpu.gyro[2] - bias
-            gyro_z_deg = gyro_z * (180 / 3.14159265)
+            raw_gyro_z = mpu.gyro[2] - bias
+            ALPHA = 0.8  # smoothing factor (0-1)
+            gyro_z_filtered = ALPHA * raw_gyro_z + (1 - ALPHA) * getattr(robot, 'gyro_z_prev', 0)
+            robot.gyro_z_prev = gyro_z_filtered  # store for next iteration
+            gyro_z_deg = gyro_z_filtered * (180 / 3.14159265)
             last_yaw += gyro_z_deg * dt
             last_time = current_time
             yaw = last_yaw
@@ -371,31 +377,55 @@ def robot_loop():
 
             # Turn logic
             if turning:
-                angle = TURN_ANGLE_LEFT if direction == "LEFT" else TURN_ANGLE_RIGHT
-                side_distance = robot.d_left if direction == "LEFT" else robot.d_right
-                robot.set_servo(angle)
-                robot.rotate_motor(SPEED_TURN)
-                turn_angle = abs(yaw - (turn_start_yaw or 0))
-                stop_condition = (robot.d_front is not None and robot.d_front > FRONT_SAFE_DISTANCE and side_distance and side_distance > TARGET_DISTANCE) or \
-                                 (current_time - turn_start_time > TURN_TIMEOUT) or \
-                                 (turn_angle >= MAX_TURN_ANGLE) or \
-                                 (turn_angle >= MIN_TURN_ANGLE and side_distance and side_distance > TARGET_DISTANCE)
-                if stop_condition:
-                    robot.stop_motor()
-                    robot.set_servo(SERVO_CENTER)
-                    turning = False
-                    last_turn_time = current_time
-                    post_turn_wait = True
-                    post_turn_start = current_time
-                    last_yaw = 0.0
-                    turn_start_yaw = None
-                    
-                    if robot.d_left is not None and robot.d_right is not None:
-                        post_turn_ref_diff = (robot.d_left or 0) - (robot.d_right or 0)
-                        use_post_turn_ref = True
-                    else:
-                        use_post_turn_ref = False
-                    status_text = "Driving (post-turn)"
+            # Set servo for turning
+            angle = TURN_ANGLE_LEFT if direction == "LEFT" else TURN_ANGLE_RIGHT
+            robot.set_servo(angle)
+            robot.rotate_motor(SPEED_TURN)
+        
+            # Calculate how much the robot has turned relative to start of this turn
+            turn_angle = yaw - turn_start_yaw  # positive for LEFT, negative for RIGHT
+            target_angle = TARGET_TURN_ANGLE if direction == "LEFT" else -TARGET_TURN_ANGLE
+        
+            # Determine if turn should stop
+            stop_condition = False
+        
+            # Condition 1: reached target angle ± tolerance
+            if direction == "LEFT" and turn_angle >= target_angle - TURN_ANGLE_TOLERANCE:
+                stop_condition = True
+            elif direction == "RIGHT" and turn_angle <= target_angle + TURN_ANGLE_TOLERANCE:
+                stop_condition = True
+        
+            # Condition 2: timeout
+            if current_time - turn_start_time > TURN_TIMEOUT:
+                stop_condition = True
+        
+            # Condition 3: enforce min/max turn angles
+            if abs(turn_angle) >= MIN_TURN_ANGLE:
+                stop_condition = True
+            if abs(turn_angle) >= MAX_TURN_ANGLE:
+                stop_condition = True
+        
+            # Stop turn if any stop condition is met
+            if stop_condition:
+                robot.stop_motor()
+                robot.set_servo(SERVO_CENTER)
+                turning = False
+                last_turn_time = current_time
+                post_turn_wait = True
+                post_turn_start = current_time
+        
+                # Snap yaw to the expected final heading
+                yaw = turn_start_yaw + target_angle
+                turn_start_yaw = None
+        
+                # Post-turn wall reference
+                if robot.d_left is not None and robot.d_right is not None:
+                    post_turn_ref_diff = robot.d_left - robot.d_right
+                    use_post_turn_ref = True
+                else:
+                    use_post_turn_ref = False
+        
+                status_text = "Driving (post-turn)"
 
             # Post-turn
             elif post_turn_wait:
