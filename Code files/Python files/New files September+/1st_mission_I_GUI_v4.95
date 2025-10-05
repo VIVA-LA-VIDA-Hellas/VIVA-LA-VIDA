@@ -1,33 +1,14 @@
 #----------------------------------------------------------------------------------------------------------------------
 # Autonomous drive - VivaLaVida
-# v4 - 23/9/2025
-# v4.1 - remove camera, add logging - 24/9/2025
-# v4.2 - improved turn logic and timeout slider - 24/9/2025 
-# v4.3 - graph and turn improvements - 25/9/2025
-# v4.5 - rewrite
-# v4.5 - new turn logic with PID clear after turn
-# v4.6 - new wall following rules - 26/9/2025
-# v4.7 - new GUI, rewrite
-# v4.8 - added gyroscope
+# # v4.8 - added gyroscope
 # v4.9 - added sliders, max lap, save/load slide values, csv export with data
 # v4.92 - check servo correction during cruise
 # v4.93 - add lap reset button (stop loop), slider name correction
 # v4.94 - Sensor readings filtering improvements, read in sequence. Lock turn side. Improve driving between walls with new rules.
+# v4.95 - Code cleaning
 # to do: check turn initiation logic, change how to stop turning with gyroscope
-#
-# Logic description
-# - Continuously read ultrasonic sensor distances: front, left, and right.
-# - Emergency stop: If front distance < stop threshold, halt immediately to prevent collisions.
-# - Initiate turn:
-#     Triggered when front distance < configured turn trigger.
-#     Robot chooses the side with the greater distance (left or right) to turn toward.
-#     Moves forward while steering to avoid the obstacle.
-#     Turn ends when front sensor reads clear AND (timeout reached OR side distance is reached OR gyroscope degrees reached)
-# - Wall-following:
-#     Compares left and right distances to maintain a centered path between walls.
-#     Adjusts servo angle based on distance to correct robot heading.
-#     Applies a deadzone to ignore small deviations and prevent oscillations.
-#-----------------------------------------------------------------------------------------------------------------------
+# reduce speed if sensors are none, logic for stop due to obstacle
+#---------------------------------------------------------------------------------------------------------------------
 
 import threading
 import time
@@ -46,8 +27,7 @@ import json
 import os
 import tkinter.filedialog as fd
 
-# Get directory of the running script
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+BASE_DIR = os.path.dirname(os.path.abspath(__file__)) # Get directory of the running script
 
 # ===============================
 # CONFIGURATION VARIABLES
@@ -58,7 +38,6 @@ SPEED_CRUISE = 25             # Motor speed for normal straight driving (0-100%)
 SPEED_TURN = 15               # Motor speed during turns (0-100%)
 
 # ---------- Driving ----------
-SAFE_MARGIN = 20              # Minimum safe distance from walls (cm) for emergency correction
 SOFT_MARGIN = 30              # Distance from wall where small steering corrections start (cm)
 MAX_CORRECTION = 8            # Maximum servo correction applied for wall-following (degrees)
 STOP_THRESHOLD = 20           # Front distance (cm) at which robot stops immediately
@@ -129,8 +108,6 @@ for trig in [TRIG_FRONT, TRIG_LEFT, TRIG_RIGHT]:
     GPIO.output(trig, GPIO.LOW)
 for echo in [ECHO_FRONT, ECHO_LEFT, ECHO_RIGHT]:
     GPIO.setup(echo, GPIO.IN)
-
-#bias = sum(mpu.gyro[2] for _ in range(500)) / 500
 
 # ---------- Calibrate gyro bias at startup ----------
 print("Calibrating gyro...")
@@ -278,10 +255,7 @@ def robot_loop():
     last_time = time.monotonic()
     start_time = time.monotonic()
     d_front = d_left = d_right = yaw = 0.0
-    post_turn_ref_diff = 0
-    use_post_turn_ref = False
     locked_turn_direction = None  # "LEFT" or "RIGHT" after first turn
-    # ===== NEW VARIABLES FOR POST-TURN WALL BALANCE =====
     post_turn_ref_diff = None   # Stores left-right difference after a turn
     use_post_turn_ref = False   # Flag to enable post-turn reference
     
@@ -351,7 +325,6 @@ def robot_loop():
                            (robot.d_right is not None and robot.d_right > TURN_DECISION_THRESHOLD)) and \
                           (current_time - last_turn_time >= TURN_LOCKOUT)
 
-            #if (not turning) and (not post_turn_wait) and can_trigger:
             #    direction = robot.turn_decision(robot.d_left, robot.d_right)
             if (not turning) and (not post_turn_wait) and can_trigger:
                 # ===== RESET POST-TURN WALL REFERENCE =====
@@ -417,10 +390,6 @@ def robot_loop():
                     else:
                         use_post_turn_ref = False
                     status_text = "Driving (post-turn)"
-                    # ===== SAVE POST-TURN WALL REFERENCE =====
-                    if robot.d_left is not None and robot.d_right is not None:
-                        post_turn_ref_diff = robot.d_left - robot.d_right
-                        use_post_turn_ref = True
 
             # Post-turn
             elif post_turn_wait:
@@ -431,7 +400,6 @@ def robot_loop():
                 else:
                     post_turn_wait = False
 
-            # ===== Adjust speed based on side sensor validity =====
             current_speed = SPEED_CRUISE  # default
             
             # ===== Compute servo angle =====
@@ -459,20 +427,8 @@ def robot_loop():
                 servo_angle += diff_error * 0.3  # fine gain adjustment
                 robot.set_servo(servo_angle)
                 robot.rotate_motor(SPEED_CRUISE)
-
-          #  else:
-          #      # Compute normal correction
-          #      servo_angle = robot.safe_straight_control(robot.d_left, robot.d_right)
-
-                # ===== APPLY POST-TURN REFERENCE =====
-            if use_post_turn_ref and robot.d_left > SOFT_MARGIN and robot.d_right > SOFT_MARGIN:
-                current_diff = robot.d_left - robot.d_right
-                diff_error = post_turn_ref_diff - current_diff
-                servo_angle += diff_error * 0.3  # gain factor; adjust if too strong/weak
-
-                robot.set_servo(servo_angle)
-                robot.rotate_motor(SPEED_CRUISE)
                 status_text = "Driving (cruise)"
+
         else:
             # If loop not started, stop motors
             robot.stop_motor()
@@ -525,10 +481,7 @@ def launch_gui():
                           width=20, height=2, bg="green", fg="white", state="disabled")
     btn_stop = tk.Button(root, text="Stop Loop", command=stop_loop,
                          width=20, height=2, bg="red", fg="white", state="disabled")
-    #btn_reset = tk.Button(root, text="Reset Counters", command=self.reset_counters,
-    #                     width=20, height=1, bg="white", fg="red")
-    #self.reset_button.pack()
-
+  
     # ---------- Status Labels ----------
     lbl_status = tk.Label(root, text="Idle", font=("Arial", 14))
     lbl_turns = tk.Label(root, text=f"Turns: {turn_count}", font=("Arial", 14))
@@ -823,16 +776,10 @@ def stop_loop():
     global locked_turn_direction
     locked_turn_direction = None
 
-#def reset_counters(self):
-#    self.lap_count = 0
-#    self.turn_count = 0
-#    self.update_labels()  
-
 # -------------------------
 # Export to CSV
 # -------------------------
 def export_data_csv():
-    from datetime import datetime
     filename = f"viva_data_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv"
     slider_values = {name: var.get() for name, var in slider_vars.items()}
 
