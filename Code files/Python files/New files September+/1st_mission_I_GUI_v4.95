@@ -52,6 +52,7 @@ TARGET_DISTANCE = 30          # Desired distance from side walls (cm)
 TURN_TIMEOUT = 1.5            # Maximum time allowed for a turn (seconds)
 TURN_LOCKOUT = 1.5            # Minimum interval between consecutive turns (seconds)
 POST_TURN_DURATION = 0.5      # Time to drive straight after a turn (seconds)
+LOCK_TURN_DIRECTION = 1  # 1 = enable turn lock direction after 1st turn, 0 = disable
 
 # ---------- Turn angle constraints ----------
 MIN_TURN_ANGLE = 75           # Minimum yaw change (degrees) before turn can stop
@@ -333,17 +334,22 @@ def robot_loop():
                 # Determine initial direction
                 proposed_direction = robot.turn_decision(robot.d_left, robot.d_right)
                 # If no direction locked yet → lock on first turn
-                if locked_turn_direction is None:
-                    locked_turn_direction = proposed_direction
-                    print(f"Turn direction locked to {locked_turn_direction}")
-                # If opposite turn requested → ignore and keep driving
-                elif proposed_direction != locked_turn_direction:
-                    # Ignore this turn trigger, continue forward
-                    status_text = f"Ignoring {proposed_direction} (locked to {locked_turn_direction})"
-                    time.sleep(LOOP_DELAY)
-                    continue
-                # Apply the allowed direction
-                direction = locked_turn_direction
+                if LOCK_TURN_DIRECTION == 1:
+                    # Turn lock mechanism enabled
+                    if locked_turn_direction is None:
+                        locked_turn_direction = proposed_direction
+                        print(f"Turn direction locked to {locked_turn_direction}")
+                
+                    elif proposed_direction != locked_turn_direction:
+                        status_text = f"Ignoring {proposed_direction} (locked to {locked_turn_direction})"
+                        #time.sleep(LOOP_DELAY)
+                        continue
+                
+                    # Apply the allowed direction
+                    direction = locked_turn_direction
+                else:
+                    # Turn lock disabled → just use proposed direction
+                    direction = proposed_direction
 
                 use_post_turn_ref = False
                 turning = True
