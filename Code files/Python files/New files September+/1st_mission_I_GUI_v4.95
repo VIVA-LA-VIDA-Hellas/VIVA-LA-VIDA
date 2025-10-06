@@ -6,8 +6,7 @@
 # v4.93 - add lap reset button (stop loop), slider name correction
 # v4.94 - Sensor readings filtering improvements, read in sequence. Lock turn side. Improve driving between walls with new rules.
 # v4.95 - Code cleaning, turn based on gyroscope
-# to do: check turn initiation logic, change how to stop turning with gyroscope
-# reduce speed if sensors are none, logic for stop due to obstacle
+# to do: check turn initiation logic, reduce speed if sensors are none, logic for movements after stop due to obstacle
 #---------------------------------------------------------------------------------------------------------------------
 
 import threading
@@ -561,12 +560,11 @@ def launch_gui():
             ("Turn angle Left", "TURN_ANGLE_LEFT", 55, 90, "int"),
             ("Turn angle Right", "TURN_ANGLE_RIGHT", 90, 125, "int"),
             ("Soft side Margin (cm)", "SOFT_MARGIN", 0, 75, "int"),
-            ("Max Angle Correction dif at Soft Margin (o)", "MAX_CORRECTION", 0, 45, "int"),
+            ("Max Angle Correction dif at Soft Margin (o)", "MAX_CORRECTION", 0, 30, "int"),
             ("Stop Threshold (cm)", "STOP_THRESHOLD", 0, 100, "int"),
             ("Front Turn Trigger (cm)", "FRONT_TURN_TRIGGER", 50, 150, "int"),
             ("Turn Decision Threshold (Left/Right) (cm)", "TURN_DECISION_THRESHOLD", 0, 200, "int"),
             ("Turn Timeout (s)", "TURN_TIMEOUT", 0.1, 10, "float"),
-            ("Min Turn Angle (o)", "MIN_TURN_ANGLE", 60, 90, "int"),
             ("Max Turn Angle (o)", "MAX_TURN_ANGLE", 90, 120, "int"),
             ("Post Turn Duration (s)", "POST_TURN_DURATION", 0, 5, "float"),
             ("Turn Lockout (s)", "TURN_LOCKOUT", 0.1, 5, "float")
