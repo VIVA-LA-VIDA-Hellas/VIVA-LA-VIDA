@@ -43,15 +43,15 @@ STOP_THRESHOLD = 20           # Front distance (cm) at which robot stops immedia
 
 # ---------- Turn management ----------
 FRONT_TURN_TRIGGER = 80       # Front distance (cm) at which a turn is triggered
-TURN_DECISION_THRESHOLD = 30 # Minimum side distance (cm) to allow turn in that direction
+TURN_DECISION_THRESHOLD = 190 # Minimum side distance (cm) to allow turn in that direction
 TURN_ANGLE_LEFT = 60          # Servo angle for left turn
 TURN_ANGLE_RIGHT = 120        # Servo angle for right turn
 FRONT_SAFE_DISTANCE = 100     # Front distance considered safe to end a turn (cm)
 TARGET_DISTANCE = 30          # Desired distance from side walls (cm)
 TURN_TIMEOUT = 3.5            # Maximum time allowed for a turn (seconds)
-TURN_LOCKOUT = 1.5            # Minimum interval between consecutive turns (seconds)
+TURN_LOCKOUT = 0.5            # Minimum interval between consecutive turns (seconds)
 POST_TURN_DURATION = 0.5      # Time to drive straight after a turn (seconds)
-LOCK_TURN_DIRECTION = 0  # 1 = enable turn lock direction after 1st turn, 0 = disable
+LOCK_TURN_DIRECTION = 0       # 1 = enable turn lock direction after 1st turn, 0 = disable
 TARGET_TURN_ANGLE = 90        # Degrees to turn per corner
 TURN_ANGLE_TOLERANCE = 5      # Acceptable overshoot (degrees)
 
