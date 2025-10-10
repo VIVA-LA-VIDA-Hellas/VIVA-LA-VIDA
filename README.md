@@ -11,10 +11,7 @@
 
 
 # INDEX
-
-## 0. Preparation phase - Camera vision using opencv
-####        0.1 Detecting red/green objects
-####        0.2 Finding paths
+### *Use the index for an easy navigation of our github or, continue bellow to view our creation process, as well as an overview on everything about the robot.*
 
 ## 1. Mobility management
 ####        1.1 [Vehicle compartments](https://github.com/VIVA-LA-VIDA-Hellas/VIVA-LA-VIDA/tree/main/Vehicle/Compartments)
