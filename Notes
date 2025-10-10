@@ -1,8 +1,40 @@
 [ ] Add wro rulebook
+
 [ ] develop main
+Colour detection with camera (no movement)
+compartment showcase version in in order: 
+Microcontroller 
+Plackets/Pcb
+power (batteries)
+hbridge
+other connecting compartments
+ackerman
+chasis
+wheels
+3d base
+motor
+motor base
+servo
+distance sensors
+distance sensor bases
+colour sensor
+colour sensor base
+programms (old) - first mission
+camera
+camera base
+programms second mission
+tof - combined dis sensor base
+programms (new) - first mission
+final additions (ex. tape/ elastics used to hold servo/motor)
+
 [ ] put photos of sensors/ compartments used whenever mentioned (esp logs)
+
 [ ] Make a pdf with mechanic and 3d printed compartments
+
 [ ] flow chart
+
 [ ] Create instructions for user assembly, including step by step instructions for how to install vscode/pycharm, linking websited to buy our pcb board etc
+
 [ ] Reorganisation of old folders, final fixes
+
 [ ] rename code files
