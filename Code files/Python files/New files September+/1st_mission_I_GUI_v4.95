@@ -454,13 +454,13 @@ def robot_loop():
                 robot.rotate_motor(current_speed)
 
             # ===== Fine post-turn correction (optional) =====
-            if use_post_turn_ref and robot.d_left > SOFT_MARGIN and robot.d_right > SOFT_MARGIN:
-                current_diff = robot.d_left - robot.d_right
-                diff_error = post_turn_ref_diff - current_diff
-                servo_angle += diff_error * 0.3  # fine gain adjustment
-                robot.set_servo(servo_angle)
-                robot.rotate_motor(SPEED_CRUISE)
-                status_text = "Driving (cruise)"
+            #if use_post_turn_ref and robot.d_left > SOFT_MARGIN and robot.d_right > SOFT_MARGIN:
+            #    current_diff = robot.d_left - robot.d_right
+            #    diff_error = post_turn_ref_diff - current_diff
+            #    servo_angle += diff_error * 0.3  # fine gain adjustment
+            #    robot.set_servo(servo_angle)
+            #    robot.rotate_motor(SPEED_CRUISE)
+            #    status_text = "Driving (cruise)"
 
         else:
             # If loop not started, stop motors
