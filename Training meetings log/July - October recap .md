@@ -20,6 +20,8 @@
 ### Additionally, we changed our servo to a model that can withstand more force, due to the previous ones often breaking
 
 > Old servo -> SG90
+> <img width="200" height="200" alt="image" src="https://github.com/user-attachments/assets/32dc9b0d-6bd6-4954-878c-efd707eab14f" />
+> <img width="200" height="200" alt="image" src="https://github.com/user-attachments/assets/515aa589-d340-483b-8d83-f37e23b2b0a9" />
 > 
 > New servo -> MG996
 
