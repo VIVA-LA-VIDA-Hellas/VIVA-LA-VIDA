@@ -12,6 +12,10 @@
 
 # INDEX
 
+## 0. Preparation phase - Camera vision using opencv
+####        0.1 Detecting red/green objects
+####        0.2 Finding paths
+
 ## 1. Mobility management
 ####        1.1 [Vehicle compartments](https://github.com/VIVA-LA-VIDA-Hellas/VIVA-LA-VIDA/tree/main/Vehicle/Compartments)
 
