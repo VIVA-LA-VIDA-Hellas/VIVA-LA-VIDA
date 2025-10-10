@@ -26,7 +26,7 @@
 > 
 > New servo -> MG996
 >
-> <img width="300" height="105" alt="image" src="https://github.com/user-attachments/assets/fea6fc4d-04df-41ce-972d-7f10fa381965" />
+> <img width="600" height="200" alt="image" src="https://github.com/user-attachments/assets/fea6fc4d-04df-41ce-972d-7f10fa381965" />
 > <img width="200" height="200" alt="image" src="https://github.com/user-attachments/assets/55b5be72-eb20-4cd3-bf4e-379ba4f71c3b" />
 
 ### We also changed our motor to a more powerfull one, editing the bases to match the new and improved version.
