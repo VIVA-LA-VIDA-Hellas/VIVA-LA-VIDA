@@ -1,3 +1,7 @@
+# copy of v4.97
+# removed all autonomous logic
+# added manual control, kept export to csv
+
 import threading
 import time
 import tkinter as tk
