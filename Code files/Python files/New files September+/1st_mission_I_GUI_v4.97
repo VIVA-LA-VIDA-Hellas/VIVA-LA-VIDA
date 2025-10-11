@@ -35,13 +35,13 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__)) # Get directory of the run
 
 # ---------- Speeds ----------
 SPEED_CRUISE = 20             # Motor speed for normal straight driving (0-100%)
-SPEED_TURN = 18               # Motor speed during turns (0-100%)
+SPEED_TURN = 20               # Motor speed during turns (0-100%)
 
 # ---------- Driving ----------
-SOFT_MARGIN = 30              # Distance from wall where small steering corrections start (cm)
-MAX_CORRECTION = 8            # Maximum servo correction applied for wall-following (degrees)
+SOFT_MARGIN = 35              # Distance from wall where small steering corrections start (cm)
+MAX_CORRECTION = 9            # Maximum servo correction applied for wall-following (degrees)
 STOP_THRESHOLD = 20           # Front distance (cm) at which robot stops immediately
-CORRECTION_DURATION = 0.25     # How long a side-correction is held (seconds)
+CORRECTION_DURATION = 0.5     # How long a side-correction is held (seconds)
 
 # ---------- Turn management ----------
 FRONT_TURN_TRIGGER = 90       # Front distance (cm) at which a turn is triggered
@@ -53,12 +53,12 @@ TARGET_DISTANCE = 30          # Desired distance from side walls (cm)
 TURN_TIMEOUT = 3.5            # Maximum time allowed for a turn (seconds)
 TURN_LOCKOUT = 0.5            # Minimum interval between consecutive turns (seconds)
 POST_TURN_DURATION = 0.25     # Time to drive straight after a turn (seconds)
-LOCK_TURN_DIRECTION = 0       # 1 = enable turn lock direction after 1st turn, 0 = disable
+LOCK_TURN_DIRECTION = 1       # 1 = enable turn lock direction after 1st turn, 0 = disable
 TARGET_TURN_ANGLE = 90        # Degrees to turn per corner
 TURN_ANGLE_TOLERANCE = 5      # Acceptable overshoot (degrees)
 
 # ---------- Turn angle constraints ----------
-MIN_TURN_ANGLE = 75           # Minimum yaw change (degrees) before turn can stop
+MIN_TURN_ANGLE = 60           # Minimum yaw change (degrees) before turn can stop
 MAX_TURN_ANGLE = 105          # Maximum yaw change (degrees) to force stop turn
 
 # ---------- Laps ----------
@@ -88,10 +88,10 @@ ULTRASONIC_TIMEOUT = 0.04        # Timeout for ultrasonic sensor reading (second
 SOUND_SPEED = 17150              # Speed of sound in cm/s for distance calculation for a round trip
 
 # ---------- Sensor data filtering ----------
-N_READINGS = 4                    # Number of readings stored for median filtering
+N_READINGS = 8                    # Number of readings stored for median filtering
 
 # ---------- Loop timing ----------
-LOOP_DELAY = 0.05                  # Delay between main loop iterations (seconds)
+LOOP_DELAY = 0.005                  # Delay between main loop iterations (seconds)
 TRIG_PULSE_DURATION = 0.000010     # Trigger pulse duration for ultrasonic sensor (seconds) - was 0.00001
 
 # ---------- Plotting ----------
