@@ -45,7 +45,7 @@ CORRECTION_DURATION = 0.25     # How long a side-correction is held (seconds)
 
 # ---------- Turn management ----------
 FRONT_TURN_TRIGGER = 90       # Front distance (cm) at which a turn is triggered
-TURN_DECISION_THRESHOLD = 190 # Minimum side distance (cm) to allow turn in that direction
+TURN_DECISION_THRESHOLD = 100 # Minimum side distance (cm) to allow turn in that direction
 TURN_ANGLE_LEFT = 60          # Servo angle for left turn
 TURN_ANGLE_RIGHT = 120        # Servo angle for right turn
 FRONT_SAFE_DISTANCE = 100     # Front distance considered safe to end a turn (cm)
@@ -83,15 +83,15 @@ TRIG_FRONT, ECHO_FRONT = 22, 23  # GPIO pins for front sensor
 TRIG_LEFT, ECHO_LEFT = 27, 17    # GPIO pins for left sensor
 TRIG_RIGHT, ECHO_RIGHT = 5, 6    # GPIO pins for right sensor
 
-ULTRASONIC_TIMEOUT = 0.02        # Timeout for ultrasonic sensor reading (seconds)
+ULTRASONIC_TIMEOUT = 0.04        # Timeout for ultrasonic sensor reading (seconds)
 # Max distance measurable by a sensor = timeout×17150 - 0.02x17150=343cm maximum distance
 SOUND_SPEED = 17150              # Speed of sound in cm/s for distance calculation for a round trip
 
 # ---------- Sensor data filtering ----------
-N_READINGS = 3                    # Number of readings stored for median filtering
+N_READINGS = 2                    # Number of readings stored for median filtering
 
 # ---------- Loop timing ----------
-LOOP_DELAY = 0.025                 # Delay between main loop iterations (seconds)
+LOOP_DELAY = 0.05                  # Delay between main loop iterations (seconds)
 TRIG_PULSE_DURATION = 0.000010     # Trigger pulse duration for ultrasonic sensor (seconds) - was 0.00001
 
 # ---------- Plotting ----------
@@ -327,10 +327,19 @@ def robot_loop():
                 continue
 
             # Turn initiation
+            #can_trigger = (robot.d_front is not None and robot.d_front < FRONT_TURN_TRIGGER) and \
+            #              ((robot.d_left is not None and robot.d_left > TURN_DECISION_THRESHOLD) or \
+            #               (robot.d_right is not None and robot.d_right > TURN_DECISION_THRESHOLD)) and \
+            #              (current_time - last_turn_time >= TURN_LOCKOUT)
+            
+            # treat None as "far" so missing/timeout readings don't block a turn
+            left_far = (robot.d_left is None) or (robot.d_left > TURN_DECISION_THRESHOLD)
+            right_far = (robot.d_right is None) or (robot.d_right > TURN_DECISION_THRESHOLD)
+            
             can_trigger = (robot.d_front is not None and robot.d_front < FRONT_TURN_TRIGGER) and \
-                          ((robot.d_left is not None and robot.d_left > TURN_DECISION_THRESHOLD) or \
-                           (robot.d_right is not None and robot.d_right > TURN_DECISION_THRESHOLD)) and \
+                          (left_far or right_far) and \
                           (current_time - last_turn_time >= TURN_LOCKOUT)
+
             print(f"Front: {robot.d_front}, Left: {robot.d_left}, Right: {robot.d_right}, Can trigger: {can_trigger}")
 
             #    direction = robot.turn_decision(robot.d_left, robot.d_right)
