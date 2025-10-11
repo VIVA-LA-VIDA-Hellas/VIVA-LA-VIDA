@@ -6,6 +6,7 @@
 # v4.93 - add lap reset button (stop loop), slider name correction
 # v4.94 - Sensor readings filtering improvements, read in sequence. Lock turn side. Improve driving between walls with new rules.
 # v4.95 - Code cleaning, turn based on gyroscope
+# v4.96 - remove corrections
 # to do: check turn initiation logic, reduce speed if sensors are none, logic for movements after stop due to obstacle
 #---------------------------------------------------------------------------------------------------------------------
 
