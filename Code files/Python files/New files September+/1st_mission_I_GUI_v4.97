@@ -88,7 +88,7 @@ ULTRASONIC_TIMEOUT = 0.04        # Timeout for ultrasonic sensor reading (second
 SOUND_SPEED = 17150              # Speed of sound in cm/s for distance calculation for a round trip
 
 # ---------- Sensor data filtering ----------
-N_READINGS = 2                    # Number of readings stored for median filtering
+N_READINGS = 4                    # Number of readings stored for median filtering
 
 # ---------- Loop timing ----------
 LOOP_DELAY = 0.05                  # Delay between main loop iterations (seconds)
@@ -404,10 +404,10 @@ def robot_loop():
                 # Determine if turn should stop
                 stop_condition = False
 
-                if direction == "LEFT" and FRONT_SAFE_DISTANCE > d_front and turn_angle > MIN_TURN_ANGLE:
-                    stop_condition = True
-                if direction == "RIGHT" and FRONT_SAFE_DISTANCE > d_front and turn_angle > MIN_TURN_ANGLE:
-                    stop_condition = True
+                #if direction == "LEFT" and FRONT_SAFE_DISTANCE > d_front and turn_angle > MIN_TURN_ANGLE:
+                #    stop_condition = True
+                #if direction == "RIGHT" and FRONT_SAFE_DISTANCE > d_front and turn_angle > MIN_TURN_ANGLE:
+                #    stop_condition = True
 
                 # Condition 1: reached target angle ± tolerance
                 if direction == "LEFT" and turn_angle >= target_angle - TURN_ANGLE_TOLERANCE:
