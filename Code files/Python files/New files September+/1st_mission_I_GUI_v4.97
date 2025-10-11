@@ -274,7 +274,6 @@ def robot_loop():
     correction_start_time = 0.0
     correction_angle = SERVO_CENTER
     current_servo_angle = SERVO_CENTER
-    state_data["servo_angle"] = current_servo_angle
     
     while True:
         current_time = time.monotonic()
@@ -390,7 +389,6 @@ def robot_loop():
                         # Drive forward a little before stopping
                         robot.set_servo(SERVO_CENTER)
                         current_servo_angle = desired_servo_angle
-                        state_data["servo_angle"] = current_servo_angle
                         robot.rotate_motor(SPEED_CRUISE)
                         time.sleep(POST_LAP_DURATION)
                         robot.stop_motor()
@@ -438,7 +436,6 @@ def robot_loop():
                     robot.stop_motor()
                     robot.set_servo(SERVO_CENTER)
                     current_servo_angle = SERVO_CENTER
-                    state_data["servo_angle"] = current_servo_angle
                     turning = False
                     last_turn_time = current_time
                     post_turn_wait = True
