@@ -1,3 +1,8 @@
+# fix seeing negative angles as > or < 90, might be because it sees degrees instead of pure value idk
+# fix turn logic
+#servo needs time to turn otherwise crashes out :(
+# FIX ME PLS <3
+
 import RPi.GPIO as GPIO
 import time
 import smbus
@@ -71,13 +76,27 @@ direction = "NONE"
 turns = 0
 print("all sensors and motors initialized.")
 
+car.set_servo_angle(91)
+
 def endturn():
-    if gyro_z > 90.0 or gyro_z < -90.0:
-        turns += 1
-        print(f"Turns: {turns}")
-        GPIO.output(BUZZER, GPIO.HIGH)
-        car.set_servo_angle(91)
-        gyro_z = 0.0
+    global gyro_z,turns
+    if gyro_z > 45.0 or gyro_z < -45.0:
+        time.sleep(0.1)
+        if gyro_z > 45.0 or gyro_z < -45.0:
+            print(f"Turns: {turns}")
+            GPIO.output(BUZZER, GPIO.HIGH)
+            car.set_servo_angle(91)
+            gyro_z = 0.0
+            turns += 1
+left = 55
+right = 135
+forward = 91
+
+def turn_left():
+    if left != 55:
+        car.set_servo_angle(left)
+        time.sleep(0.5)
+    
 
 try:
     running = True
@@ -115,15 +134,16 @@ try:
         print(f"[ULTRA] F:{front_ultra_d} cm | L:{left_ultra_d} cm | R:{right_ultra_d} cm")
         print(f"[GYRO]  Rate X:{gx:.2f}°/s Y:{gy:.2f}°/s Z:{gz:.2f}°/s | Angle X:{angle_x:.2f}° Y:{angle_y:.2f}° Z:{angle_z:.2f}°")
         print("------------------------------------------------")
-
+        
         if direction == "NONE":
-            if front_tof > 30 and front_ultra_d > 30:
+            if front_tof > 70 and front_ultra_d > 70:
                 car.set_servo_angle(91)
-                car.set_motor_speed(10)
+                car.set_motor_speed(20)
+                print("going straight")
             else:  
                 if left_tof > 100 and left_ultra_d >100:
                     direction = "LEFT"
-                    car.set_servo_angle(55)
+                    turn_left()
                     print("direction set to LEFT")
                 elif right_tof > 100 and right_ultra_d > 100:  
                     direction = "RIGHT"
@@ -133,24 +153,25 @@ try:
         if direction != "NONE":
             if turns == 0:
                 if direction == "LEFT":
-                    angle_z = 0.0
-                    car.set_servo_angle(55)
-                    car.set_motor_speed(10)
+                    turn_left()
+                    time.sleep(0.5)
+                    car.set_motor_speed(20)
+                    print("turning")
                     endturn()
                     
                 elif direction == "RIGHT":
-                    angle_z = 0.0
                     car.set_servo_angle(135)
-                    car.set_motor_speed(10)
+                    car.set_motor_speed(20)
                     endturn()
-            elif turns > 0 and turns < 12:
+                    
+            elif turns != 0:
                 if direction == "LEFT":
                     if left_tof < 100 and left_ultra_d < 100:
                         car.set_motor_speed(20)
                     else:
                         angle_z = 0.0
                         car.set_servo_angle(55)
-                        car.set_motor_speed(10)
+                        car.set_motor_speed(20)
                         endturn()
                 elif direction == "RIGHT":
                     if right_tof < 100 and right_ultra_d < 100:
@@ -158,9 +179,9 @@ try:
                     else:
                         angle_z = 0.0
                         car.set_servo_angle(135)
-                        car.set_motor_speed(10)
+                        car.set_motor_speed(20)
                         endturn()
-            elif turns >= 12:
+            elif turns == 12:
                 print("Completed 12 turns, stopping.")
                 time.sleep(1)
                 car.set_motor_speed(0)
