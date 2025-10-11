@@ -217,7 +217,7 @@ class RobotController:
         median_val = (s[mid - 1] + s[mid]) / 2 if len(s) % 2 == 0 else s[mid]
         # Step 2: Moving average
         avg_val = sum(valid) / len(valid)
-        Step 3: Weighted combination (more weight on median)
+        #Step 3: Weighted combination (more weight on median)
         #return 0.7 * median_val + 0.3 * avg_val
         return median_val
         #return None
