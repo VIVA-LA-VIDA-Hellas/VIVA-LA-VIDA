@@ -404,9 +404,9 @@ def robot_loop():
                 # Determine if turn should stop
                 stop_condition = False
 
-                if direction == "LEFT" and FRONT_SAFE_DISTANCE > d_front and turn_angle > MIN_TURN_ANGLE
+                if direction == "LEFT" and FRONT_SAFE_DISTANCE > d_front and turn_angle > MIN_TURN_ANGLE:
                     stop_condition = True
-                if direction == "RIGHT" and FRONT_SAFE_DISTANCE > d_front and turn_angle > MIN_TURN_ANGLE
+                if direction == "RIGHT" and FRONT_SAFE_DISTANCE > d_front and turn_angle > MIN_TURN_ANGLE:
                     stop_condition = True
 
                 # Condition 1: reached target angle ± tolerance
