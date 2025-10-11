@@ -450,7 +450,7 @@ def robot_loop():
             status_text = "Driving (cruise)"
             
             # ===== Apply servo and motor commands only once =====
-            servo_angle = SERVO_CENTER
+            servo_angle = robot.safe_straight_control(robot.d_left, robot.d_right)
             if not turning and not post_turn_wait:
                 robot.set_servo(servo_angle)
                 robot.rotate_motor(current_speed)
