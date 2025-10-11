@@ -34,7 +34,7 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__)) # Get directory of the run
 
 # ---------- Speeds ----------
 SPEED_CRUISE = 20             # Motor speed for normal straight driving (0-100%)
-SPEED_TURN = 15               # Motor speed during turns (0-100%)
+SPEED_TURN = 18               # Motor speed during turns (0-100%)
 
 # ---------- Driving ----------
 SOFT_MARGIN = 30              # Distance from wall where small steering corrections start (cm)
@@ -42,7 +42,7 @@ MAX_CORRECTION = 8            # Maximum servo correction applied for wall-follow
 STOP_THRESHOLD = 20           # Front distance (cm) at which robot stops immediately
 
 # ---------- Turn management ----------
-FRONT_TURN_TRIGGER = 80       # Front distance (cm) at which a turn is triggered
+FRONT_TURN_TRIGGER = 90       # Front distance (cm) at which a turn is triggered
 TURN_DECISION_THRESHOLD = 190 # Minimum side distance (cm) to allow turn in that direction
 TURN_ANGLE_LEFT = 60          # Servo angle for left turn
 TURN_ANGLE_RIGHT = 120        # Servo angle for right turn
@@ -50,7 +50,7 @@ FRONT_SAFE_DISTANCE = 100     # Front distance considered safe to end a turn (cm
 TARGET_DISTANCE = 30          # Desired distance from side walls (cm)
 TURN_TIMEOUT = 3.5            # Maximum time allowed for a turn (seconds)
 TURN_LOCKOUT = 0.5            # Minimum interval between consecutive turns (seconds)
-POST_TURN_DURATION = 0.5      # Time to drive straight after a turn (seconds)
+POST_TURN_DURATION = 0.25     # Time to drive straight after a turn (seconds)
 LOCK_TURN_DIRECTION = 0       # 1 = enable turn lock direction after 1st turn, 0 = disable
 TARGET_TURN_ANGLE = 90        # Degrees to turn per corner
 TURN_ANGLE_TOLERANCE = 5      # Acceptable overshoot (degrees)
@@ -65,7 +65,7 @@ POST_LAP_DURATION = 0.5       # Time to drive forward after final lap before sto
 
 # ---------- Servo ----------
 SERVO_CHANNEL = 0             # PCA9685 channel controlling steering servo
-SERVO_CENTER = 90            # Neutral servo angle (degrees)
+SERVO_CENTER = 92            # Neutral servo angle (degrees)
 SERVO_MIN_ANGLE = 50          # Minimum physical servo angle (degrees)
 SERVO_MAX_ANGLE = 130         # Maximum physical servo angle (degrees)
 SERVO_PULSE_MIN = 1000        # Minimum PWM pulse width (microseconds)
@@ -86,7 +86,7 @@ ULTRASONIC_TIMEOUT = 0.02        # Timeout for ultrasonic sensor reading (second
 SOUND_SPEED = 17150              # Speed of sound in cm/s for distance calculation for a round trip
 
 # ---------- Sensor data filtering ----------
-N_READINGS = 4                    # Number of readings stored for median filtering
+N_READINGS = 3                    # Number of readings stored for median filtering
 
 # ---------- Loop timing ----------
 LOOP_DELAY = 0.025                 # Delay between main loop iterations (seconds)
@@ -232,13 +232,13 @@ class RobotController:
             return "LEFT"
         if d_right is None or d_right > TURN_DECISION_THRESHOLD:
             return "RIGHT"
-        if d_left is not None and d_right is not None:
-            return "LEFT" if d_left > d_right else "RIGHT"
+        #if d_left is not None and d_right is not None:
+        #    return "LEFT" if d_left > d_right else "RIGHT"
         #if d_left is not None:
         #    return "LEFT"
         #if d_right is not None:
         #    return "RIGHT"
-        return "LEFT"
+        #return "LEFT"
 
 robot = RobotController(pca)
 
@@ -415,11 +415,11 @@ def robot_loop():
                     turn_start_yaw = None
             
                     # Post-turn wall reference
-                    if robot.d_left is not None and robot.d_right is not None:
-                        post_turn_ref_diff = robot.d_left - robot.d_right
-                        use_post_turn_ref = True
-                    else:
-                        use_post_turn_ref = False
+                    #if robot.d_left is not None and robot.d_right is not None:
+                    #    post_turn_ref_diff = robot.d_left - robot.d_right
+                    #    use_post_turn_ref = True
+                    #else:
+                    #    use_post_turn_ref = False
             
                     status_text = "Driving (post-turn)"
 
@@ -435,20 +435,21 @@ def robot_loop():
             current_speed = SPEED_CRUISE  # default
             
             # ===== Compute servo angle =====
-            if use_post_turn_ref and robot.d_left is not None and robot.d_right is not None:
-                # Post-turn wall balance
-                current_diff = robot.d_left - robot.d_right
-                diff_error = post_turn_ref_diff - current_diff
-                correction = diff_error * 0.3  # gain factor
-                correction = max(-MAX_CORRECTION, min(MAX_CORRECTION, correction))  # clamp
-                servo_angle = SERVO_CENTER + correction
-                status_text = "Driving (post-turn balance)"
-            else:
+            #if use_post_turn_ref and robot.d_left is not None and robot.d_right is not None:
+            #    # Post-turn wall balance
+            #    current_diff = robot.d_left - robot.d_right
+            #    diff_error = post_turn_ref_diff - current_diff
+            #    correction = diff_error * 0.3  # gain factor
+            #    correction = max(-MAX_CORRECTION, min(MAX_CORRECTION, correction))  # clamp
+            #    servo_angle = SERVO_CENTER + correction
+            #    status_text = "Driving (post-turn balance)"
+            #else:
                 # Normal cruise
-                servo_angle = robot.safe_straight_control(robot.d_left, robot.d_right)
-                status_text = "Driving (cruise)"
+            #    servo_angle = robot.safe_straight_control(robot.d_left, robot.d_right)
+            status_text = "Driving (cruise)"
             
             # ===== Apply servo and motor commands only once =====
+            servo_angle = SERVO_CENTER
             if not turning and not post_turn_wait:
                 robot.set_servo(servo_angle)
                 robot.rotate_motor(current_speed)
