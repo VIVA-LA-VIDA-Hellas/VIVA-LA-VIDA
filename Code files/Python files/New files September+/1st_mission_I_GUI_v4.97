@@ -273,6 +273,8 @@ def robot_loop():
     correction_active = False
     correction_start_time = 0.0
     correction_angle = SERVO_CENTER
+    current_servo_angle = SERVO_CENTER
+    state_data["servo_angle"] = current_servo_angle
     
     while True:
         current_time = time.monotonic()
@@ -370,9 +372,11 @@ def robot_loop():
                 
                     # Apply the allowed direction
                     direction = locked_turn_direction
+                    state_data["direction"] = direction
                 else:
                     # Turn lock disabled → just use proposed direction
                     direction = proposed_direction
+                    state_data["direction"] = direction
 
                 use_post_turn_ref = False
                 turning = True
@@ -385,6 +389,8 @@ def robot_loop():
                     if MAX_LAPS > 0 and lap_count >= MAX_LAPS:
                         # Drive forward a little before stopping
                         robot.set_servo(SERVO_CENTER)
+                        current_servo_angle = desired_servo_angle
+                        state_data["servo_angle"] = current_servo_angle
                         robot.rotate_motor(SPEED_CRUISE)
                         time.sleep(POST_LAP_DURATION)
                         robot.stop_motor()
@@ -431,6 +437,8 @@ def robot_loop():
                 if stop_condition:
                     robot.stop_motor()
                     robot.set_servo(SERVO_CENTER)
+                    current_servo_angle = SERVO_CENTER
+                    state_data["servo_angle"] = current_servo_angle
                     turning = False
                     last_turn_time = current_time
                     post_turn_wait = True
