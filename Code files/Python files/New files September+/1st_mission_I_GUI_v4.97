@@ -38,7 +38,7 @@ SPEED_CRUISE = 20             # Motor speed for normal straight driving (0-100%)
 SPEED_TURN = 20               # Motor speed during turns (0-100%)
 
 # ---------- Driving ----------
-SOFT_MARGIN = 35              # Distance from wall where small steering corrections start (cm)
+SOFT_MARGIN = 25              # Distance from wall where small steering corrections start (cm)
 MAX_CORRECTION = 9            # Maximum servo correction applied for wall-following (degrees)
 STOP_THRESHOLD = 20           # Front distance (cm) at which robot stops immediately
 CORRECTION_DURATION = 0.5     # How long a side-correction is held (seconds)
