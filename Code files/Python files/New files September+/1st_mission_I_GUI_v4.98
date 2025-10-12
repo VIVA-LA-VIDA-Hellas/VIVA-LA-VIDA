@@ -7,7 +7,8 @@
 # v4.94 - Sensor readings filtering improvements, read in sequence. Lock turn side. Improve driving between walls with new rules.
 # v4.95 - Code cleaning, turn based on gyroscope
 # v4.96 - add/remove corrections
-# to do: check turn initiation logic, reduce speed if sensors are none, logic for movements after stop due to obstacle
+# v4.98 - turn logic (merge from v4.7-4.8)
+# to do: reduce speed if sensors are none, logic for movements after stop due to obstacle
 #---------------------------------------------------------------------------------------------------------------------
 
 import threading
@@ -38,8 +39,8 @@ SPEED_CRUISE = 22             # Motor speed for normal straight driving (0-100%)
 SPEED_TURN = 22               # Motor speed during turns (0-100%)
 
 # ---------- Driving ----------
-SOFT_MARGIN = 25              # Distance from wall where small steering corrections start (cm)
-MAX_CORRECTION = 9            # Maximum servo correction applied for wall-following (degrees)
+SOFT_MARGIN = 35              # Distance from wall where small steering corrections start (cm)
+MAX_CORRECTION = 8            # Maximum servo correction applied for wall-following (degrees)
 STOP_THRESHOLD = 20           # Front distance (cm) at which robot stops immediately
 CORRECTION_DURATION = 0.5     # How long a side-correction is held (seconds)
 
@@ -49,10 +50,10 @@ TURN_DECISION_THRESHOLD = 100 # Minimum side distance (cm) to allow turn in that
 TURN_ANGLE_LEFT = 60          # Servo angle for left turn
 TURN_ANGLE_RIGHT = 120        # Servo angle for right turn
 FRONT_SAFE_DISTANCE = 150     # Front distance considered safe to end a turn (cm)
-SIDE_SAFE_DISTANCE = 80       # Side distance considered safe to end a turn (cm)
+SIDE_SAFE_DISTANCE = 30       # Side distance considered safe to end a turn (cm)
 TARGET_DISTANCE = 30          # Desired distance from side walls (cm)
-TURN_TIMEOUT = 3.5            # Maximum time allowed for a turn (seconds)
-TURN_LOCKOUT = 0.5            # Minimum interval between consecutive turns (seconds)
+TURN_TIMEOUT = 2.5            # Maximum time allowed for a turn (seconds)
+TURN_LOCKOUT = 0.75           # Minimum interval between consecutive turns (seconds)
 POST_TURN_DURATION = 0.25     # Time to drive straight after a turn (seconds)
 LOCK_TURN_DIRECTION = 1       # 1 = enable turn lock direction after 1st turn, 0 = disable
 TARGET_TURN_ANGLE = 80        # Degrees to turn per corner
@@ -63,7 +64,7 @@ MIN_TURN_ANGLE = 60           # Minimum yaw change (degrees) before turn can sto
 MAX_TURN_ANGLE = 105          # Maximum yaw change (degrees) to force stop turn
 
 # ---------- Laps ----------
-MAX_LAPS = 0                  # Maximum number of laps before stopping (0 = unlimited)
+MAX_LAPS = 3                  # Maximum number of laps before stopping (0 = unlimited)
 POST_LAP_DURATION = 0.5       # Time to drive forward after final lap before stopping (seconds)
 
 # ---------- Servo ----------
@@ -89,10 +90,10 @@ ULTRASONIC_TIMEOUT = 0.04        # Timeout for ultrasonic sensor reading (second
 SOUND_SPEED = 17150              # Speed of sound in cm/s for distance calculation for a round trip
 
 # ---------- Sensor data filtering ----------
-N_READINGS = 9                    # Number of readings stored for median filtering
+N_READINGS = 8                    # Number of readings stored for median filtering
 
 # ---------- Loop timing ----------
-LOOP_DELAY = 0.005                  # Delay between main loop iterations (seconds)
+LOOP_DELAY = 0.0025                # Delay between main loop iterations (seconds)
 TRIG_PULSE_DURATION = 0.000010     # Trigger pulse duration for ultrasonic sensor (seconds) - was 0.00001
 
 # ---------- Plotting ----------
@@ -219,8 +220,8 @@ class RobotController:
         # Step 2: Moving average
         avg_val = sum(valid) / len(valid)
         #Step 3: Weighted combination (more weight on median)
-        #return 0.7 * median_val + 0.3 * avg_val
-        return median_val
+        return 0.7 * median_val + 0.3 * avg_val
+        #return median_val
         #return None
 
     def safe_straight_control(self, d_left, d_right):
