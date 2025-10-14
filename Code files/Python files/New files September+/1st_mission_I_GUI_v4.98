@@ -28,6 +28,9 @@ import json
 import os
 import tkinter.filedialog as fd
 
+import digitalio
+import adafruit_vl53l0x
+
 BASE_DIR = os.path.dirname(os.path.abspath(__file__)) # Get directory of the running script
 
 # ===============================
@@ -89,6 +92,8 @@ ULTRASONIC_TIMEOUT = 0.02        # Timeout for ultrasonic sensor reading (second
 # Max distance measurable by a sensor = timeout×17150 - 0.02x17150=343cm maximum distance
 SOUND_SPEED = 17150              # Speed of sound in cm/s for distance calculation for a round trip
 
+USE_TOF_SIDES = 1  # 1 = ToF (VL53L0X), 0 = Ultrasonic
+
 # ---------- Sensor data filtering ----------
 N_READINGS = 8                    # Number of readings stored for median filtering
 
@@ -105,6 +110,34 @@ MAX_POINTS = 500                   # Maximum number of points to store for plott
 GPIO.setmode(GPIO.BCM)
 GPIO.setwarnings(False)
 i2c = busio.I2C(SCL, SDA)
+# VL53L0X setup (for side sensors)
+if USE_TOF_SIDES:
+    try:
+        xshut_left = digitalio.DigitalInOut(board.D24)
+        xshut_right = digitalio.DigitalInOut(board.D25)
+        xshut_left.direction = digitalio.Direction.OUTPUT
+        xshut_right.direction = digitalio.Direction.OUTPUT
+
+        xshut_left.value = False
+        xshut_right.value = False
+        time.sleep(0.1)
+
+        # Enable left, assign new address
+        xshut_left.value = True
+        time.sleep(0.05)
+        vl53_left = adafruit_vl53l0x.VL53L0X(i2c)
+        vl53_left.set_address(0x30)
+
+        # Enable right
+        xshut_right.value = True
+        time.sleep(0.05)
+        vl53_right = adafruit_vl53l0x.VL53L0X(i2c)
+    except Exception as e:
+        print("VL53L0X init failed:", e)
+        USE_TOF_SIDES = 0
+        vl53_left = vl53_right = None
+else:
+    vl53_left = vl53_right = None
 pca = PCA9685(i2c)
 pca.frequency = 50
 mpu = adafruit_mpu6050.MPU6050(i2c)
@@ -224,6 +257,27 @@ class RobotController:
         #return median_val
         #return None
 
+    def get_tof_distance(self, sensor):
+        try:
+            d = sensor.range  # mm
+            if d < 20 or d > 2000:
+                return None
+            return d / 10.0  # convert mm → cm
+        except Exception:
+            return None
+
+    def filtered_tof(self, sensor, history):
+        d = self.get_tof_distance(sensor)
+        history.append(d)
+        valid = [x for x in history if x is not None]
+        if not valid:
+            return 999
+        s = sorted(valid)
+        mid = len(s) // 2
+        median_val = (s[mid - 1] + s[mid]) / 2 if len(s) % 2 == 0 else s[mid]
+        avg_val = sum(valid) / len(valid)
+        return 0.7 * median_val + 0.3 * avg_val
+
     def safe_straight_control(self, d_left, d_right):
         correction = 0
         if d_left is not None and d_left < SOFT_MARGIN:
@@ -287,8 +341,14 @@ def robot_loop():
         if readings_flag:
             # === Read all 3 sensors each cycle ===
             d_front = robot.filtered_distance(TRIG_FRONT, ECHO_FRONT, robot.front_history)
-            d_left  = robot.filtered_distance(TRIG_LEFT,  ECHO_LEFT,  robot.left_history)
-            d_right = robot.filtered_distance(TRIG_RIGHT, ECHO_RIGHT, robot.right_history)
+            #d_left  = robot.filtered_distance(TRIG_LEFT,  ECHO_LEFT,  robot.left_history)
+            #d_right = robot.filtered_distance(TRIG_RIGHT, ECHO_RIGHT, robot.right_history)
+            if USE_TOF_SIDES:
+                d_left = robot.filtered_tof(vl53_left, robot.left_history)
+                d_right = robot.filtered_tof(vl53_right, robot.right_history)
+            else:
+                d_left = robot.filtered_distance(TRIG_LEFT, ECHO_LEFT, robot.left_history)
+                d_right = robot.filtered_distance(TRIG_RIGHT, ECHO_RIGHT, robot.right_history)
 
             # Update robot attributes if valid readings exist
             if d_front is not None:
