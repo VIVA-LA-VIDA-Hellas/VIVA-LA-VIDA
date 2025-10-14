@@ -28,6 +28,7 @@ import json
 import os
 import tkinter.filedialog as fd
 
+import board
 import digitalio
 import adafruit_vl53l0x
 
@@ -109,7 +110,7 @@ MAX_POINTS = 500                   # Maximum number of points to store for plott
 # ===============================
 GPIO.setmode(GPIO.BCM)
 GPIO.setwarnings(False)
-i2c = busio.I2C(SCL, SDA)
+i2c = busio.I2C(board.SCL, board.SDA)
 # VL53L0X setup (for side sensors)
 if USE_TOF_SIDES:
     try:
