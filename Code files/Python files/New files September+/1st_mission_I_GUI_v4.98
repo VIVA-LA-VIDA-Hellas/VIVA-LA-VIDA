@@ -416,6 +416,9 @@ def robot_loop():
                 #    stop_condition = True
                 #if direction == "RIGHT" and FRONT_SAFE_DISTANCE > d_front and turn_angle > MIN_TURN_ANGLE:
                 #    stop_condition = True
+                side_distance = d_left if direction=="LEFT" else d_right
+                if d_front is not None and d_front > FRONT_SAFE_DISTANCE and side_distance > SIDE_SAFE_DISTANCE:
+                    stop_condition = True
 
                 # Condition 1: reached target angle ± tolerance
                 if direction == "LEFT" and turn_angle >= target_angle - TURN_ANGLE_TOLERANCE:
