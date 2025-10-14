@@ -7,7 +7,7 @@
 # v4.94 - Sensor readings filtering improvements, read in sequence. Lock turn side. Improve driving between walls with new rules.
 # v4.95 - Code cleaning, turn based on gyroscope
 # v4.96 - add/remove corrections
-# v4.98 - turn logic (merge from v4.7-4.8)
+# v4.98 - turn logic (merge from v4.7-4.8), cleaning
 # to do: reduce speed if sensors are none, logic for movements after stop due to obstacle
 #---------------------------------------------------------------------------------------------------------------------
 
