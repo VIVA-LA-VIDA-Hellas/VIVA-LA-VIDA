@@ -39,14 +39,15 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__)) # Get directory of the run
 # ===============================
 
 # ---------- Speeds ----------
-SPEED_CRUISE = 22             # Motor speed for normal straight driving (0-100%)
-SPEED_TURN = 22               # Motor speed during turns (0-100%)
+SPEED_CRUISE = 20             # Motor speed for normal straight driving (0-100%)
+SPEED_TURN = 18               # Motor speed during turns (0-100%)
 
 # ---------- Driving ----------
-SOFT_MARGIN = 35              # Distance from wall where small steering corrections start (cm)
+SOFT_MARGIN = 30              # Distance from wall where small steering corrections start (cm)
 MAX_CORRECTION = 8            # Maximum servo correction applied for wall-following (degrees)
 STOP_THRESHOLD = 20           # Front distance (cm) at which robot stops immediately
 CORRECTION_DURATION = 0.5     # How long a side-correction is held (seconds)
+FRONT_THRESHOLD = 120         # Distance to start reducing speed
 
 # ---------- Turn management ----------
 FRONT_TURN_TRIGGER = 90       # Front distance (cm) at which a turn is triggered
@@ -541,6 +542,10 @@ def robot_loop():
                 else:
                     post_turn_wait = False
 
+            #if d_front < FRONT_THRESHOLD:
+            #    current_speed = SPEED_TURN
+            #else:
+            #    current_speed = SPEED_CRUISE
             current_speed = SPEED_CRUISE  # default
             
             # ===== Compute servo angle =====
