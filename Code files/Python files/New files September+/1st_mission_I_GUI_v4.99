@@ -9,6 +9,7 @@
 # v4.96 - add/remove corrections
 # v4.98 - turn initiation stop logic (merge from v4.7-4.8 plus extra conditions), added tof
 # v4.98FSM - finite state machine (FSM)
+# v4.99 - gpiozero - tbd
 # to do: reduce speed if sensors are none, logic for movements after stop due to obstacle
 #---------------------------------------------------------------------------------------------------------------------
 
