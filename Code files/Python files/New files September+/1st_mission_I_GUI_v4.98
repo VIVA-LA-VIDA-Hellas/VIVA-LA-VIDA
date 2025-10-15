@@ -112,7 +112,7 @@ GPIO.setmode(GPIO.BCM)
 GPIO.setwarnings(False)
 i2c = busio.I2C(board.SCL, board.SDA)
 # VL53L0X setup (for side sensors)
-if USE_TOF_SIDES:
+if USE_TOF_SIDES == 1:
     try:
         xshut_left = digitalio.DigitalInOut(board.D25)
         xshut_right = digitalio.DigitalInOut(board.D26)
