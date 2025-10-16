@@ -4,27 +4,27 @@
 ####        add photos on each subsection where the vehicle is showcased and each compartment is circled
 Colour detection with camera (no movement)
 compartment showcase version in in order: 
-Microcontroller 
+Microcontroller (raspi 5)
 Plackets/Pcb
-power (batteries)
+power (batteries) 
 hbridge
 other connecting compartments
 ackerman
 chasis
 wheels
 3d base
-motor
+motor (Metal Gearmotor 25mm -210RPM 9-12V)
 motor base
 servo
-distance sensors
+distance sensors (HC-SR04)
 distance sensor bases
-colour sensor
+colour sensor (TCS 34725)
 colour sensor base
 programms (old) - first mission
-camera
+camera (IMX 219)
 camera base
 programms second mission
-tof - combined dis sensor base
+tof - combined dis sensor base (VL53L0X)
 programms (new) - first mission
 final additions (ex. tape/ elastics used to hold servo/motor)
 
