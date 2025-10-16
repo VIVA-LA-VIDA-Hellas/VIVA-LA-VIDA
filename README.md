@@ -14,7 +14,12 @@
 ### *Use the index for an easy navigation of our github or, continue bellow to view our creation process, as well as an overview on everything about the robot.*
 
 ## 1. Mobility management
-####        1.1 [Vehicle compartments](https://github.com/VIVA-LA-VIDA-Hellas/VIVA-LA-VIDA/tree/main/Vehicle/Compartments)
+####        1.1 Motor
+####        1.2 Ackerman
+####        1.3 Chassis
+####        1.4 Servo
+####        1.5 Servo and motor 3d Bases
+####        1.6 Photos
 
 ## 2. Power and Sense Management
 ####        2.1 [PCB circuit designs and schematics](https://github.com/VIVA-LA-VIDA-Hellas/VIVA-LA-VIDA/tree/main/Schematics/PCB)
