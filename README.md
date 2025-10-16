@@ -74,7 +74,7 @@
 [Original module photos](https://github.com/VIVA-LA-VIDA-Hellas/VIVA-LA-VIDA/tree/main/Robot%20Photos/Original%20module)
 
 ### Creating [red/green colour detection](https://github.com/VIVA-LA-VIDA-Hellas/VIVA-LA-VIDA/blob/main/Code%20files/Python%20files/R_G_cannyoutlineWORKING.py)
-Using opencv we created a program that detects red and green objects and outputs what the computer sees in the prossess.
+Using python and opencv we created a program that detects red and green objects and outputs what the computer sees in the prossess.
 To do this, firstly we used colour dropping to <ins> find approximate HSV values  of obstacles and edit the ranges in our code </ins>
 
 > ### Red:
@@ -192,6 +192,11 @@ for i in range(height):
 ![image](https://github.com/user-attachments/assets/417dd036-7add-4786-abe6-badace10178b)
 ### When we moved the inner square walls, <ins>the path to follow (middle lane) moved too</ins>
 ![image](https://github.com/user-attachments/assets/95e8c7f5-c216-4cda-be64-c463440ad920)
+
+### Why we didn't end up using this code (Middle_Lane_Canny) for the first mission
+Although this code worked exceptionally well when the robot was faced with long straight paths surrounded by contrasting walls, the same can't be said for turns.
+Although we tested multiple different cameras, including a fisheye camera, none of them has a scope wide enough for the current code to predict sharp turns, so the path ended up either guiding the robot straight into the wall, or, turning the opposite direction than expected. 
+This wasnt working for us and it also needed the robot to go relatively slow so it can catch up with the camera feedback. This is fine for the second mission, where obstacle avoidance is a higher priority than speed, but for a quick first mission we had to find a new way to sense when and how much the car needs to turn.
 
 
 
