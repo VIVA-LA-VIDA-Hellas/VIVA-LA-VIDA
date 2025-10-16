@@ -116,7 +116,50 @@ Same for green.
 
 ![image](https://github.com/user-attachments/assets/cb52d939-d804-4d5f-a009-c82977a3d9f6)
 
-Notice how it even detects the pile of red objects on the floor **~3m away**
+Notice how it even detects the pile of red objects on the floor **~3m away**, We want to turn based on the closest object to the robot at any given time.
+To detect that, we add limits to the size we consider an object 
+> We do this so that it doesnt start turning too early or if it sees a spec of green/red in the background), its basically a filtering process that cuts down on most of the >noise.
+
+For trials we set the minimum requirement in size (area) for a detected colour mass to be considered an object, as **500 pixels**
+```python
+def get_largest_contour(mask, min_area=500)
+```
+
+Next, we made it choose the largest object visible to focus on first
+```python
+def get_largest_contour(mask, min_area=500):
+    contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    if not contours: return None
+    largest = max(contours, key=cv2.contourArea)
+    if cv2.contourArea(largest) < min_area: return None
+    x, y, w, h = cv2.boundingRect(largest)
+    return largest, (x, y), (x + w, y + h), w*h
+```
+
+### Updating our colour picking method
+The issue with this code was that it needed calibrating in different lighting conditions, so we made out own [colour picker](https://github.com/VIVA-LA-VIDA-Hellas/VIVA-LA-VIDA/blob/main/Code%20files/Python%20files/New%20files%20September%2B/Colour_picker.py) that worked more accurately with the hsv values our camera detected. With this the obstacle detection became much more time efficient but also accurate.
+
+Colour picker sample
+```python
+def mouse_callback(event, x, y, flags, param):
+    global frame
+    if event == cv2.EVENT_LBUTTONDOWN and frame is not None:
+        bgr = frame[y, x]
+        hsv = cv2.cvtColor(np.uint8([[bgr]]), cv2.COLOR_BGR2HSV)[0][0]
+        print(f"Clicked at ({x},{y}) | BGR: {bgr} | HSV: {hsv}")
+
+cv2.namedWindow("Live Feed")
+cv2.setMouseCallback("Live Feed", mouse_callback)
+```
+We use input from our camera to our computer as a live feed, clicking on any pixel to get the HSV values the camera detects straight to our terminal.
+We can then imput them straight into our colour detection limits, (red_lower, red_upper, green_lower, green_upper)
+
+### Using what we detected to avoid the obstacles
+Now that we can succesfully detect the red and green obstacles, we decided to implement a simple system for the robot to use in order to turn. 
+It uses the Objects detected as a reference point and tries to rotate away from them, untill they are outside of the visible area (in other words, when they are far away enough for the robot to not collide with them).
+Reminder, the robot must move **right** if it detects **red** and on the flip side, **left** when it detects **green**
+
+
 
 ### Next, we created the [Middle_Lane_Canny](https://github.com/VIVA-LA-VIDA-Hellas/VIVA-LA-VIDA/blob/main/Code%20files/Python%20files/Middle_Lane_Canny_WORKING.py)
 We applied the same code from the previous program, this time switching green and red with white and black in order to diffrentiate the (white) floor from the (black) walls.
@@ -140,5 +183,6 @@ for i in range(height):
 ![image](https://github.com/user-attachments/assets/417dd036-7add-4786-abe6-badace10178b)
 ### When we moved the inner square walls, <ins>the path to follow (middle lane) moved too</ins>
 ![image](https://github.com/user-attachments/assets/95e8c7f5-c216-4cda-be64-c463440ad920)
+
 
 
