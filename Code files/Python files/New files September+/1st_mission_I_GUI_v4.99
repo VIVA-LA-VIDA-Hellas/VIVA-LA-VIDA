@@ -67,7 +67,7 @@ TARGET_TURN_ANGLE = 80        # Degrees to turn per corner
 TURN_ANGLE_TOLERANCE = 5      # Acceptable overshoot (degrees)
 
 # ---------- Turn angle constraints ----------
-MIN_TURN_ANGLE = 60           # Minimum yaw change (degrees) before turn can stop
+MIN_TURN_ANGLE = 75           # Minimum yaw change (degrees) before turn can stop
 MAX_TURN_ANGLE = 105          # Maximum yaw change (degrees) to force stop turn
 
 # ---------- Laps ----------
@@ -76,7 +76,7 @@ POST_LAP_DURATION = 0.5       # Time to drive forward after final lap before sto
 
 # ---------- Servo ----------
 SERVO_CHANNEL = 0             # PCA9685 channel controlling steering servo
-SERVO_CENTER = 92            # Neutral servo angle (degrees)
+SERVO_CENTER = 90            # Neutral servo angle (degrees)
 SERVO_MIN_ANGLE = 50          # Minimum physical servo angle (degrees)
 SERVO_MAX_ANGLE = 130         # Maximum physical servo angle (degrees)
 SERVO_PULSE_MIN = 1000        # Minimum PWM pulse width (microseconds)
