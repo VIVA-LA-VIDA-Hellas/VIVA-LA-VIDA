@@ -524,29 +524,29 @@ def robot_loop():
                     lower_bound = turn_reference_side_distance * 0.95
                     upper_bound = turn_reference_side_distance * 1.05
                     if lower_bound <= side_distance_monitor <= upper_bound:
-                        Print(Stop Turn - Opposite distance)
+                        print("Stop Turn - Opposite distance")
                         stop_condition = True
                         
             # Condition B: front + side safe
             side_distance = robot.d_left if direction == "LEFT" else robot.d_right
             if robot.d_front is not None and robot.d_front > FRONT_SAFE_DISTANCE and side_distance is not None and side_distance > SIDE_SAFE_DISTANCE:
-                Print(Stop Turn - Front distance)
+                print("Stop Turn - Front distance")
                 stop_condition = True
 
             # Condition C: reached target angle ± tolerance
             if direction == "LEFT" and turn_angle >= target_angle - TURN_ANGLE_TOLERANCE:
-                Print(Stop Turn - Target Angle)
+                print("Stop Turn - Target Angle")
                 stop_condition = True
             elif direction == "RIGHT" and turn_angle <= target_angle + TURN_ANGLE_TOLERANCE:
-                Print(Stop Turn - Target Angle)
+                print("Stop Turn - Target Angle")
                 stop_condition = True
 
             # Condition D: timeout or extreme yaw
             if current_time - turn_start_time > TURN_TIMEOUT:
-                Print(Stop Turn - Max turn time)
+                print("Stop Turn - Max turn time")
                 stop_condition = True
             if abs(turn_angle) >= MAX_TURN_ANGLE:
-                Print(Stop Turn - Max turn angle)
+                print("Stop Turn - Max turn angle")
                 stop_condition = True
 
             # If any stop condition met -> finish turn
