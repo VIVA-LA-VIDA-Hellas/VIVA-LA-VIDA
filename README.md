@@ -195,8 +195,9 @@ for i in range(height):
 
 ### Why we didn't end up using this code (Middle_Lane_Canny) for the first mission
 Although this code worked exceptionally well when the robot was faced with long straight paths surrounded by contrasting walls, the same can't be said for turns.
-Although we tested multiple different cameras, including a fisheye camera, none of them has a scope wide enough for the current code to predict sharp turns, so the path ended up either guiding the robot straight into the wall, or, turning the opposite direction than expected. 
-This wasnt working for us and it also needed the robot to go relatively slow so it can catch up with the camera feedback. This is fine for the second mission, where obstacle avoidance is a higher priority than speed, but for a quick first mission we had to find a new way to sense when and how much the car needs to turn.
+When we tested it with a large camera connected to a laptop, it was facing the track from a very high up angle so it had a better view and could detect turns well.
+But, when we tested multiple different cameras connected to a raspberry pi, including a fisheye camera, none of them has a scope wide enough for the current code to predict sharp turns, so the path ended up either guiding the robot straight into the wall, or, turning the opposite direction than expected.  
+This wasnt working for us. The camera couldn't be as high up as it was originally when its placed on the robot -in the track- and it also needed the robot to go relatively slow so it can catch up with the camera feedback. This is fine for the second mission, where obstacle avoidance is a higher priority than speed, but for a quick first mission we had to find a new way to sense when and how much the car needs to turn.
 
 
 
