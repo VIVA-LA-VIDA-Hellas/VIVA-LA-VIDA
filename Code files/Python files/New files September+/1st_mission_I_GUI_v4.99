@@ -9,8 +9,9 @@
 # v4.96 - add/remove corrections
 # v4.98 - turn initiation stop logic (merge from v4.7-4.8 plus extra conditions), added tof
 # v4.98FSM - finite state machine (FSM)
-# v4.99 - gpiozero - tbd
-# to do: reduce speed if sensors are none, logic for movements after stop due to obstacle
+# v4.99 - option to run w/o GIO
+# gpiozero - tbd
+# to do: reduce speed if sensors are none or before turning, logic for movements after stop due to obstacle
 #---------------------------------------------------------------------------------------------------------------------
 
 import threading
@@ -40,6 +41,8 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__)) # Get directory of the run
 # ===============================
 # CONFIGURATION VARIABLES
 # ===============================
+
+USE_GUI = 1                   # 1 = run with GUI (Tkinter), 0 = run headless (no GUI)
 
 # ---------- Speeds ----------
 SPEED_CRUISE = 20             # Motor speed for normal straight driving (0-100%)
@@ -982,5 +985,20 @@ def load_sliders_json():
 # ===============================
 # MAIN
 # ===============================
+
+#if __name__ == "__main__":
+#    launch_gui()
+
 if __name__ == "__main__":
-    launch_gui()
+    print(f"Starting VivaLaVida Autonomous Drive - GUI mode: {USE_GUI}")
+    if USE_GUI:
+        launch_gui()
+    else:
+        print("Running without GUI...")
+        readings_flag = True
+        time.sleep(2)  # wait 2 seconds before starting loop
+        loop_flag = True
+        print("Starting main robot loop...")
+        # Start robot loop in this thread (blocking)
+        robot_loop()
+
