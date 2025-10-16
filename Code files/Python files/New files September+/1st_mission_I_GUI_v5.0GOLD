@@ -1,7 +1,8 @@
 #----------------------------------------------------------------------------------------------------------------------
 # Autonomous drive - VivaLaVida
 # v4.99 - option to run w/o GIO
-# gpiozero - tbd
+# v5.0 - Gold version
+#gpiozero - tbd
 # to do: add buttons & leds & buzzer
 # to do: reduce speed if sensors are none or before turning, logic for movements after stop due to obstacle
 #---------------------------------------------------------------------------------------------------------------------
