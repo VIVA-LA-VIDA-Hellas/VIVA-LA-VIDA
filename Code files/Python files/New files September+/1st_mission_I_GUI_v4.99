@@ -1,18 +1,13 @@
 #----------------------------------------------------------------------------------------------------------------------
 # Autonomous drive - VivaLaVida
-# v4.8 - added gyroscope
-# v4.9 - added sliders, max lap, save/load slide values, csv export with data
-# v4.92 - check servo correction during cruise
-# v4.93 - add lap reset button (stop loop), slider name correction
-# v4.94 - Sensor readings filtering improvements, read in sequence. Lock turn side. Improve driving between walls with new rules.
-# v4.95 - Code cleaning, turn based on gyroscope
-# v4.96 - add/remove corrections
-# v4.98 - turn initiation stop logic (merge from v4.7-4.8 plus extra conditions), added tof
-# v4.98FSM - finite state machine (FSM)
 # v4.99 - option to run w/o GIO
 # gpiozero - tbd
 # to do: reduce speed if sensors are none or before turning, logic for movements after stop due to obstacle
 #---------------------------------------------------------------------------------------------------------------------
+
+# ===============================
+# IMPORTS
+# ===============================
 
 import threading
 import time
@@ -115,6 +110,7 @@ MAX_POINTS = 500                   # Maximum number of points to store for plott
 # ===============================
 # HARDWARE SETUP
 # ===============================
+
 GPIO.setmode(GPIO.BCM)
 GPIO.setwarnings(False)
 i2c = busio.I2C(board.SCL, board.SDA)
@@ -169,15 +165,16 @@ print(f"Gyro bias: {bias}")
 # ===============================
 # CONTROL FLAGS & STORAGE
 # ===============================
+
+# ---------- CONTROL FLAGS ----------
+
 loop_flag = False
 readings_flag = False
 status_text = "Idle"
 turn_count = 0
 lap_count = 0
 
-# ===============================
-# SENSOR DATA STORAGE
-# ===============================
+# ---------- SENSOR DATA STORAGE ----------
 time_data = deque(maxlen=MAX_POINTS)
 front_data = deque(maxlen=MAX_POINTS)
 left_data = deque(maxlen=MAX_POINTS)
@@ -310,7 +307,7 @@ class RobotController:
 robot = RobotController(pca)
 
 # ===============================
-# FINITE STATE MACHINE: robot_loop (replaces procedural loop)
+# FINITE STATE MACHINE: robot_loop
 # ===============================
 class RobotState(Enum):
     IDLE = auto()
@@ -324,10 +321,7 @@ class RobotState(Enum):
 locked_turn_direction = None
 
 def robot_loop():
-    """
-    Main control loop implemented as a finite state machine.
-    This replaces the previous procedural logic with explicit states and transitions.
-    """
+    
     global loop_flag, readings_flag, status_text, turn_count, lap_count, locked_turn_direction
 
     state = RobotState.IDLE
