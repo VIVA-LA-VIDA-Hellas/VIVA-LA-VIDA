@@ -471,11 +471,11 @@ def robot_loop():
                     robot.set_servo(SERVO_CENTER)
                     status_text = "Driving (cruise)"
             
-            if d_front < FRONT_TURN_TRIGGER and d_front > STOP_THRESHOLD:
-                robot.rotate_motor(SPEED_TURN)
-            else:
-                robot.rotate_motor(SPEED_CRUISE)
-            #robot.rotate_motor(SPEED_CRUISE)
+            #if d_front < FRONT_TURN_TRIGGER and d_front > STOP_THRESHOLD:
+            #    robot.rotate_motor(SPEED_TURN)
+            #else:
+            #    robot.rotate_motor(SPEED_CRUISE)
+            robot.rotate_motor(SPEED_CRUISE)
 
         elif state == RobotState.TURN_INIT:
             # Initialize turning: set servo & motor for turn, store yaw/time
