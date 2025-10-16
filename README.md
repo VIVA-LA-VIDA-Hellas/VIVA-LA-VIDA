@@ -158,6 +158,13 @@ We can then imput them straight into our colour detection limits, (red_lower, re
 Now that we can succesfully detect the red and green obstacles, we decided to implement a simple system for the robot to use in order to turn. 
 It uses the Objects detected as a reference point and tries to rotate away from them, untill they are outside of the visible area (in other words, when they are far away enough for the robot to not collide with them).
 Reminder, the robot must move **right** if it detects **red** and on the flip side, **left** when it detects **green**
+> In other words, if we draw a line on the right side of the "turn right" block (red) and the left side of the "turn left" block (green), by moving toward the side it is placed on and effectively moving the entire obstacle out of our view, we manage to pass it.
+
+So for **Green** (Turn left):
+<img width="576" height="360" alt="green pillar" src="https://github.com/user-attachments/assets/0db5fb66-a389-43f2-9f20-6747467d4814" />
+
+And for **Right** (Turn right):
+<img width="576" height="360" alt="red pillar" src="https://github.com/user-attachments/assets/67523d32-0b6a-445d-900d-beb8b43237e5" />
 
 
 
