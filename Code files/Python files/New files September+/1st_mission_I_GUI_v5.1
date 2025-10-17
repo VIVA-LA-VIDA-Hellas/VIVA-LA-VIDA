@@ -489,6 +489,7 @@ def robot_loop():
                     correction_angle = desired_servo_angle
                     robot.set_servo(correction_angle)
                     status_text = "Driving (timed correction)"
+                    print(f"↔️ Straight correction initiated. Servo angle: {correction_angle}")
                 else:
                     robot.set_servo(SERVO_CENTER)
                     status_text = "Driving (cruise)"
@@ -505,6 +506,7 @@ def robot_loop():
             turn_start_yaw = yaw
             turn_start_time = current_time
             turn_reference_side_distance = robot.d_right if direction == "LEFT" else robot.d_left
+            print(f"🔄 Turn initiated {direction}. Left: {robot.d_left:.1f} cm, Right: {robot.d_right:.1f} cm")
             # set steering angle
             angle = TURN_ANGLE_LEFT if direction == "LEFT" else TURN_ANGLE_RIGHT
             robot.set_servo(angle)
@@ -567,6 +569,7 @@ def robot_loop():
                 turn_count += 1
                 if turn_count % 4 == 0:
                     lap_count += 1
+                    print(f"✅ Lap completed! Total laps: {lap_count}")
                     # if reached max laps -> do final drive then stop (as in original logic)
                     if MAX_LAPS > 0 and lap_count >= MAX_LAPS:
                         # Drive forward a little before stopping
