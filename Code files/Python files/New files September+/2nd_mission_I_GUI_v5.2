@@ -332,34 +332,34 @@ class RobotController:
         #return "LEFT"
 
     def detect_color_obstacle(frame):
-    """Detect red or green obstacle in the frame."""
-    # Convert to HSV
-    hsv = cv2.cvtColor(frame, cv2.COLOR_RGB2HSV)
-
-    # Red mask (covers both low and high hue ranges)
-    lower_red1 = np.array([0, 120, 70])
-    upper_red1 = np.array([10, 255, 255])
-    lower_red2 = np.array([170, 120, 70])
-    upper_red2 = np.array([180, 255, 255])
-    mask_red = cv2.inRange(hsv, lower_red1, upper_red1) + cv2.inRange(hsv, lower_red2, upper_red2)
-
-    # Green mask
-    lower_green = np.array([36, 100, 50])
-    upper_green = np.array([86, 255, 255])
-    mask_green = cv2.inRange(hsv, lower_green, upper_green)
-
-    # Count non-zero pixels
-    red_count = cv2.countNonZero(mask_red)
-    green_count = cv2.countNonZero(mask_green)
-
-    threshold = 150  # tweak this depending on lighting
-
-    if red_count > threshold:
-        return "RED"
-    elif green_count > threshold:
-        return "GREEN"
-    else:
-        return None
+                                    """Detect red or green obstacle in the frame."""
+                                    # Convert to HSV
+        hsv = cv2.cvtColor(frame, cv2.COLOR_RGB2HSV)
+    
+        # Red mask (covers both low and high hue ranges)
+        lower_red1 = np.array([0, 120, 70])
+        upper_red1 = np.array([10, 255, 255])
+        lower_red2 = np.array([170, 120, 70])
+        upper_red2 = np.array([180, 255, 255])
+        mask_red = cv2.inRange(hsv, lower_red1, upper_red1) + cv2.inRange(hsv, lower_red2, upper_red2)
+    
+        # Green mask
+        lower_green = np.array([36, 100, 50])
+        upper_green = np.array([86, 255, 255])
+        mask_green = cv2.inRange(hsv, lower_green, upper_green)
+    
+        # Count non-zero pixels
+        red_count = cv2.countNonZero(mask_red)
+        green_count = cv2.countNonZero(mask_green)
+    
+        threshold = 150  # tweak this depending on lighting
+    
+        if red_count > threshold:
+            return "RED"
+        elif green_count > threshold:
+            return "GREEN"
+        else:
+            return None
 
 robot = RobotController(pca)
 
