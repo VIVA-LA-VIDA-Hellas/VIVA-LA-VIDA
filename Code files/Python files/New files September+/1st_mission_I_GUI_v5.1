@@ -262,12 +262,12 @@ class RobotController:
         # If last N readings are all None → sensor blind
         if all(x is None for x in history):
             #return None
-            return 343
+            return 999
         # Filter only valid values
         valid = [x for x in history if x is not None]
         if not valid:
             #return None
-            return 343
+            return 999
         # Step 1: Median Filter
         s = sorted(valid)
         mid = len(s) // 2
@@ -293,7 +293,7 @@ class RobotController:
         history.append(d)
         valid = [x for x in history if x is not None]
         if not valid:
-            return 343
+            return 999
         s = sorted(valid)
         mid = len(s) // 2
         median_val = (s[mid - 1] + s[mid]) / 2 if len(s) % 2 == 0 else s[mid]
