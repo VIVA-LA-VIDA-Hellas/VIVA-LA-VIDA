@@ -187,10 +187,10 @@ print(f"Gyro bias: {bias}")
 # ==========================
 # Picamera2 Setup
 # ==========================
-camera = Picamera2()
-camera_config = camera.create_preview_configuration(main={"size": (320, 240)})
-camera.configure(camera_config)
-camera.start()
+#camera = Picamera2()
+#camera_config = camera.create_preview_configuration(main={"size": (320, 240)})
+#camera.configure(camera_config)
+#camera.start()
 
 # ===============================
 # CONTROL FLAGS & STORAGE
@@ -335,9 +335,9 @@ class RobotController:
         #return "LEFT"
 
     def detect_color_obstacle(frame):
-                                    """Detect red or green obstacle in the frame."""
-                                    # Convert to HSV
         hsv = cv2.cvtColor(frame, cv2.COLOR_RGB2HSV)
+        #Detect red or green obstacle in the frame.
+        # Convert to HSV
     
         # Red mask (covers both low and high hue ranges)
         lower_red1 = np.array([0, 120, 70])
@@ -366,9 +366,9 @@ class RobotController:
 
 robot = RobotController(pca)
 
-camera = Picamera2()
-camera.configure(camera.create_preview_configuration(main={"format": "RGB888", "size": (320, 240)}))
-camera.start()
+#camera = Picamera2()
+#camera.configure(camera.create_preview_configuration(main={"format": "RGB888", "size": (320, 240)}))
+#camera.start()
 
 # ===============================
 # FINITE STATE MACHINE: robot_loop
@@ -1100,12 +1100,12 @@ def load_sliders_json():
 
 if __name__ == "__main__":
     print(f"Starting VivaLaVida Autonomous Drive - GUI mode: {USE_GUI}")
+    camera = Picamera2()
+    camera.configure(camera.create_preview_configuration(main={"format": "RGB888", "size": (320, 240)}))
+    camera.start()
+    
     if USE_GUI:
         launch_gui()
-        camera = Picamera2()
-        camera.configure(camera.create_preview_configuration(main={"format": "RGB888", "size": (320, 240)}))
-        camera.start()
-
     else:
         print("Running without GUI...")
         readings_flag = True
