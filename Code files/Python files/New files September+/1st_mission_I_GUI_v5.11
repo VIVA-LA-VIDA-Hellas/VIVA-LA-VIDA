@@ -16,6 +16,11 @@ import tkinter as tk
 from collections import deque
 #import RPi.GPIO as GPIO
 from gpiozero import DistanceSensor
+from gpiozero import Device
+from gpiozero.pins.pigpio import PiGPIOFactory
+Device.pin_factory = PiGPIOFactory()
+from time import sleep
+import sys
 from board import SCL, SDA
 import busio
 from adafruit_pca9685 import PCA9685
@@ -148,9 +153,22 @@ else:
 pca = PCA9685(i2c)
 pca.frequency = 50
 mpu = adafruit_mpu6050.MPU6050(i2c)
-front_sensor = DistanceSensor(echo=ECHO_FRONT, trigger=TRIG_FRONT, max_distance=3.43)
-left_sensor = DistanceSensor(echo=ECHO_LEFT, trigger=TRIG_LEFT, max_distance=3.43)
-right_sensor = DistanceSensor(echo=ECHO_RIGHT, trigger=TRIG_RIGHT, max_distance=3.43)
+
+print("Initializing ultrasonic sensors...")
+
+try:
+    front_sensor = DistanceSensor(echo=ECHO_FRONT, trigger=TRIG_FRONT, max_distance=3.43)
+    left_sensor  = DistanceSensor(echo=ECHO_LEFT,  trigger=TRIG_LEFT,  max_distance=3.43)
+    right_sensor = DistanceSensor(echo=ECHO_RIGHT, trigger=TRIG_RIGHT, max_distance=3.43)
+    sleep(0.3)  # allow sensors to settle
+    print("✅ Sensors initialized successfully.")
+except Exception as e:
+    print(f"[ERROR] Failed to initialize DistanceSensors: {e}")
+    sys.exit(1)
+
+#front_sensor = DistanceSensor(echo=ECHO_FRONT, trigger=TRIG_FRONT, max_distance=3.43)
+#left_sensor = DistanceSensor(echo=ECHO_LEFT, trigger=TRIG_LEFT, max_distance=3.43)
+#right_sensor = DistanceSensor(echo=ECHO_RIGHT, trigger=TRIG_RIGHT, max_distance=3.43)
 
 #for trig in [TRIG_FRONT, TRIG_LEFT, TRIG_RIGHT]:
 #    GPIO.setup(trig, GPIO.OUT)
@@ -245,17 +263,31 @@ class RobotController:
     #        return (pulse_end - pulse_start) * SOUND_SPEED
     #    except:
     #        return None
-            
+
+
     def get_distance(self, trig, echo):
+        try:
+            if trig == TRIG_FRONT:
+                return front_sensor.distance * 100
+            elif trig == TRIG_LEFT:
+                return left_sensor.distance * 100
+            elif trig == TRIG_RIGHT:
+                return right_sensor.distance * 100
+        except Exception as e:
+            print(f"[WARN] DistanceSensor read failed ({trig}, {echo}): {e}")
+            return 999  # large value so robot doesn’t panic
+
+
+    #def get_distance(self, trig, echo):
         # Map GPIO pin pairs to the DistanceSensor objects
-        if (trig, echo) == (TRIG_FRONT, ECHO_FRONT):
-            return front_sensor.distance * 100  # convert m → cm
-        elif (trig, echo) == (TRIG_LEFT, ECHO_LEFT):
-            return left_sensor.distance * 100
-        elif (trig, echo) == (TRIG_RIGHT, ECHO_RIGHT):
-            return right_sensor.distance * 100
-        else:
-            return None
+    #    if (trig, echo) == (TRIG_FRONT, ECHO_FRONT):
+    #        return front_sensor.distance * 100  # convert m → cm
+    #    elif (trig, echo) == (TRIG_LEFT, ECHO_LEFT):
+    #        return left_sensor.distance * 100
+    #    elif (trig, echo) == (TRIG_RIGHT, ECHO_RIGHT):
+    #        return right_sensor.distance * 100
+    #    else:
+    #        return None
 
 
             
