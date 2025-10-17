@@ -1,8 +1,8 @@
 #----------------------------------------------------------------------------------------------------------------------
 # Autonomous drive - VivaLaVida
+# v4.99 - option to run w/o GIO
 # v5.0 - Gold version
-# v5.1 -
-# gpiozero - tbd
+#gpiozero - tbd
 # to do: add buttons & leds & buzzer
 # to do: reduce speed if sensors are none or before turning, logic for movements after stop due to obstacle
 #---------------------------------------------------------------------------------------------------------------------
@@ -100,7 +100,7 @@ SOUND_SPEED = 17150              # Speed of sound in cm/s for distance calculati
 USE_TOF_SIDES = 0  # 1 = ToF (VL53L0X), 0 = Ultrasonic
 
 # ---------- Sensor data filtering ----------
-N_READINGS = 7                    # Number of readings stored for median filtering
+N_READINGS = 8                    # Number of readings stored for median filtering
 
 # ---------- Loop timing ----------
 LOOP_DELAY = 0.0025                # Delay between main loop iterations (seconds)
@@ -116,34 +116,46 @@ MAX_POINTS = 500                   # Maximum number of points to store for plott
 GPIO.setmode(GPIO.BCM)
 GPIO.setwarnings(False)
 i2c = busio.I2C(board.SCL, board.SDA)
+
 # VL53L0X setup (for side sensors)
+vl53_left = None
+vl53_right = None
+
 if USE_TOF_SIDES == 1:
     try:
+        print("Initializing VL53L0X ToF sensors...")
+
         xshut_left = digitalio.DigitalInOut(board.D25)
         xshut_right = digitalio.DigitalInOut(board.D26)
         xshut_left.direction = digitalio.Direction.OUTPUT
         xshut_right.direction = digitalio.Direction.OUTPUT
 
+        # Disable both sensors first
         xshut_left.value = False
         xshut_right.value = False
         time.sleep(0.1)
 
-        # Enable left, assign new address
+        # Initialize left sensor
         xshut_left.value = True
         time.sleep(0.05)
         vl53_left = adafruit_vl53l0x.VL53L0X(i2c)
         vl53_left.set_address(0x30)
+        print("✅ Left ToF sensor set to address 0x30")
 
-        # Enable right
+        # Initialize right sensor
         xshut_right.value = True
         time.sleep(0.05)
         vl53_right = adafruit_vl53l0x.VL53L0X(i2c)
+        vl53_right.set_address(0x31)
+        print("✅ Right ToF sensor set to address 0x31")
+
     except Exception as e:
-        print("VL53L0X init failed:", e)
+        print(f"[ERROR] VL53L0X initialization failed: {e}")
         USE_TOF_SIDES = 0
         vl53_left = vl53_right = None
 else:
-    vl53_left = vl53_right = None
+    print("Using ultrasonic sensors for sides.")
+    
 pca = PCA9685(i2c)
 pca.frequency = 50
 mpu = adafruit_mpu6050.MPU6050(i2c)
@@ -248,12 +260,12 @@ class RobotController:
         # If last N readings are all None → sensor blind
         if all(x is None for x in history):
             #return None
-            return 999
+            return 343
         # Filter only valid values
         valid = [x for x in history if x is not None]
         if not valid:
             #return None
-            return 999
+            return 343
         # Step 1: Median Filter
         s = sorted(valid)
         mid = len(s) // 2
@@ -279,7 +291,7 @@ class RobotController:
         history.append(d)
         valid = [x for x in history if x is not None]
         if not valid:
-            return 999
+            return 343
         s = sorted(valid)
         mid = len(s) // 2
         median_val = (s[mid - 1] + s[mid]) / 2 if len(s) % 2 == 0 else s[mid]
@@ -300,10 +312,10 @@ class RobotController:
             return "LEFT"
         if d_right is None or d_right > TURN_DECISION_THRESHOLD:
             return "RIGHT"
-        #if d_left > d_right:
-        #    return "LEFT"
-        #if d_right > d_left:
-        #    return "RIGHT"
+        if d_left > d_right:
+            return "LEFT"
+        if d_right > d_left:
+            return "RIGHT"
         #return "LEFT"
 
 robot = RobotController(pca)
@@ -506,29 +518,32 @@ def robot_loop():
                     lower_bound = turn_reference_side_distance * 0.95
                     upper_bound = turn_reference_side_distance * 1.05
                     if lower_bound <= side_distance_monitor <= upper_bound:
-                        Print(Stop Turn - Opposite distance)
+                        print("Stop Turn - Opposite distance")
                         stop_condition = True
-                        
+
             # Condition B: front + side safe
             side_distance = robot.d_left if direction == "LEFT" else robot.d_right
             if robot.d_front is not None and robot.d_front > FRONT_SAFE_DISTANCE and side_distance is not None and side_distance > SIDE_SAFE_DISTANCE:
-                Print(Stop Turn - Front distance)
+                print("Stop Turn - Front distance")
                 stop_condition = True
 
             # Condition C: reached target angle ± tolerance
-            if direction == "LEFT" and turn_angle >= target_angle - TURN_ANGLE_TOLERANCE:
-                Print(Stop Turn - Target Angle)
+            if abs(turn_angle - target_angle) <= TURN_ANGLE_TOLERANCE:
+                print("Stop Turn - Target Angle")
                 stop_condition = True
-            elif direction == "RIGHT" and turn_angle <= target_angle + TURN_ANGLE_TOLERANCE:
-                Print(Stop Turn - Target Angle)
-                stop_condition = True
+
+            # Condition C: reached target angle ± tolerance
+            #if direction == "LEFT" and turn_angle >= target_angle - TURN_ANGLE_TOLERANCE:
+            #    stop_condition = True
+            #elif direction == "RIGHT" and turn_angle <= target_angle + TURN_ANGLE_TOLERANCE:
+             #   stop_condition = True
 
             # Condition D: timeout or extreme yaw
             if current_time - turn_start_time > TURN_TIMEOUT:
-                Print(Stop Turn - Max turn time)
+                print("Stop Turn - Max turn time")
                 stop_condition = True
             if abs(turn_angle) >= MAX_TURN_ANGLE:
-                Print(Stop Turn - Max turn angle)
+                print("Stop Turn - Max turn time")
                 stop_condition = True
 
             # If any stop condition met -> finish turn
