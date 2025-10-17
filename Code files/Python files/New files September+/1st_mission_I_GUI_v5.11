@@ -578,12 +578,16 @@ def robot_loop():
                 stop_condition = True
 
             # Condition C: reached target angle ± tolerance
-            if direction == "LEFT" and turn_angle >= target_angle - TURN_ANGLE_TOLERANCE:
-                print("Stop Turn - Target Angle")
-                stop_condition = True
-            elif direction == "RIGHT" and turn_angle <= target_angle + TURN_ANGLE_TOLERANCE:
-                print("Stop Turn - Target Angle")
-                stop_condition = True
+            if abs(turn_angle - target_angle) <= TURN_ANGLE_TOLERANCE:
+            print("Stop Turn - Target Angle")
+            stop_condition = True
+
+            #if direction == "LEFT" and turn_angle >= target_angle - TURN_ANGLE_TOLERANCE:
+            #    print("Stop Turn - Target Angle")
+            #    stop_condition = True
+            #elif direction == "RIGHT" and turn_angle <= target_angle + TURN_ANGLE_TOLERANCE:
+            #    print("Stop Turn - Target Angle")
+            #    stop_condition = True
 
             # Condition D: timeout or extreme yaw
             if current_time - turn_start_time > TURN_TIMEOUT:
