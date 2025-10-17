@@ -579,8 +579,8 @@ def robot_loop():
 
             # Condition C: reached target angle ± tolerance
             if abs(turn_angle - target_angle) <= TURN_ANGLE_TOLERANCE:
-            print("Stop Turn - Target Angle")
-            stop_condition = True
+                print("Stop Turn - Target Angle")
+                stop_condition = True
 
             #if direction == "LEFT" and turn_angle >= target_angle - TURN_ANGLE_TOLERANCE:
             #    print("Stop Turn - Target Angle")
