@@ -32,6 +32,7 @@ from datetime import datetime
 import json
 import os
 import tkinter.filedialog as fd
+import math
 
 import board
 import digitalio
@@ -403,6 +404,8 @@ def robot_loop():
     correction_start_time = 0.0
     correction_angle = SERVO_CENTER
     current_servo_angle = SERVO_CENTER
+    from collections import deque
+    gyro_history = deque(maxlen=10)  # store last 10 gyro readings
 
     # Ensure robot stopped at start
     robot.stop_motor()
@@ -437,13 +440,24 @@ def robot_loop():
         robot.d_left = d_left
         robot.d_right = d_right
 
-        # Gyro integration
+        # -------------------------
+        # Gyro + complementary filter for yaw
+        # -------------------------
         raw_gyro_z = mpu.gyro[2] - bias
-        ALPHA = 0.8
-        gyro_z_filtered = ALPHA * raw_gyro_z + (1 - ALPHA) * getattr(robot, 'gyro_z_prev', 0)
+        gyro_history.append(raw_gyro_z)
+        filtered_gyro_z = sum(gyro_history) / len(gyro_history)  # moving average
+        ALPHA = 0.6
+        gyro_z_filtered = ALPHA * filtered_gyro_z + (1 - ALPHA) * getattr(robot, 'gyro_z_prev', 0)
         robot.gyro_z_prev = gyro_z_filtered
-        gyro_z_deg = gyro_z_filtered * (180 / 3.14159265)
-        yaw += gyro_z_deg * dt
+
+        # integrate gyro for yaw
+        yaw_gyro = yaw + gyro_z_filtered * dt * (180 / math.pi)
+
+        # complementary filter using accelerometer to reduce drift
+        accel_x, accel_y = mpu.acceleration[0], mpu.acceleration[1]
+        accel_yaw = math.atan2(accel_y, accel_x) * 180 / math.pi  # estimate yaw from accel
+        COMP_ALPHA = 0.98  # weight of gyro vs accelerometer
+        yaw = COMP_ALPHA * yaw_gyro + (1 - COMP_ALPHA) * accel_yaw
 
         # Append to deques for plotting/logging
         elapsed_time = current_time - start_time
@@ -554,8 +568,8 @@ def robot_loop():
 
         elif state == RobotState.TURNING:
             # active turning: monitor yaw & safety/time conditions to stop
-            # compute turn angle relative to start
-            turn_angle = yaw - turn_start_yaw  # positive for LEFT, negative for RIGHT
+            # compute turn angle relative to start using filtered yaw (complementary filter)
+            turn_angle = yaw - turn_start_yaw
             target_angle = TARGET_TURN_ANGLE if direction == "LEFT" else -TARGET_TURN_ANGLE
 
             stop_condition = False
@@ -648,7 +662,6 @@ def robot_loop():
 
         # small delay to yield CPU
         time.sleep(LOOP_DELAY)
-
 
 # ===============================
 # GUI SECTION
