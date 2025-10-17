@@ -123,33 +123,44 @@ MAX_POINTS = 500                   # Maximum number of points to store for plott
 
 i2c = busio.I2C(board.SCL, board.SDA)
 # VL53L0X setup (for side sensors)
+vl53_left = None
+vl53_right = None
+
 if USE_TOF_SIDES == 1:
     try:
+        print("Initializing VL53L0X ToF sensors...")
+
         xshut_left = digitalio.DigitalInOut(board.D25)
         xshut_right = digitalio.DigitalInOut(board.D26)
         xshut_left.direction = digitalio.Direction.OUTPUT
         xshut_right.direction = digitalio.Direction.OUTPUT
 
+        # Disable both sensors first
         xshut_left.value = False
         xshut_right.value = False
         time.sleep(0.1)
 
-        # Enable left, assign new address
+        # Initialize left sensor
         xshut_left.value = True
         time.sleep(0.05)
         vl53_left = adafruit_vl53l0x.VL53L0X(i2c)
         vl53_left.set_address(0x30)
+        print("✅ Left ToF sensor set to address 0x30")
 
-        # Enable right
+        # Initialize right sensor
         xshut_right.value = True
         time.sleep(0.05)
         vl53_right = adafruit_vl53l0x.VL53L0X(i2c)
+        vl53_right.set_address(0x31)
+        print("✅ Right ToF sensor set to address 0x31")
+
     except Exception as e:
-        print("VL53L0X init failed:", e)
+        print(f"[ERROR] VL53L0X initialization failed: {e}")
         USE_TOF_SIDES = 0
         vl53_left = vl53_right = None
 else:
-    vl53_left = vl53_right = None
+    print("Using ultrasonic sensors for sides.")
+
 pca = PCA9685(i2c)
 pca.frequency = 50
 mpu = adafruit_mpu6050.MPU6050(i2c)
