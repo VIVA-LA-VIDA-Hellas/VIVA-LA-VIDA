@@ -286,7 +286,7 @@ class RobotController:
                 return right_sensor.distance * 100
         except Exception as e:
             print(f"[WARN] DistanceSensor read failed ({trig}, {echo}): {e}")
-            return 999  # large value so robot doesn’t panic
+            return 343  # large value so robot doesn’t panic
 
 
     #def get_distance(self, trig, echo):
@@ -309,12 +309,12 @@ class RobotController:
         # If last N readings are all None → sensor blind
         if all(x is None for x in history):
             #return None
-            return 999
+            return 343
         # Filter only valid values
         valid = [x for x in history if x is not None]
         if not valid:
             #return None
-            return 999
+            return 343
         # Step 1: Median Filter
         s = sorted(valid)
         mid = len(s) // 2
@@ -340,7 +340,7 @@ class RobotController:
         history.append(d)
         valid = [x for x in history if x is not None]
         if not valid:
-            return 999
+            return 343
         s = sorted(valid)
         mid = len(s) // 2
         median_val = (s[mid - 1] + s[mid]) / 2 if len(s) % 2 == 0 else s[mid]
