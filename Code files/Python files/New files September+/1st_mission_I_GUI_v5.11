@@ -18,7 +18,7 @@ from collections import deque
 from gpiozero import DistanceSensor
 from gpiozero import Device
 from gpiozero.pins.pigpio import PiGPIOFactory
-Device.pin_factory = PiGPIOFactory()
+#Device.pin_factory = PiGPIOFactory()
 from time import sleep
 import sys
 from board import SCL, SDA
