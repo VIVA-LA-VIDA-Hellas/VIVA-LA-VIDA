@@ -36,6 +36,9 @@ from picamera2 import Picamera2
 import cv2
 import numpy as np
 
+from PIL import Image, ImageTk
+from picamera2 import Picamera2
+
 BASE_DIR = os.path.dirname(os.path.abspath(__file__)) # Get directory of the running script
 
 # ===============================
@@ -728,6 +731,10 @@ def launch_gui():
     sliders_frame = tk.LabelFrame(root, text="Parameters", padx=10, pady=10)
     sliders_frame.grid(row=0, column=1, rowspan=8, sticky="ns", padx=10, pady=5)
 
+    # ---------- Camera Frame ----------
+    camera_frame = tk.Label(root)
+    camera_frame.grid(row=0, column=3, rowspan=8, padx=5, pady=5)
+
     # ---------- Column 3 frame for actions ----------
     actions_frame = tk.LabelFrame(root, text="Actions", padx=10, pady=10)
     actions_frame.grid(row=0, column=2, rowspan=8, sticky="ns", padx=10, pady=5)
@@ -859,6 +866,17 @@ def launch_gui():
         lbl_laps.config(text=f"Laps: {lap_count}" if slider_vars["MAX_LAPS"].get() > 0 else f"Laps: {lap_count}/∞")
         root.after(200, update_status)
 
+    def update_camera_feed():
+        if 'camera' in globals():
+            frame = camera.capture_array()  # capture RGB frame
+            img = Image.fromarray(frame)    # convert to PIL image
+            img = img.resize((320, 240))    # optional resize
+            imgtk = ImageTk.PhotoImage(image=img)
+            camera_frame.imgtk = imgtk      # keep reference
+            camera_frame.config(image=imgtk)
+        root.after(50, update_camera_feed)   # update ~20 FPS
+
+
     def update_plot():
         if time_data:
             front_line.set_data(range(len(front_data)), front_data)
@@ -890,6 +908,7 @@ def launch_gui():
     root.protocol("WM_DELETE_WINDOW", on_closing)
     update_status()
     update_plot()
+    update_camera_feed()
     root.mainloop()
 
 # ===============================
@@ -1083,6 +1102,10 @@ if __name__ == "__main__":
     print(f"Starting VivaLaVida Autonomous Drive - GUI mode: {USE_GUI}")
     if USE_GUI:
         launch_gui()
+        camera = Picamera2()
+        camera.configure(camera.create_preview_configuration(main={"format": "RGB888", "size": (320, 240)}))
+        camera.start()
+
     else:
         print("Running without GUI...")
         readings_flag = True
