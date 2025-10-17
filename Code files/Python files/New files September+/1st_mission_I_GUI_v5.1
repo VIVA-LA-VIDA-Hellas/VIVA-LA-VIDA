@@ -458,7 +458,14 @@ def robot_loop():
                 continue
 
             # Normal cruise servo control with timed correction behavior
-            desired_servo_angle = robot.safe_straight_control(robot.d_left, robot.d_right)
+            #desired_servo_angle = robot.safe_straight_control(robot.d_left, robot.d_right)
+            # Safe straight control active only after the 1st turn
+            if turn_count >= 1:
+                desired_servo_angle = robot.safe_straight_control(robot.d_left, robot.d_right)
+            else:
+                desired_servo_angle = SERVO_CENTER
+                correction_active = False
+
             if correction_active:
                 if current_time - correction_start_time >= CORRECTION_DURATION:
                     # re-evaluate desired angle; if still not center, renew correction
