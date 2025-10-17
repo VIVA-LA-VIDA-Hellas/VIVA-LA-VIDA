@@ -113,6 +113,8 @@ MAX_POINTS = 500                   # Maximum number of points to store for plott
 # HARDWARE SETUP
 # ===============================
 
+#ToF back 24, left 25, front 26, right 16
+
 GPIO.setmode(GPIO.BCM)
 GPIO.setwarnings(False)
 i2c = busio.I2C(board.SCL, board.SDA)
@@ -126,7 +128,7 @@ if USE_TOF_SIDES == 1:
         print("Initializing VL53L0X ToF sensors...")
 
         xshut_left = digitalio.DigitalInOut(board.D25)
-        xshut_right = digitalio.DigitalInOut(board.D26)
+        xshut_right = digitalio.DigitalInOut(board.D16)
         xshut_left.direction = digitalio.Direction.OUTPUT
         xshut_right.direction = digitalio.Direction.OUTPUT
 
