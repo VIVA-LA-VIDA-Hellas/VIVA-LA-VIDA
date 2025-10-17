@@ -36,7 +36,7 @@ from picamera2 import Picamera2
 import cv2
 import numpy as np
 
-from PIL import Image, ImageTk
+#from PIL import Image, ImageTk
 from picamera2 import Picamera2
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__)) # Get directory of the running script
@@ -866,16 +866,16 @@ def launch_gui():
         lbl_laps.config(text=f"Laps: {lap_count}" if slider_vars["MAX_LAPS"].get() > 0 else f"Laps: {lap_count}/∞")
         root.after(200, update_status)
 
-    def update_camera_feed():
-        if 'camera' in globals():
-            frame = camera.capture_array()  # capture RGB frame
-            img = Image.fromarray(frame)    # convert to PIL image
-            img = img.resize((320, 240))    # optional resize
-            imgtk = ImageTk.PhotoImage(image=img)
-            camera_frame.imgtk = imgtk      # keep reference
-            camera_frame.config(image=imgtk)
-        root.after(50, update_camera_feed)   # update ~20 FPS
+    from PIL import Image, ImageTk
 
+    def update_camera_feed():
+    if camera is not None:
+        frame = camera.capture_array()
+        img = Image.fromarray(frame)
+        imgtk = ImageTk.PhotoImage(image=img)
+        camera_frame.imgtk = imgtk
+        camera_frame.config(image=imgtk)
+    root.after(30, update_camera_feed)  # ~33 FPS
 
     def update_plot():
         if time_data:
