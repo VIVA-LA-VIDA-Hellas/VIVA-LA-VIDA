@@ -1,7 +1,7 @@
 #----------------------------------------------------------------------------------------------------------------------
 # Autonomous drive - VivaLaVida
 # v5.0 - Gold version
-# v5.11 - gpiozero
+# v5.11 - gpiozero, remove duplicate GIO defs (remove lines from v5.1 831-898)
 # to do: add buttons & leds & buzzer
 # to do: reduce speed if sensors are none or before turning, logic for movements after stop due to obstacle
 #---------------------------------------------------------------------------------------------------------------------
@@ -828,74 +828,6 @@ def launch_gui():
     update_status()
     update_plot()
     root.mainloop()
-
-# ===============================
-# GUI UPDATE FUNCTIONS (duplicate helpers used outside nested GUI function)
-# ===============================
-def status_color(state: str) -> str:
-    if "Stopped" in state:
-        return "red"
-    elif "Turning" in state:
-        return "yellow"
-    elif "Driving" in state:
-        return "green"
-    elif "Loop Started" in state or "Sensor readings started" in state:
-        return "blue"
-    else:
-        return "grey"
-
-def status_label(state: str) -> str:
-    if "Stopped" in state:
-        return "STOP"
-    elif "Turning" in state:
-        return "TURN"
-    elif "Driving" in state:
-        return "GO"
-    elif "Loop Started" in state:
-        return "LOOP"
-    elif "Sensor readings started" in state:
-        return "READ"
-    else:
-        return "IDLE"
-
-def update_status():
-    lbl_status.config(text=status_text)
-    status_canvas.itemconfig(status_circle, fill=status_color(status_text))
-    status_canvas.itemconfig(status_text_id, text=status_label(status_text))
-    lbl_turns.config(text=f"Turns: {turn_count}")
-    lbl_laps.config(text=f"Laps: {lap_count}" if slider_vars["MAX_LAPS"].get() > 0 else f"Laps: {lap_count}/∞")
-    root.after(200, update_status)
-
-def update_plot():
-    if time_data:
-        front_line.set_data(range(len(front_data)), front_data)
-        left_line.set_data(range(len(left_data)), left_data)
-        right_line.set_data(range(len(right_data)), [-v for v in right_data])
-        angle_line.set_data(range(len(angle_data)), angle_data)
-
-        ax_front.set_xlim(0, MAX_POINTS)
-        ax_side.set_xlim(0, MAX_POINTS)
-        ax_angle.set_xlim(0, MAX_POINTS)
-
-        if angle_data:
-            min_angle = min(angle_data)
-            max_angle = max(angle_data)
-            if max_angle - min_angle > 180:
-                ax_angle.set_ylim(-180, 180)
-            else:
-                ax_angle.set_ylim(min_angle - 10, max_angle + 10)
-
-        canvas.draw()
-
-    root.after(100, update_plot)
-
-def on_closing():
-    stop_loop()
-    #GPIO.cleanup()
-    front_sensor.close()
-    left_sensor.close()
-    right_sensor.close()
-    root.destroy()
 
 # -------------------------
 # Start / Stop
