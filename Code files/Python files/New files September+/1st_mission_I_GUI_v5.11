@@ -318,6 +318,7 @@ class RobotController:
             return "LEFT"
         if d_right is None or d_right > TURN_DECISION_THRESHOLD:
             return "RIGHT"
+        return None
         #if d_left > d_right:
         #    return "LEFT"
         #if d_right > d_left:
