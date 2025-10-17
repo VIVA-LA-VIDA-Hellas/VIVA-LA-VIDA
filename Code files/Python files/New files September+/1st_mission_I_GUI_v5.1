@@ -40,6 +40,7 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__)) # Get directory of the run
 # ===============================
 
 USE_GUI = 1                   # 1 = run with GUI (Tkinter), 0 = run headless (no GUI)
+USE_TOF_SIDES = 0             # 1 = ToF (VL53L0X), 0 = Ultrasonic
 
 # ---------- Speeds ----------
 SPEED_CRUISE = 20             # Motor speed for normal straight driving (0-100%)
@@ -77,7 +78,7 @@ POST_LAP_DURATION = 0.5       # Time to drive forward after final lap before sto
 
 # ---------- Servo ----------
 SERVO_CHANNEL = 0             # PCA9685 channel controlling steering servo
-SERVO_CENTER = 90            # Neutral servo angle (degrees)
+SERVO_CENTER = 90             # Neutral servo angle (degrees)
 SERVO_MIN_ANGLE = 50          # Minimum physical servo angle (degrees)
 SERVO_MAX_ANGLE = 130         # Maximum physical servo angle (degrees)
 SERVO_PULSE_MIN = 1000        # Minimum PWM pulse width (microseconds)
@@ -96,8 +97,6 @@ TRIG_RIGHT, ECHO_RIGHT = 5, 6    # GPIO pins for right sensor
 ULTRASONIC_TIMEOUT = 0.02        # Timeout for ultrasonic sensor reading (seconds)
 # Max distance measurable by a sensor = timeout×17150 - 0.02x17150=343cm maximum distance
 SOUND_SPEED = 17150              # Speed of sound in cm/s for distance calculation for a round trip
-
-USE_TOF_SIDES = 0  # 1 = ToF (VL53L0X), 0 = Ultrasonic
 
 # ---------- Sensor data filtering ----------
 N_READINGS = 8                    # Number of readings stored for median filtering
