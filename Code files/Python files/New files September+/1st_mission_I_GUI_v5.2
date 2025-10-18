@@ -2,6 +2,7 @@
 # Autonomous drive - VivaLaVida
 # v5.0 - Gold version
 # v5.1 - minor fixes
+# v5.2 - threaded, low-latency sensor reading
 # gpiozero - tbd
 # to do: add buttons & leds & buzzer
 # to do: reduce speed if sensors are none or before turning, logic for movements after stop due to obstacle
@@ -41,6 +42,9 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__)) # Get directory of the run
 
 USE_GUI = 1                   # 1 = run with GUI (Tkinter), 0 = run headless (no GUI)
 USE_TOF_SIDES = 0             # 1 = ToF (VL53L0X), 0 = Ultrasonic
+
+FILTER_ALPHA = 0.25   # 0.1 = smoother, 0.5 = faster reaction
+FILTER_JUMP = 15      # maximum jump (cm) allowed between readings
 
 # ---------- Speeds ----------
 SPEED_CRUISE = 20             # Motor speed for normal straight driving (0-100%)
@@ -102,7 +106,7 @@ SOUND_SPEED = 17150              # Speed of sound in cm/s for distance calculati
 N_READINGS = 8                    # Number of readings stored for median filtering
 
 # ---------- Loop timing ----------
-LOOP_DELAY = 0.0025                # Delay between main loop iterations (seconds)
+LOOP_DELAY = 0.001                # Delay between main loop iterations (seconds)
 TRIG_PULSE_DURATION = 0.000010     # Trigger pulse duration for ultrasonic sensor (seconds)
 
 # ---------- Plotting ----------
@@ -198,6 +202,16 @@ angle_data = deque(maxlen=MAX_POINTS)
 state_data = deque(maxlen=MAX_POINTS)
 
 # ===============================
+# THREADED SENSOR READING
+# ===============================
+sensor_data = {
+    "front": None,
+    "left": None,
+    "right": None
+}
+sensor_lock = threading.Lock()
+
+# ===============================
 # ROBOT CONTROLLER
 # ===============================
 
@@ -207,6 +221,9 @@ class RobotController:
         self.front_history = deque(maxlen=N_READINGS)
         self.left_history = deque(maxlen=N_READINGS)
         self.right_history = deque(maxlen=N_READINGS)
+        self.smooth_left = None
+        self.smooth_right = None
+        self.smooth_front = None
         self.d_front = None
         self.d_left = None
         self.d_right = None
@@ -255,28 +272,37 @@ class RobotController:
         except:
             return None
 
-    def filtered_distance(self, trig, echo, history):
-        d = self.get_distance(trig, echo)
-        history.append(d)
-        # If last N readings are all None → sensor blind
-        if all(x is None for x in history):
-            #return None
-            return 999
-        # Filter only valid values
-        valid = [x for x in history if x is not None]
-        if not valid:
-            #return None
-            return 999
-        # Step 1: Median Filter
-        s = sorted(valid)
-        mid = len(s) // 2
-        median_val = (s[mid - 1] + s[mid]) / 2 if len(s) % 2 == 0 else s[mid]
-        # Step 2: Moving average
-        avg_val = sum(valid) / len(valid)
-        #Step 3: Weighted combination (more weight on median)
-        return 0.7 * median_val + 0.3 * avg_val
-        #return median_val
-        #return None
+    def stable_filter(self, new_val, prev_val, alpha=0.3, max_jump=20):
+    """Reject large spikes and apply exponential moving average smoothing."""
+    if new_val is None:
+        return prev_val  # keep previous if invalid
+    if prev_val is not None and abs(new_val - prev_val) > max_jump:
+        new_val = prev_val  # reject spike
+    if prev_val is None:
+        return new_val
+    return alpha * new_val + (1 - alpha) * prev_val    
+
+    def filtered_distance(self, trig, echo, history, smooth_attr):
+    d = self.get_distance(trig, echo)
+    history.append(d)
+
+    valid = [x for x in history if x is not None]
+    if not valid:
+        return 999
+
+    # Median + average combination
+    s = sorted(valid)
+    mid = len(s) // 2
+    median_val = (s[mid - 1] + s[mid]) / 2 if len(s) % 2 == 0 else s[mid]
+    avg_val = sum(valid) / len(valid)
+    filtered_val = 0.7 * median_val + 0.3 * avg_val
+
+    # Smooth over time
+    prev_val = getattr(self, smooth_attr)
+    smoothed_val = self.stable_filter(filtered_val, prev_val,                  alpha=FILTER_ALPHA, max_jump=FILTER_JUMP)
+
+    setattr(self, smooth_attr, smoothed_val)
+    return smoothed_val
 
     def get_tof_distance(self, sensor):
         try:
@@ -287,17 +313,25 @@ class RobotController:
         except Exception:
             return None
 
-    def filtered_tof(self, sensor, history):
-        d = self.get_tof_distance(sensor)
-        history.append(d)
-        valid = [x for x in history if x is not None]
-        if not valid:
-            return 999
-        s = sorted(valid)
-        mid = len(s) // 2
-        median_val = (s[mid - 1] + s[mid]) / 2 if len(s) % 2 == 0 else s[mid]
-        avg_val = sum(valid) / len(valid)
-        return 0.7 * median_val + 0.3 * avg_val
+    def filtered_tof(self, sensor, history, smooth_attr):
+    d = self.get_tof_distance(sensor)
+    history.append(d)
+
+    valid = [x for x in history if x is not None]
+    if not valid:
+        return 999
+
+    s = sorted(valid)
+    mid = len(s) // 2
+    median_val = (s[mid - 1] + s[mid]) / 2 if len(s) % 2 == 0 else s[mid]
+    avg_val = sum(valid) / len(valid)
+    filtered_val = 0.7 * median_val + 0.3 * avg_val
+
+    prev_val = getattr(self, smooth_attr)
+    smoothed_val = self.stable_filter(filtered_val, prev_val,                   alpha=FILTER_ALPHA_TOF, max_jump=FILTER_JUMP_TOF)
+
+    setattr(self, smooth_attr, smoothed_val)
+    return smoothed_val
 
     def safe_straight_control(self, d_left, d_right):
         correction = 0
@@ -318,6 +352,26 @@ class RobotController:
         #if d_right > d_left:
         #    return "RIGHT"
         #return "LEFT"
+
+    def sensor_reader():
+    global sensor_data
+    while True:
+        if USE_TOF_SIDES:
+            left = robot.filtered_tof(vl53_left, robot.left_history, "smooth_left")
+            right = robot.filtered_tof(vl53_right, robot.right_history, "smooth_right")
+        else:
+            left = robot.filtered_distance(TRIG_LEFT, ECHO_LEFT, robot.left_history, "smooth_left")
+            right = robot.filtered_distance(TRIG_RIGHT, ECHO_RIGHT, robot.right_history, "smooth_right")
+
+        front = robot.filtered_distance(TRIG_FRONT, ECHO_FRONT, robot.front_history, "smooth_front")
+
+        with sensor_lock:
+            sensor_data["front"] = front
+            sensor_data["left"] = left
+            sensor_data["right"] = right
+
+        time.sleep(0.005)
+
 
 robot = RobotController(pca)
 
@@ -375,13 +429,10 @@ def robot_loop():
         # ----------------------------
         # Sensor reads & gyro integration (always update while readings_flag)
         # ----------------------------
-        d_front = robot.filtered_distance(TRIG_FRONT, ECHO_FRONT, robot.front_history)
-        if USE_TOF_SIDES:
-            d_left = robot.filtered_tof(vl53_left, robot.left_history)
-            d_right = robot.filtered_tof(vl53_right, robot.right_history)
-        else:
-            d_left = robot.filtered_distance(TRIG_LEFT, ECHO_LEFT, robot.left_history)
-            d_right = robot.filtered_distance(TRIG_RIGHT, ECHO_RIGHT, robot.right_history)
+        with sensor_lock:
+            d_front = sensor_data["front"]
+            d_left = sensor_data["left"]
+            d_right = sensor_data["right"]
 
         # Update robot attributes for plotting/logging and decision making
         robot.d_front = d_front
@@ -712,7 +763,9 @@ def launch_gui():
         ],
         "Other": [
             ("Sensor Filter N (Median)", "N_READINGS", 0, 10, "int"),
-            ("Max Laps - 0 for infinite", "MAX_LAPS", 0, 20, "int")
+            ("Max Laps - 0 for infinite", "MAX_LAPS", 0, 20, "int"),
+            ("Filter Smoothness (alpha)", "FILTER_ALPHA", 0.05, 0.9, "float"),
+            ("Max Jump (cm)", "FILTER_JUMP", 5, 50, "int"),
         ]
     }
 
@@ -902,16 +955,17 @@ def on_closing():
 # -------------------------
 # Start / Stop
 # -------------------------
+
 def start_readings():
-    """Enable sensor readings and allow loop start."""
     global readings_flag, status_text
     readings_flag = True
     status_text = "Sensor readings started"
     btn_readings.config(state="disabled")
     btn_start.config(state="normal")
 
-    # Automatically start robot_loop thread once
+    # Start background sensor thread once
     if not hasattr(start_readings, "thread_started"):
+        threading.Thread(target=sensor_reader, daemon=True).start()
         threading.Thread(target=robot_loop, daemon=True).start()
         start_readings.thread_started = True
 
