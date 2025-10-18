@@ -122,6 +122,9 @@ GPIO.setmode(GPIO.BCM)
 GPIO.setwarnings(False)
 i2c = busio.I2C(board.SCL, board.SDA)
 
+START_BTN = 21
+GPIO.setup(START_BTN, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+
 # VL53L0X setup (for side sensors)
 vl53_left = None
 vl53_right = None
@@ -1077,13 +1080,27 @@ def load_sliders_json():
 
 if __name__ == "__main__":
     print(f"Starting VivaLaVida Autonomous Drive - GUI mode: {USE_GUI}")
+    
+    # Start the sensor reading thread
+    sensor_thread = threading.Thread(target=RobotController.sensor_reader, daemon=True)
+    sensor_thread.start()
+    
     if USE_GUI:
         launch_gui()
     else:
-        print("Running without GUI...")
-        readings_flag = True
-        time.sleep(2)  # wait 2 seconds before starting loop
-        loop_flag = True
-        print("Starting main robot loop...")
-        # Start robot loop in this thread (blocking)
-        robot_loop()
+        print("Headless mode: waiting for START button...")
+        try:
+            # Wait for button press (GPIO input goes LOW when pressed)
+            while GPIO.input(START_BTN) == 1:
+                time.sleep(0.05)
+            print("✅ START button pressed! Beginning autonomous loop...")
+            readings_flag = True
+            time.sleep(2)  # wait 2 seconds before starting loop
+            loop_flag = True
+            print("Starting main robot loop...")
+            # Start robot loop in this thread (blocking)
+            robot_loop()
+        except KeyboardInterrupt:
+            print("\n❌ Keyboard interrupt received. Stopping robot loop.")
+            loop_flag = False
+
