@@ -348,10 +348,24 @@ class RobotController:
         return SERVO_CENTER + correction
      
     def turn_decision(self, d_left, d_right):
-        if d_left is None or d_left > TURN_DECISION_THRESHOLD:
+        left_valid = d_left is None or d_left > TURN_DECISION_THRESHOLD
+        right_valid = d_right is None or d_right > TURN_DECISION_THRESHOLD
+
+        if left_valid and not right_valid:
             return "LEFT"
-        if d_right is None or d_right > TURN_DECISION_THRESHOLD:
+        elif right_valid and not left_valid:
             return "RIGHT"
+        #elif left_valid and right_valid:
+        #    # Both sides clear, default to LEFT (or implement other logic)
+        #    return "LEFT"
+        else:
+            # No side available, keep driving
+            return None
+
+        #if d_left is None or d_left > TURN_DECISION_THRESHOLD:
+        #    return "LEFT"
+        #if d_right is None or d_right > TURN_DECISION_THRESHOLD:
+        #    return "RIGHT"
         #if d_left > d_right:
         #    return "LEFT"
         #if d_right > d_left:
@@ -474,31 +488,53 @@ def robot_loop():
 
         elif state == RobotState.CRUISE:
             status_text = "Driving (cruise)"
-            # Emergency stop immediate
+        
+            # -------------------------------
+            # Emergency stop: immediate
+            # -------------------------------
             if robot.d_front is not None and robot.d_front < STOP_THRESHOLD:
                 robot.stop_motor()
                 status_text = "Stopped! Obstacle ahead"
+                print(status_text)
                 state = RobotState.STOPPED
                 continue
-
-            # Check for possible turn trigger
+        
+            # -------------------------------
+            # Check if we can trigger a turn
+            # -------------------------------
             left_far = (robot.d_left is None) or (robot.d_left > TURN_DECISION_THRESHOLD)
             right_far = (robot.d_right is None) or (robot.d_right > TURN_DECISION_THRESHOLD)
             can_trigger = (robot.d_front is not None and robot.d_front < FRONT_TURN_TRIGGER) and \
                           (left_far or right_far) and \
                           (current_time - last_turn_time >= TURN_LOCKOUT)
-
+        
+            # -------------------------------
             # Decide to transition to TURN_INIT
+            # -------------------------------
             if can_trigger and loop_flag:
                 proposed_direction = robot.turn_decision(robot.d_left, robot.d_right)
-                # Implement lock mechanic
+        
+                if proposed_direction is None:
+                    # No side available: keep driving straight until a valid turn appears
+                    desired_servo_angle = robot.safe_straight_control(robot.d_left, robot.d_right)
+                    robot.set_servo(desired_servo_angle)
+                    robot.rotate_motor(SPEED_TURN)
+                    status_text = "Approaching turn - waiting for side clear"
+                    print(status_text)
+                    time.sleep(LOOP_DELAY)
+                    continue
+        
+                # -------------------------------
+                # Implement turn lock mechanic
+                # -------------------------------
                 if LOCK_TURN_DIRECTION == 1:
                     if locked_turn_direction is None:
                         locked_turn_direction = proposed_direction
                         print(f"Turn direction locked to {locked_turn_direction}")
                     elif proposed_direction != locked_turn_direction:
+                        # Ignore side until it matches locked direction
                         status_text = f"Ignoring {proposed_direction} (locked to {locked_turn_direction})"
-                        # remain in CRUISE
+                        print(status_text)
                         robot.set_servo(robot.safe_straight_control(robot.d_left, robot.d_right))
                         robot.rotate_motor(SPEED_CRUISE)
                         time.sleep(LOOP_DELAY)
@@ -506,54 +542,39 @@ def robot_loop():
                     direction = locked_turn_direction
                 else:
                     direction = proposed_direction
-
-                # prepare turn
+        
+                # -------------------------------
+                # Transition to TURN_INIT
+                # -------------------------------
+                print(f"Triggering turn: {direction}")
                 state = RobotState.TURN_INIT
                 continue
-
-            # Normal cruise servo control with timed correction behavior
-            #desired_servo_angle = robot.safe_straight_control(robot.d_left, robot.d_right)
-            # Safe straight control active only after the 1st turn
-            if turn_count >= 1:
-                desired_servo_angle = robot.safe_straight_control(robot.d_left, robot.d_right)
-            else:
-                desired_servo_angle = SERVO_CENTER
-                correction_active = False
-
-            if correction_active:
-                if current_time - correction_start_time >= CORRECTION_DURATION:
-                    # re-evaluate desired angle; if still not center, renew correction
-                    if desired_servo_angle != SERVO_CENTER:
-                        correction_start_time = current_time
-                        correction_angle = desired_servo_angle
-                        robot.set_servo(correction_angle)
-                        status_text = "Driving (renewed correction)"
-                    else:
-                        correction_active = False
-                        correction_angle = SERVO_CENTER
-                        robot.set_servo(SERVO_CENTER)
-                        status_text = "Driving (cruise)"
+        
+                # -------------------------------
+                # Normal cruise servo control
+                # Safe straight control active only after the 1st turn
+                # -------------------------------
+                if turn_count >= 1:
+                    desired_servo_angle = robot.safe_straight_control(robot.d_left, robot.d_right)
                 else:
-                    robot.set_servo(correction_angle)
-                    status_text = "Driving (timed correction)"
-            else:
-                if desired_servo_angle != SERVO_CENTER:
-                    correction_active = True
-                    correction_start_time = current_time
-                    correction_angle = desired_servo_angle
-                    robot.set_servo(correction_angle)
-                    status_text = "Driving (timed correction)"
-                    print(f"↔️ Straight correction initiated. Servo angle: {correction_angle}")
-                else:
-                    robot.set_servo(SERVO_CENTER)
-                    status_text = "Driving (cruise)"
+                    desired_servo_angle = SERVO_CENTER
+                    correction_active = False
             
-            #if d_front < FRONT_TURN_TRIGGER and d_front > STOP_THRESHOLD:
-            #    robot.rotate_motor(SPEED_TURN)
-            #else:
-            #    robot.rotate_motor(SPEED_CRUISE)
-            robot.rotate_motor(SPEED_CRUISE)
-
+                # -------------------------------
+                # Timed servo correction behavior
+                # -------------------------------
+                if correction_active:
+                    if current_time - correction_start_time >= CORRECTION_DURATION:
+                        # Re-evaluate desired angle; if still not center, renew correction
+                        if desired_servo_angle != SERVO_CENTER:
+                            correction_start_time = current_time
+                            correction_angle = desired_servo_angle
+                            robot.set_servo(correction_angle)
+                            status_text = "Driving (renewed correction)"
+                            print(f"↔️ Straight correction renewed. Servo angle: {correction_angle}")
+                        else:
+                            correction_active = False
+        
         elif state == RobotState.TURN_INIT:
             # Initialize turning: set servo & motor for turn, store yaw/time
             status_text = f"Turning {direction}"
