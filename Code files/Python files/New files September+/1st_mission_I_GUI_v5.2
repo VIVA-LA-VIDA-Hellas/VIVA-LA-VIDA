@@ -2,7 +2,7 @@
 # Autonomous drive - VivaLaVida
 # v5.0 - Gold version
 # v5.1 - minor fixes
-# v5.2 - threaded, low-latency sensor reading, Exponential Moving Average (EMA) layer
+# v5.2 - threaded, low-latency sensor reading, Exponential Moving Average (EMA) layer, turn initiation logic
 # gpiozero - tbd
 # to do: add buttons & leds & buzzer
 # to do: reduce speed if sensors are none or before turning, logic for movements after stop due to obstacle
@@ -277,11 +277,11 @@ class RobotController:
         except:
             return None
 
-    def stable_filter(self, new_val, prev_val, alpha=0.3, max_jump=20):
+    def stable_filter(self, new_val, prev_val, alpha=FILTER_ALPHA, max_jump=FILTER_JAM):
     #Reject large spikes and apply exponential moving average smoothing.
         if new_val is None:
             return prev_val  # keep previous if invalid
-        if prev_val is not None and abs(new_val - prev_val) > max_jump:
+        if prev_val is not None and abs(new_val - prev_val) > FILTER_JAM:
             new_val = prev_val  # reject spike
         if prev_val is None:
             return new_val
