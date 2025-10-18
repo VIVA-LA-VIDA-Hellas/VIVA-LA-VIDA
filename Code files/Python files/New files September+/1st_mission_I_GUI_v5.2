@@ -277,11 +277,11 @@ class RobotController:
         except:
             return None
 
-    def stable_filter(self, new_val, prev_val, alpha=FILTER_ALPHA, max_jump=FILTER_JAM):
+    def stable_filter(self, new_val, prev_val, alpha=FILTER_ALPHA, max_jump=FILTER_JUMP):
     #Reject large spikes and apply exponential moving average smoothing.
         if new_val is None:
             return prev_val  # keep previous if invalid
-        if prev_val is not None and abs(new_val - prev_val) > FILTER_JAM:
+        if prev_val is not None and abs(new_val - prev_val) > FILTER_JUMP:
             new_val = prev_val  # reject spike
         if prev_val is None:
             return new_val
@@ -550,31 +550,34 @@ def robot_loop():
                 state = RobotState.TURN_INIT
                 continue
         
-                # -------------------------------
-                # Normal cruise servo control
-                # Safe straight control active only after the 1st turn
-                # -------------------------------
-                if turn_count >= 1:
-                    desired_servo_angle = robot.safe_straight_control(robot.d_left, robot.d_right)
-                else:
-                    desired_servo_angle = SERVO_CENTER
-                    correction_active = False
+            # -------------------------------
+            # Normal cruise servo control
+            # Safe straight control active only after the 1st turn
+            # -------------------------------
+            if turn_count >= 1:
+                desired_servo_angle = robot.safe_straight_control(robot.d_left, robot.d_right)
+                robot.set_servo(desired_servo_angle)
+            else:
+                desired_servo_angle = SERVO_CENTER
+                correction_active = False
             
-                # -------------------------------
-                # Timed servo correction behavior
-                # -------------------------------
-                if correction_active:
-                    if current_time - correction_start_time >= CORRECTION_DURATION:
-                        # Re-evaluate desired angle; if still not center, renew correction
-                        if desired_servo_angle != SERVO_CENTER:
-                            correction_start_time = current_time
-                            correction_angle = desired_servo_angle
-                            robot.set_servo(correction_angle)
-                            status_text = "Driving (renewed correction)"
-                            print(f"↔️ Straight correction renewed. Servo angle: {correction_angle}")
-                        else:
-                            correction_active = False
-        
+            # -------------------------------
+            # Timed servo correction behavior
+            # -------------------------------
+            if correction_active:
+                if current_time - correction_start_time >= CORRECTION_DURATION:
+                    # Re-evaluate desired angle; if still not center, renew correction
+                    if desired_servo_angle != SERVO_CENTER:
+                        correction_start_time = current_time
+                        correction_angle = desired_servo_angle
+                        robot.set_servo(correction_angle)
+                        status_text = "Driving (renewed correction)"
+                        print(f"↔️ Straight correction renewed. Servo angle: {correction_angle}")
+                    else:
+                        correction_active = False
+            
+            robot.rotate_motor(SPEED_CRUISE)
+            
         elif state == RobotState.TURN_INIT:
             # Initialize turning: set servo & motor for turn, store yaw/time
             status_text = f"Turning {direction}"
