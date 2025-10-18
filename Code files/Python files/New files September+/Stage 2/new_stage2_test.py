@@ -4,7 +4,8 @@ import threading
 import RPi.GPIO as GPIO
 from pca9685_control import set_servo_angle, set_motor_speed
 from picamera2 import Picamera2
-
+import cv2
+import numpy as np
 # ================== Common Constants ==================
 MOTOR_FWD = 1   # forward channel
 MOTOR_REV = 2   # reverse channel
@@ -249,8 +250,9 @@ try:
             set_servo_angle(SERVO_CHANNEL, current_servo_angle)
 
             # Check condition to start reversing
-            if (dist_front is not None and dist_left is not None and
-                dist_front < 20 and dist_left > 80):
+            if turn == "Left":
+            #(dist_front is not None and dist_left is not None and
+                #dist_front < 20 and dist_left > 80):
                 print("Obstacle ahead + open left side → reverse-turn mode")
                 set_servo_angle(SERVO_CHANNEL, TURN_ANGLE)
                 with yaw_lock:
