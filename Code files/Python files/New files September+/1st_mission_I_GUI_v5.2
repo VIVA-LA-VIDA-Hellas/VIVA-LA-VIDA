@@ -1086,7 +1086,7 @@ if __name__ == "__main__":
         launch_gui()
     else:
         # Start the sensor reading thread
-        sensor_thread = threading.Thread(target=RobotController.sensor_reader, daemon=True)
+        sensor_thread = threading.Thread(target=sensor_reader, daemon=True)
         sensor_thread.start()
         print("Headless mode: waiting for START button...")
         try:
