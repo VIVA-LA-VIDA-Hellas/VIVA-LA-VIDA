@@ -184,7 +184,7 @@ for _ in range(N):
     bias += mpu.gyro[2]
     time.sleep(0.005)
 bias /= N
-print(f"Gyro bias: {bias}")
+#print(f"Gyro bias: {bias}")
 
 # ===============================
 # CONTROL FLAGS & STORAGE
@@ -281,7 +281,7 @@ class RobotController:
     #Reject large spikes and apply exponential moving average smoothing.
         if new_val is None:
             return prev_val  # keep previous if invalid
-        if prev_val is not None and abs(new_val - prev_val) > FILTER_JUMP:
+        if prev_val is not None and abs(new_val - prev_val) > max_jump:
             new_val = prev_val  # reject spike
         if prev_val is None:
             return new_val
@@ -391,7 +391,7 @@ def sensor_reader():
             sensor_data["left"] = left
             sensor_data["right"] = right
 
-        time.sleep(0.005)
+        time.sleep(0.01)
 
 # ===============================
 # FINITE STATE MACHINE: robot_loop
