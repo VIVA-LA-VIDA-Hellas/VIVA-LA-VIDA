@@ -276,18 +276,18 @@ class RobotController:
             return None
 
     def stable_filter(self, new_val, prev_val, alpha=0.3, max_jump=20):
-    """Reject large spikes and apply exponential moving average smoothing."""
-    if new_val is None:
-        return prev_val  # keep previous if invalid
-    if prev_val is not None and abs(new_val - prev_val) > max_jump:
-        new_val = prev_val  # reject spike
-    if prev_val is None:
-        return new_val
-    return alpha * new_val + (1 - alpha) * prev_val    
+    #Reject large spikes and apply exponential moving average smoothing.
+        if new_val is None:
+            return prev_val  # keep previous if invalid
+        if prev_val is not None and abs(new_val - prev_val) > max_jump:
+            new_val = prev_val  # reject spike
+        if prev_val is None:
+            return new_val
+        return alpha * new_val + (1 - alpha) * prev_val    
 
     def filtered_distance(self, trig, echo, history, smooth_attr):
-    d = self.get_distance(trig, echo)
-    history.append(d)
+        d = self.get_distance(trig, echo)
+        history.append(d)
 
     valid = [x for x in history if x is not None]
     if not valid:
@@ -1081,13 +1081,12 @@ def load_sliders_json():
 if __name__ == "__main__":
     print(f"Starting VivaLaVida Autonomous Drive - GUI mode: {USE_GUI}")
     
-    # Start the sensor reading thread
-    sensor_thread = threading.Thread(target=RobotController.sensor_reader, daemon=True)
-    sensor_thread.start()
-    
     if USE_GUI:
         launch_gui()
     else:
+        # Start the sensor reading thread
+        sensor_thread = threading.Thread(target=RobotController.sensor_reader, daemon=True)
+        sensor_thread.start()
         print("Headless mode: waiting for START button...")
         try:
             # Wait for button press (GPIO input goes LOW when pressed)
