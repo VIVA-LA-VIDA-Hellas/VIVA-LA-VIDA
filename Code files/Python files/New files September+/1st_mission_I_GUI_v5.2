@@ -299,7 +299,7 @@ class RobotController:
 
     # Smooth over time
     prev_val = getattr(self, smooth_attr)
-    smoothed_val = self.stable_filter(filtered_val, prev_val,                  alpha=FILTER_ALPHA, max_jump=FILTER_JUMP)
+    smoothed_val = self.stable_filter(filtered_val, prev_val, alpha=FILTER_ALPHA, max_jump=FILTER_JUMP)
 
     setattr(self, smooth_attr, smoothed_val)
     return smoothed_val
@@ -328,7 +328,7 @@ class RobotController:
     filtered_val = 0.7 * median_val + 0.3 * avg_val
 
     prev_val = getattr(self, smooth_attr)
-    smoothed_val = self.stable_filter(filtered_val, prev_val,                   alpha=FILTER_ALPHA_TOF, max_jump=FILTER_JUMP_TOF)
+    smoothed_val = self.stable_filter(filtered_val, prev_val, alpha=FILTER_ALPHA_TOF, max_jump=FILTER_JUMP_TOF)
 
     setattr(self, smooth_attr, smoothed_val)
     return smoothed_val
@@ -765,7 +765,7 @@ def launch_gui():
             ("Sensor Filter N (Median)", "N_READINGS", 0, 10, "int"),
             ("Max Laps - 0 for infinite", "MAX_LAPS", 0, 20, "int"),
             ("Filter Smoothness (alpha)", "FILTER_ALPHA", 0.05, 0.9, "float"),
-            ("Max Jump (cm)", "FILTER_JUMP", 5, 50, "int"),
+            ("Max Jump (cm)", "FILTER_JUMP", 5, 150, "int"),
         ]
     }
 
