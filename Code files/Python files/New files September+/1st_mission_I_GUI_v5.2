@@ -43,10 +43,10 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__)) # Get directory of the run
 USE_GUI = 1                   # 1 = run with GUI (Tkinter), 0 = run headless (no GUI)
 USE_TOF_SIDES = 0             # 1 = ToF (VL53L0X), 0 = Ultrasonic
 
-FILTER_ALPHA = 0.25   # 0.1 = smoother, 0.5 = faster reaction
-FILTER_JUMP = 15      # maximum jump (cm) allowed between readings
+FILTER_ALPHA = 0.25           # 0.1 = smoother, 0.5 = faster reaction, 1 for ignore filter
+FILTER_JUMP = 9999            # maximum jump (cm) allowed between readings
 FILTER_ALPHA_TOF = 0.25
-FILTER_JUMP_TOF = 15
+FILTER_JUMP_TOF = 9999
 
 # ---------- Speeds ----------
 SPEED_CRUISE = 20             # Motor speed for normal straight driving (0-100%)
