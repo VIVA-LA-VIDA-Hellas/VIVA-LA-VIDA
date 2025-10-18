@@ -41,7 +41,8 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__)) # Get directory of the run
 # ===============================
 
 USE_GUI = 1                   # 1 = run with GUI (Tkinter), 0 = run headless (no GUI)
-USE_TOF_SIDES = 0             # 1 = ToF (VL53L0X), 0 = Ultrasonic
+USE_TOF_SIDES = 0             # Side:  0 = Ultrasonic, 1 = ToF
+USE_TOF_FRONT = 0             # Front: 0 = Ultrasonic, 1 = ToF
 
 FILTER_ALPHA = 0.25           # 0.1 = smoother, 0.5 = faster reaction, 1 for ignore filter
 FILTER_JUMP = 9999            # maximum jump (cm) allowed between readings
@@ -172,12 +173,14 @@ if USE_TOF_SIDES == 1:
         time.sleep(0.05)
         vl53_front = adafruit_vl53l0x.VL53L0X(i2c)
         vl53_front.set_address(0x32)
+        print("✅ Front ToF sensor set to address 0x32")
 
         # Initialize back sensor
         xshut_back.value = True
         time.sleep(0.05)
         vl53_back = adafruit_vl53l0x.VL53L0X(i2c)
         vl53_back.set_address(0x33)
+        print("✅ Back ToF sensor set to address 0x33")
 
     except Exception as e:
         print(f"[ERROR] VL53L0X initialization failed: {e}")
@@ -404,7 +407,10 @@ def sensor_reader():
             left = robot.filtered_distance(TRIG_LEFT, ECHO_LEFT, robot.left_history, "smooth_left")
             right = robot.filtered_distance(TRIG_RIGHT, ECHO_RIGHT, robot.right_history, "smooth_right")
 
-        front = robot.filtered_distance(TRIG_FRONT, ECHO_FRONT, robot.front_history, "smooth_front")
+        if USE_TOF_FRONT:
+            front = robot.filtered_tof(vl53_front, robot.front_history, "smooth_front")
+        else:
+            front = robot.filtered_distance(TRIG_FRONT, ECHO_FRONT, robot.front_history, "smooth_front")
 
         with sensor_lock:
             sensor_data["front"] = front
