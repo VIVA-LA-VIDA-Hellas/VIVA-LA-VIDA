@@ -138,10 +138,10 @@ if USE_TOF_SIDES == 1:
         print("Initializing VL53L0X ToF sensors...")
 
         xshut_left = digitalio.DigitalInOut(board.D16)
-        xshut_right = digitalio.DigitalInOut(board.D26)
+        xshut_right = digitalio.DigitalInOut(board.D25)
         xshut_left.direction = digitalio.Direction.OUTPUT
         xshut_right.direction = digitalio.Direction.OUTPUT
-        xshut_front = digitalio.DigitalInOut(board.D25)
+        xshut_front = digitalio.DigitalInOut(board.D26)
         xshut_back = digitalio.DigitalInOut(board.D24)
         xshut_front.direction = digitalio.Direction.OUTPUT
         xshut_back.direction = digitalio.Direction.OUTPUT
