@@ -289,23 +289,23 @@ class RobotController:
         d = self.get_distance(trig, echo)
         history.append(d)
 
-    valid = [x for x in history if x is not None]
-    if not valid:
-        return 999
+        valid = [x for x in history if x is not None]
+        if not valid:
+            return 999
 
-    # Median + average combination
-    s = sorted(valid)
-    mid = len(s) // 2
-    median_val = (s[mid - 1] + s[mid]) / 2 if len(s) % 2 == 0 else s[mid]
-    avg_val = sum(valid) / len(valid)
-    filtered_val = 0.7 * median_val + 0.3 * avg_val
+        # Median + average combination
+        s = sorted(valid)
+        mid = len(s) // 2
+        median_val = (s[mid - 1] + s[mid]) / 2 if len(s) % 2 == 0 else s[mid]
+        avg_val = sum(valid) / len(valid)
+        filtered_val = 0.7 * median_val + 0.3 * avg_val
 
-    # Smooth over time
-    prev_val = getattr(self, smooth_attr)
-    smoothed_val = self.stable_filter(filtered_val, prev_val, alpha=FILTER_ALPHA, max_jump=FILTER_JUMP)
-
-    setattr(self, smooth_attr, smoothed_val)
-    return smoothed_val
+        # Smooth over time
+        prev_val = getattr(self, smooth_attr)
+        smoothed_val = self.stable_filter(filtered_val, prev_val, alpha=FILTER_ALPHA, max_jump=FILTER_JUMP)
+    
+        setattr(self, smooth_attr, smoothed_val)
+        return smoothed_val
 
     def get_tof_distance(self, sensor):
         try:
@@ -317,24 +317,24 @@ class RobotController:
             return None
 
     def filtered_tof(self, sensor, history, smooth_attr):
-    d = self.get_tof_distance(sensor)
-    history.append(d)
+        d = self.get_tof_distance(sensor)
+        history.append(d)
+    
+        valid = [x for x in history if x is not None]
+        if not valid:
+            return 999
 
-    valid = [x for x in history if x is not None]
-    if not valid:
-        return 999
-
-    s = sorted(valid)
-    mid = len(s) // 2
-    median_val = (s[mid - 1] + s[mid]) / 2 if len(s) % 2 == 0 else s[mid]
-    avg_val = sum(valid) / len(valid)
-    filtered_val = 0.7 * median_val + 0.3 * avg_val
-
-    prev_val = getattr(self, smooth_attr)
-    smoothed_val = self.stable_filter(filtered_val, prev_val, alpha=FILTER_ALPHA_TOF, max_jump=FILTER_JUMP_TOF)
-
-    setattr(self, smooth_attr, smoothed_val)
-    return smoothed_val
+        s = sorted(valid)
+        mid = len(s) // 2
+        median_val = (s[mid - 1] + s[mid]) / 2 if len(s) % 2 == 0 else s[mid]
+        avg_val = sum(valid) / len(valid)
+        filtered_val = 0.7 * median_val + 0.3 * avg_val
+    
+        prev_val = getattr(self, smooth_attr)
+        smoothed_val = self.stable_filter(filtered_val, prev_val, alpha=FILTER_ALPHA_TOF, max_jump=FILTER_JUMP_TOF)
+    
+        setattr(self, smooth_attr, smoothed_val)
+        return smoothed_val
 
     def safe_straight_control(self, d_left, d_right):
         correction = 0
@@ -357,24 +357,23 @@ class RobotController:
         #return "LEFT"
 
     def sensor_reader():
-    global sensor_data
-    while True:
-        if USE_TOF_SIDES:
-            left = robot.filtered_tof(vl53_left, robot.left_history, "smooth_left")
-            right = robot.filtered_tof(vl53_right, robot.right_history, "smooth_right")
-        else:
-            left = robot.filtered_distance(TRIG_LEFT, ECHO_LEFT, robot.left_history, "smooth_left")
-            right = robot.filtered_distance(TRIG_RIGHT, ECHO_RIGHT, robot.right_history, "smooth_right")
-
-        front = robot.filtered_distance(TRIG_FRONT, ECHO_FRONT, robot.front_history, "smooth_front")
-
-        with sensor_lock:
-            sensor_data["front"] = front
-            sensor_data["left"] = left
-            sensor_data["right"] = right
-
-        time.sleep(0.005)
-
+        global sensor_data
+        while True:
+            if USE_TOF_SIDES:
+                left = robot.filtered_tof(vl53_left, robot.left_history, "smooth_left")
+                right = robot.filtered_tof(vl53_right, robot.right_history, "smooth_right")
+            else:
+                left = robot.filtered_distance(TRIG_LEFT, ECHO_LEFT, robot.left_history, "smooth_left")
+                right = robot.filtered_distance(TRIG_RIGHT, ECHO_RIGHT, robot.right_history, "smooth_right")
+    
+            front = robot.filtered_distance(TRIG_FRONT, ECHO_FRONT, robot.front_history, "smooth_front")
+    
+            with sensor_lock:
+                sensor_data["front"] = front
+                sensor_data["left"] = left
+                sensor_data["right"] = right
+    
+            time.sleep(0.005)
 
 robot = RobotController(pca)
 
