@@ -130,6 +130,8 @@ GPIO.setup(START_BTN, GPIO.IN, pull_up_down=GPIO.PUD_UP)
 # VL53L0X setup (for side sensors)
 vl53_left = None
 vl53_right = None
+vl53_front = None
+vl53_back = None
 
 if USE_TOF_SIDES == 1:
     try:
@@ -139,10 +141,16 @@ if USE_TOF_SIDES == 1:
         xshut_right = digitalio.DigitalInOut(board.D16)
         xshut_left.direction = digitalio.Direction.OUTPUT
         xshut_right.direction = digitalio.Direction.OUTPUT
+        xshut_front = digitalio.DigitalInOut(board.D26)
+        xshut_back = digitalio.DigitalInOut(board.D24)
+        xshut_front.direction = digitalio.Direction.OUTPUT
+        xshut_back.direction = digitalio.Direction.OUTPUT
 
         # Disable both sensors first
         xshut_left.value = False
         xshut_right.value = False
+        xshut_front.value = False
+        xshut_back.value = False
         time.sleep(0.1)
 
         # Initialize left sensor
@@ -159,10 +167,22 @@ if USE_TOF_SIDES == 1:
         vl53_right.set_address(0x31)
         print("✅ Right ToF sensor set to address 0x31")
 
+        # Initialize front sensor
+        xshut_front.value = True
+        time.sleep(0.05)
+        vl53_front = adafruit_vl53l0x.VL53L0X(i2c)
+        vl53_front.set_address(0x32)
+
+        # Initialize back sensor
+        xshut_back.value = True
+        time.sleep(0.05)
+        vl53_back = adafruit_vl53l0x.VL53L0X(i2c)
+        vl53_back.set_address(0x33)
+
     except Exception as e:
         print(f"[ERROR] VL53L0X initialization failed: {e}")
         USE_TOF_SIDES = 0
-        vl53_left = vl53_right = None
+        vl53_left = vl53_right = vl53_front = vl53_back = None
 else:
     print("Using ultrasonic sensors for sides.")
     
