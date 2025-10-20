@@ -376,21 +376,21 @@ class RobotController:
         left_valid = d_left is None or d_left > TURN_DECISION_THRESHOLD
         right_valid = d_right is None or d_right > TURN_DECISION_THRESHOLD
 
-        if left_valid and not right_valid:
-            return "LEFT"
-        elif right_valid and not left_valid:
-            return "RIGHT"
+        #if left_valid and not right_valid:
+        #    return "LEFT"
+        #elif right_valid and not left_valid:
+        #    return "RIGHT"
         #elif left_valid and right_valid:
         #    # Both sides clear, default to LEFT (or implement other logic)
         #    return "LEFT"
-        else:
+        #else:
             # No side available, keep driving
-            return None
+        #    return None
 
-        #if d_left is None or d_left > TURN_DECISION_THRESHOLD:
-        #    return "LEFT"
-        #if d_right is None or d_right > TURN_DECISION_THRESHOLD:
-        #    return "RIGHT"
+        if d_left is None or d_left > TURN_DECISION_THRESHOLD:
+            return "LEFT"
+        if d_right is None or d_right > TURN_DECISION_THRESHOLD:
+            return "RIGHT"
         #if d_left > d_right:
         #    return "LEFT"
         #if d_right > d_left:
