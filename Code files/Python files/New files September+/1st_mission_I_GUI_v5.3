@@ -3,7 +3,7 @@
 # v5.0 - Gold version
 # v5.1 - minor fixes
 # v5.2 - threaded, low-latency sensor reading, Exponential Moving Average (EMA) layer, turn initiation logic
-# v5.3
+# v5.3 - stop motor at stop loop, tof enablement corrections
 # gpiozero - tbd
 # todo - stop motor at stop loop, initial speed low
 # to do: add buttons & leds & buzzer
@@ -269,7 +269,7 @@ class RobotController:
                     ((angle - SERVO_MIN_ANGLE) / (SERVO_MAX_ANGLE - SERVO_MIN_ANGLE)))
         self.pca.channels[SERVO_CHANNEL].duty_cycle = int(pulse * 65535 / SERVO_PERIOD)
 
-    def rotate_motor(self, speed):
+    def rotate_motor(pca, speed):
         duty_cycle = int(min(max(abs(speed), 0), 100)/100*65535)
         if speed >= 0:
             self.pca.channels[MOTOR_FWD].duty_cycle = duty_cycle
@@ -278,7 +278,12 @@ class RobotController:
             self.pca.channels[MOTOR_FWD].duty_cycle = 0
             self.pca.channels[MOTOR_REV].duty_cycle = duty_cycle
 
-    def stop_motor(self):
+    def ramp_motor(pca, SPEED_CRUISE, step=5, delay=0.1):
+    for speed in range(0, SPEED_CRUISE + 1, step):
+        rotate_motor(pca, speed)
+        time.sleep(delay)
+
+    def stop_motor(pca):
         self.pca.channels[MOTOR_FWD].duty_cycle = 0
         self.pca.channels[MOTOR_REV].duty_cycle = 0
 
