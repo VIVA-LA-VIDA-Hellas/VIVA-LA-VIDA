@@ -43,7 +43,7 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__)) # Get directory of the run
 # ===============================
 
 USE_GUI = 1                   # 1 = run with GUI (Tkinter), 0 = run headless (no GUI)
-USE_TOF_SIDES = 0             # Side:  0 = Ultrasonic, 1 = ToF
+USE_TOF_SIDES = 1             # Side:  0 = Ultrasonic, 1 = ToF
 USE_TOF_FRONT = 0             # Front: 0 = Ultrasonic, 1 = ToF
 
 FILTER_ALPHA = 0.25           # 0.1 = smoother, 0.5 = faster reaction, 1 for ignore filter
@@ -121,8 +121,6 @@ MAX_POINTS = 500                   # Maximum number of points to store for plott
 # HARDWARE SETUP
 # ===============================
 
-#ToF left 24, front 25, right 26, back 16
-
 GPIO.setmode(GPIO.BCM)
 GPIO.setwarnings(False)
 i2c = busio.I2C(board.SCL, board.SDA)
@@ -136,53 +134,52 @@ vl53_right = None
 vl53_front = None
 vl53_back = None
 
-if USE_TOF_SIDES == 1 or USE_TOF_FRONT == 1:
+if USE_TOF_SIDES or USE_TOF_FRONT:
     try:
         print("Initializing VL53L0X ToF sensors...")
 
-        xshut_left = digitalio.DigitalInOut(board.D16)
+        # Create xshut objects
+        xshut_left  = digitalio.DigitalInOut(board.D16)
         xshut_right = digitalio.DigitalInOut(board.D25)
-        xshut_left.direction = digitalio.Direction.OUTPUT
-        xshut_right.direction = digitalio.Direction.OUTPUT
         xshut_front = digitalio.DigitalInOut(board.D26)
-        xshut_back = digitalio.DigitalInOut(board.D24)
-        xshut_front.direction = digitalio.Direction.OUTPUT
-        xshut_back.direction = digitalio.Direction.OUTPUT
+        xshut_back  = digitalio.DigitalInOut(board.D24)
 
-        # Disable both sensors first
-        xshut_left.value = False
-        xshut_right.value = False
-        xshut_front.value = False
-        xshut_back.value = False
+        # Set directions to OUTPUT and disable all sensors
+        for x in (xshut_left, xshut_right, xshut_front, xshut_back):
+            x.direction = digitalio.Direction.OUTPUT   # <-- important
+            x.value = False
+
         time.sleep(0.1)
 
-        # Initialize left sensor
-        xshut_left.value = True
-        time.sleep(0.05)
-        vl53_left = adafruit_vl53l0x.VL53L0X(i2c)
-        vl53_left.set_address(0x30)
-        print("✅ Left ToF sensor set to address 0x30")
+        # Initialize side sensors only if requested
+        if USE_TOF_SIDES:
+            xshut_left.value = True
+            time.sleep(0.05)
+            vl53_left = adafruit_vl53l0x.VL53L0X(i2c)
+            vl53_left.set_address(0x30)
+            print("✅ Left ToF sensor set to 0x30")
 
-        # Initialize right sensor
-        xshut_right.value = True
-        time.sleep(0.05)
-        vl53_right = adafruit_vl53l0x.VL53L0X(i2c)
-        vl53_right.set_address(0x31)
-        print("✅ Right ToF sensor set to address 0x31")
+            xshut_right.value = True
+            time.sleep(0.05)
+            vl53_right = adafruit_vl53l0x.VL53L0X(i2c)
+            vl53_right.set_address(0x31)
+            print("✅ Right ToF sensor set to 0x31")
 
-        # Initialize front sensor
-        xshut_front.value = True
-        time.sleep(0.05)
-        vl53_front = adafruit_vl53l0x.VL53L0X(i2c)
-        vl53_front.set_address(0x32)
-        print("✅ Front ToF sensor set to address 0x32")
+        # Initialize front sensor only if requested
+        if USE_TOF_FRONT:
+            xshut_front.value = True
+            time.sleep(0.05)
+            vl53_front = adafruit_vl53l0x.VL53L0X(i2c)
+            vl53_front.set_address(0x32)
+            print("✅ Front ToF sensor set to 0x32")
 
-        # Initialize back sensor
+        # Back sensor: keep as optional (enable if you need it)
+        # If you want it conditional, add a USE_TOF_BACK flag
         xshut_back.value = True
         time.sleep(0.05)
         vl53_back = adafruit_vl53l0x.VL53L0X(i2c)
         vl53_back.set_address(0x33)
-        print("✅ Back ToF sensor set to address 0x33")
+        print("✅ Back ToF sensor set to 0x33")
 
     except Exception as e:
         print(f"[ERROR] VL53L0X initialization failed: {e}")
@@ -933,6 +930,15 @@ def launch_gui():
             canvas.draw()
 
         root.after(100, update_plot)
+
+    def stop_loop():
+    """Stop the robot loop and motor."""
+    global loop_flag, status_text, turn_count, lap_count, locked_turn_direction
+    loop_flag = False
+    robot.stop_motor()
+    status_text = "Stopped"
+    btn_start.config(state="normal")
+    btn_stop.config(state="disabled")
 
     def on_closing():
         stop_loop()
