@@ -4,6 +4,7 @@
 # v5.1 - minor fixes
 # v5.2 - threaded, low-latency sensor reading, Exponential Moving Average (EMA) layer, turn initiation logic
 # gpiozero - tbd
+v 5.3 - fix stop loop to stop the motor (change at at RobotState.IDLE), added timing and continuous reading in tof initialization and also changed tof settings on closing, added linear accelaration in RobotState.IDLE during start, def sensor_reader reduced sleep (0.005 from 0.01)
 # to do: add buttons & leds & buzzer
 # to do: reduce speed if sensors are none or before turning, logic for movements after stop due to obstacle
 #---------------------------------------------------------------------------------------------------------------------
@@ -159,6 +160,8 @@ if USE_TOF_SIDES == 1 or USE_TOF_FRONT == 1:
         time.sleep(0.05)
         vl53_left = adafruit_vl53l0x.VL53L0X(i2c)
         vl53_left.set_address(0x30)
+        vl53_left.measurement_timing_budget = 20000  # 20 ms → ~50 Hz / in microseconds (20 ms) - Don’t go below 10 m
+        vl53_left.start_continuous()                # enable continuous measurements
         print("✅ Left ToF sensor set to address 0x30")
 
         # Initialize right sensor
@@ -166,6 +169,8 @@ if USE_TOF_SIDES == 1 or USE_TOF_FRONT == 1:
         time.sleep(0.05)
         vl53_right = adafruit_vl53l0x.VL53L0X(i2c)
         vl53_right.set_address(0x31)
+        vl53_right.measurement_timing_budget = 20000
+        vl53_right.start_continuous()
         print("✅ Right ToF sensor set to address 0x31")
 
         # Initialize front sensor
@@ -173,6 +178,8 @@ if USE_TOF_SIDES == 1 or USE_TOF_FRONT == 1:
         time.sleep(0.05)
         vl53_front = adafruit_vl53l0x.VL53L0X(i2c)
         vl53_front.set_address(0x32)
+        vl53_front.measurement_timing_budget = 20000
+        vl53_front.start_continuous()
         print("✅ Front ToF sensor set to address 0x32")
 
         # Initialize back sensor
@@ -180,6 +187,8 @@ if USE_TOF_SIDES == 1 or USE_TOF_FRONT == 1:
         time.sleep(0.05)
         vl53_back = adafruit_vl53l0x.VL53L0X(i2c)
         vl53_back.set_address(0x33)
+        vl53_back.measurement_timing_budget = 20000
+        vl53_back.start_continuous()
         print("✅ Back ToF sensor set to address 0x33")
 
     except Exception as e:
@@ -416,7 +425,7 @@ def sensor_reader():
             sensor_data["left"] = left
             sensor_data["right"] = right
 
-        time.sleep(0.01)
+        time.sleep(0.005)
 
 # ===============================
 # FINITE STATE MACHINE: robot_loop
@@ -461,7 +470,7 @@ def robot_loop():
         dt = current_time - last_time
         last_time = current_time
 
-        if not readings_flag:
+        if not readings_flag or not loop_flag:
             # if readings not started, keep motors stopped and idle
             robot.stop_motor()
             state = RobotState.IDLE
@@ -510,6 +519,12 @@ def robot_loop():
             if loop_flag:
                 state = RobotState.CRUISE
                 status_text = "Driving (cruise)"
+                for speed in range(0, SPEED_CRUISE + 1):
+                    if not loop_flag:
+                        robot.stop_motor()
+                        break
+                    robot.rotate_motor(speed)
+                    time.sleep(0.01)
 
         elif state == RobotState.CRUISE:
             status_text = "Driving (cruise)"
@@ -932,6 +947,22 @@ def launch_gui():
 
     def on_closing():
         stop_loop()
+        #try:
+        #    for pin in [xshut_left, xshut_right, xshut_front, xshut_back]:
+        #        if pin is not None:
+        #            pin.value = False
+        #    time.sleep(0.1)  # give sensors time to power down
+        #except NameError:
+        #    pass  # pins not initialized, skip
+
+         # Stop all ToF sensors cleanly
+         for sensor in [vl53_left, vl53_right, vl53_front, vl53_back]:
+            if sensor is not None:
+                try:
+                    sensor.stop_continuous()
+                except Exception as e:
+                    print(f"Warning: could not stop sensor {sensor}: {e}")
+        
         GPIO.cleanup()
         root.destroy()
 
