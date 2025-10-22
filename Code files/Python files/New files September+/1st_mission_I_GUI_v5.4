@@ -53,7 +53,7 @@ USE_TOF_FRONT = 0             # Front: 0 = Ultrasonic, 1 = ToF
 
 SPEED_IDLE = 0
 SPEED_STOPPED = 0
-SPEED_CRUISE = 20
+SPEED_CRUISE = 25
 SPEED_TURN_INIT = 15
 SPEED_TURN = 15
 SPEED_POST_TURN = 18
@@ -69,16 +69,16 @@ STATE_SPEED = {
 
 # ---------- Driving ----------
 SOFT_MARGIN = 30              # Distance from wall where small steering corrections start (cm)
-MAX_CORRECTION = 8            # Maximum servo correction applied for wall-following (degrees)
+MAX_CORRECTION = 9            # Maximum servo correction applied for wall-following (degrees)
 STOP_THRESHOLD = 20           # Front distance (cm) at which robot stops immediately
 CORRECTION_DURATION = 0.5     # How long a side-correction is held (seconds)
 
 # ---------- Turn management ----------
 FRONT_TURN_TRIGGER = 90       # Front distance (cm) at which a turn is triggered
-TURN_DECISION_THRESHOLD = 100 # Minimum side distance (cm) to allow turn in that direction
+TURN_DECISION_THRESHOLD = 85  # Minimum side distance (cm) to allow turn in that direction
 TURN_ANGLE_LEFT = 60          # Servo angle for left turn
 TURN_ANGLE_RIGHT = 120        # Servo angle for right turn
-FRONT_SAFE_DISTANCE = 150     # Front distance considered safe to end a turn (cm)
+FRONT_SAFE_DISTANCE = 160     # Front distance considered safe to end a turn (cm)
 SIDE_SAFE_DISTANCE = 30       # Side distance considered safe to end a turn (cm)
 TARGET_DISTANCE = 30          # Desired distance from side walls (cm)
 TURN_TIMEOUT = 2.5            # Maximum time allowed for a turn (seconds)
@@ -94,7 +94,7 @@ MAX_TURN_ANGLE = 105          # Maximum yaw change (degrees) to force stop turn
 
 # ---------- Laps ----------
 MAX_LAPS = 3                  # Maximum number of laps before stopping (0 = unlimited)
-POST_LAP_DURATION = 0.5       # Time to drive forward after final lap before stopping (seconds)
+POST_LAP_DURATION = 0.6       # Time to drive forward after final lap before stopping (seconds)
 
 # ---------- Servo ----------
 SERVO_CHANNEL = 0             # PCA9685 channel controlling steering servo
@@ -137,8 +137,6 @@ MAX_POINTS = 500                   # Maximum number of points to store for plott
 # ===============================
 # HARDWARE SETUP
 # ===============================
-
-#ToF left 24, front 25, right 26, back 16
 
 GPIO.setmode(GPIO.BCM)
 GPIO.setwarnings(False)
