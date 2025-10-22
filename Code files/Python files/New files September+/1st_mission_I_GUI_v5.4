@@ -4,7 +4,7 @@
 # v5.1 - minor fixes
 # v5.2 - threaded, low-latency sensor reading, Exponential Moving Average (EMA) layer, turn initiation logic
 # v5.3 - fix stop loop to stop the motor (change at at RobotState.IDLE), added timing and continuous reading in tof initialization and also changed tof settings on closing, added linear accelaration in RobotState.IDLE during start, def sensor_reader reduced sleep (0.005 from 0.01)
-# v5.4 - gpiozero - to be tested
+# v5.4 - gpiozero, added SENSOR_DELAY variable - to be tested
 # to do: add buttons & leds & buzzer
 # to do: reduce speed if sensors are none or before turning, logic for movements after stop due to obstacle
 #---------------------------------------------------------------------------------------------------------------------
@@ -111,7 +111,8 @@ SOUND_SPEED = 17150              # Speed of sound in cm/s for distance calculati
 N_READINGS = 8                    # Number of readings stored for median filtering
 
 # ---------- Loop timing ----------
-LOOP_DELAY = 0.001                # Delay between main loop iterations (seconds)
+LOOP_DELAY = 0.02                # Delay between main loop iterations (seconds)
+SENSOR_DELAY = 0.005
 TRIG_PULSE_DURATION = 0.000010     # Trigger pulse duration for ultrasonic sensor (seconds)
 
 # ---------- Plotting ----------
@@ -460,7 +461,7 @@ def sensor_reader():
             sensor_data["left"] = left
             sensor_data["right"] = right
 
-        time.sleep(0.005)
+        time.sleep(SENSOR_DELAY)
 
 # ===============================
 # FINITE STATE MACHINE: robot_loop
