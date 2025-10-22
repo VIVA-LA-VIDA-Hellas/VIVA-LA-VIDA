@@ -51,6 +51,10 @@ import digitalio
 import adafruit_vl53l0x
 from enum import Enum, auto
 from gpiozero import DistanceSensor
+from gpiozero import Device
+from gpiozero.pins.pigpio import PiGPIOFactory
+
+Device.pin_factory = PiGPIOFactory()
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__)) # Get directory of the running script
 
