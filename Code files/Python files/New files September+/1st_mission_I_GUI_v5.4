@@ -327,9 +327,9 @@ class RobotController:
         self.pca.channels[MOTOR_REV].duty_cycle = 0
 
         def set_state_speed(self, state):
-        # Set motor speed based on FSM state.
-        speed = STATE_SPEED.get(state, SPEED_CRUISE)  # default to cruise if unknown
-        self.rotate_motor(speed)
+            # Set motor speed based on FSM state.
+            speed = STATE_SPEED.get(state, SPEED_CRUISE)  # default to cruise if unknown
+            self.rotate_motor(speed)
 
     #def get_distance(self, trig, echo):
     #    try:
@@ -1026,8 +1026,8 @@ def launch_gui():
         #except NameError:
         #    pass  # pins not initialized, skip
 
-         # Stop all ToF sensors cleanly
-         for sensor in [vl53_left, vl53_right, vl53_front, vl53_back]:
+        # Stop all ToF sensors cleanly
+        for sensor in [vl53_left, vl53_right, vl53_front, vl53_back]:
             if sensor is not None:
                 try:
                     sensor.stop_continuous()
