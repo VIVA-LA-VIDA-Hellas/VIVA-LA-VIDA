@@ -228,6 +228,8 @@ except Exception as e:
     USE_TOF_FRONT = 0
     vl53_left = vl53_right = vl53_front = vl53_back = None
 
+time.sleep(0.2)
+
 # --------- Ultrasonic sensors ----------
 # Initialize ultrasonic sensors only if that sensor is set to ultrasonic
 if not USE_TOF_FRONT:
@@ -1128,9 +1130,9 @@ def start_readings():
     btn_start.config(state="normal")
 
     # Start background sensor thread once
-    if not hasattr(start_readings, "thread_started"):
+    if not hasattr(start_readings, "sensor_thread_started"):
         threading.Thread(target=sensor_reader, daemon=True).start()
-        threading.Thread(target=robot_loop, daemon=True).start()
+        #threading.Thread(target=robot_loop, daemon=True).start()
         start_readings.thread_started = True
 
 def start_loop():
@@ -1141,9 +1143,13 @@ def start_loop():
         return
 
     loop_flag = True
-    status_text = "Loop Started"
+    status_text = "🚗 Loop Started"
     btn_start.config(state="disabled")
     btn_stop.config(state="normal")
+
+    if not hasattr(start_loop, "loop_thread_started"):
+      threading.Thread(target=robot_loop, daemon=True).start()
+      start_loop.loop_thread_started = True
 
 def stop_loop():
     """Stop the robot loop and motor."""
