@@ -326,10 +326,10 @@ class RobotController:
         self.pca.channels[MOTOR_FWD].duty_cycle = 0
         self.pca.channels[MOTOR_REV].duty_cycle = 0
 
-        def set_state_speed(self, state):
-            # Set motor speed based on FSM state.
-            speed = STATE_SPEED.get(state, SPEED_CRUISE)  # default to cruise if unknown
-            self.rotate_motor(speed)
+    def set_state_speed(self, state):
+        # Set motor speed based on FSM state.
+        speed = STATE_SPEED.get(state, SPEED_CRUISE)  # default to cruise if unknown
+        self.rotate_motor(speed)
 
     #def get_distance(self, trig, echo):
     #    try:
