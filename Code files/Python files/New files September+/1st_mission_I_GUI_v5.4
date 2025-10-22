@@ -124,7 +124,8 @@ ULTRASONIC_TIMEOUT = 0.02        # Timeout for ultrasonic sensor reading (second
 SOUND_SPEED = 17150              # Speed of sound in cm/s for distance calculation for a round trip
 
 # ---------- Sensor data filtering ----------
-N_READINGS = 8                    # Number of readings stored for median filtering
+N_READINGS = 5                    # Number of readings stored for median filtering
+# Also check queue_len for Ultrasonic gpiozero.DistanceSensor
 
 # ---------- Loop timing ----------
 LOOP_DELAY = 0.02                # Delay between main loop iterations (seconds)
