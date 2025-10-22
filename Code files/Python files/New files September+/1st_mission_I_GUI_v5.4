@@ -4,7 +4,7 @@
 # v5.1 - minor fixes
 # v5.2 - threaded, low-latency sensor reading, Exponential Moving Average (EMA) layer, turn initiation logic
 # v5.3 - fix stop loop to stop the motor (change at at RobotState.IDLE), added timing and continuous reading in tof initialization and also changed tof settings on closing, added linear accelaration in RobotState.IDLE during start, def sensor_reader reduced sleep (0.005 from 0.01)
-# v5.4 - gpiozero, added SENSOR_DELAY variable - to be tested
+# v5.4 - gpiozero, added SENSOR_DELAY variable, speed factor per state - to be tested
 # to do: add buttons & leds & buzzer
 # to do: reduce speed if sensors are none or before turning, logic for movements after stop due to obstacle
 #---------------------------------------------------------------------------------------------------------------------
@@ -52,8 +52,24 @@ FILTER_ALPHA_TOF = 1
 FILTER_JUMP_TOF = 9999
 
 # ---------- Speeds ----------
-SPEED_CRUISE = 20             # Motor speed for normal straight driving (0-100%)
-SPEED_TURN = 18               # Motor speed during turns (0-100%)
+#SPEED_CRUISE = 20             # Motor speed for normal straight driving (0-100%)
+#SPEED_TURN = 18               # Motor speed during turns (0-100%)
+
+SPEED_IDLE = 0
+SPEED_STOPPED = 0
+SPEED_CRUISE = 20
+SPEED_TURN_INIT = 15
+SPEED_TURN = 15
+SPEED_POST_TURN = 18
+
+STATE_SPEED = {
+    "IDLE": SPEED_IDLE,
+    "STOPPED": SPEED_STOPPED,
+    "CRUISE": SPEED_CRUISE,
+    "TURN_INIT": SPEED_TURN_INIT,
+    "TURNING": SPEED_TURN,
+    "POST_TURN": SPEED_POST_TURN
+}
 
 # ---------- Driving ----------
 SOFT_MARGIN = 30              # Distance from wall where small steering corrections start (cm)
@@ -304,6 +320,11 @@ class RobotController:
     def stop_motor(self):
         self.pca.channels[MOTOR_FWD].duty_cycle = 0
         self.pca.channels[MOTOR_REV].duty_cycle = 0
+
+        def set_state_speed(self, state):
+        # Set motor speed based on FSM state.
+        speed = STATE_SPEED.get(state, SPEED_CRUISE)  # default to cruise if unknown
+        self.rotate_motor(speed)
 
     #def get_distance(self, trig, echo):
     #    try:
@@ -594,7 +615,8 @@ def robot_loop():
                     # No side available: keep driving straight until a valid turn appears
                     desired_servo_angle = robot.safe_straight_control(robot.d_left, robot.d_right)
                     robot.set_servo(desired_servo_angle)
-                    robot.rotate_motor(SPEED_TURN)
+                    robot.rotate_motor(SPEED_TURN_INIT)
+                    #robot.set_state_speed(state.name)
                     status_text = "Approaching turn - waiting for side clear"
                     print(status_text)
                     time.sleep(LOOP_DELAY)
@@ -612,7 +634,8 @@ def robot_loop():
                         status_text = f"Ignoring {proposed_direction} (locked to {locked_turn_direction})"
                         print(status_text)
                         robot.set_servo(robot.safe_straight_control(robot.d_left, robot.d_right))
-                        robot.rotate_motor(SPEED_CRUISE)
+                        #robot.rotate_motor(SPEED_CRUISE)
+                        robot.set_state_speed(state.name)
                         time.sleep(LOOP_DELAY)
                         continue
                     direction = locked_turn_direction
@@ -652,7 +675,8 @@ def robot_loop():
                     else:
                         correction_active = False
             
-            robot.rotate_motor(SPEED_CRUISE)
+            #robot.rotate_motor(SPEED_CRUISE)
+            robot.set_state_speed(state.name)
             
         elif state == RobotState.TURN_INIT:
             # Initialize turning: set servo & motor for turn, store yaw/time
@@ -664,7 +688,8 @@ def robot_loop():
             # set steering angle
             angle = TURN_ANGLE_LEFT if direction == "LEFT" else TURN_ANGLE_RIGHT
             robot.set_servo(angle)
-            robot.rotate_motor(SPEED_TURN)
+            #robot.rotate_motor(SPEED_TURN)
+            robot.set_state_speed(state.name)
             state = RobotState.TURNING
 
         elif state == RobotState.TURNING:
@@ -728,7 +753,8 @@ def robot_loop():
                     if MAX_LAPS > 0 and lap_count >= MAX_LAPS:
                         # Drive forward a little before stopping
                         robot.set_servo(SERVO_CENTER)
-                        robot.rotate_motor(SPEED_CRUISE)
+                        #robot.rotate_motor(SPEED_CRUISE)
+                        robot.set_state_speed(state.name)
                         time.sleep(POST_LAP_DURATION)
                         robot.stop_motor()
                         loop_flag = False
@@ -745,7 +771,8 @@ def robot_loop():
             # drive straight for short duration then return to CRUISE
             if current_time - post_turn_start < POST_TURN_DURATION:
                 robot.set_servo(SERVO_CENTER)
-                robot.rotate_motor(SPEED_CRUISE)
+                #robot.rotate_motor(SPEED_CRUISE)
+                robot.set_state_speed(state.name)
                 status_text = "Driving (post-turn)"
             else:
                 state = RobotState.CRUISE
@@ -849,8 +876,10 @@ def launch_gui():
     # ---------- Slider Definitions ----------
     slider_groups = {
         "Speeds": [
-            ("Cruise Speed (%)", "SPEED_CRUISE", 0, 100, "int"),
-            ("Turn Speed (%)", "SPEED_TURN", 0, 100, "int")
+            ("Cruise Speed", "SPEED_CRUISE", 0, 100, "int"),
+            ("Turn Init Speed", "SPEED_TURN_INIT", 0, 100, "int"),
+            ("Turn Speed", "SPEED_TURN", 0, 100, "int"),            
+            ("Post Turn Speed", "SPEED_POST_TURN", 0, 100, "int")
         ],
         "Driving & Safety, Wall following, Turns": [
             ("Turn angle Left", "TURN_ANGLE_LEFT", 55, 90, "int"),
