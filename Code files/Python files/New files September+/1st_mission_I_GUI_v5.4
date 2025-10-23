@@ -1,3 +1,23 @@
+(env) LaVida@LaVida:~/Desktop/VIVA-LAVIDA $ /home/LaVida/env/bin/python /home/LaVida/Desktop/VIVA-LAVIDA/Iordanis_v5.4.py
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+Can't connect to pigpio at localhost(8888)
+
+Did you start the pigpio daemon? E.g. sudo pigpiod
+
+Did you specify the correct Pi host/port in the environment
+variables PIGPIO_ADDR/PIGPIO_PORT?
+E.g. export PIGPIO_ADDR=soft, export PIGPIO_PORT=8888
+
+Did you specify the correct Pi host/port in the
+pigpio.pi() function? E.g. pigpio.pi('soft', 8888)
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+Traceback (most recent call last):
+  File "/home/LaVida/Desktop/VIVA-LAVIDA/Iordanis_v5.4.py", line 59, in <module>
+    Device.pin_factory = PiGPIOFactory()
+                         ^^^^^^^^^^^^^^^
+  File "/usr/lib/python3/dist-packages/gpiozero/pins/pigpio.py", line 93, in __init__
+    raise IOError(f'failed to connect to {host}:{port}')
+OSError: failed to connect to localhost:8888
 #----------------------------------------------------------------------------------------------------------------------
 # Autonomous drive - VivaLaVida
 # v5.0 - Gold version
