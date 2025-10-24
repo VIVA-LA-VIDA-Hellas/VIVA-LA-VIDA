@@ -13,6 +13,9 @@
 #     - added SENSOR_DELAY variable, 
 #     - speed factor per state
 #     - last_turn_time set to a high value to enable initial turn
+#     - Removed logic to end turn based on front/side distance
+# v5.5:
+#     - add numners to plots
 # TO DO - check time.sleep(LOOP_DELAY) if needed in all instances
 # TO DO - test end turn only with gyro and not distances
 # to do: add buttons & leds & buzzer
@@ -1004,17 +1007,84 @@ def launch_gui():
         lbl_laps.config(text=f"Laps: {lap_count}" if slider_vars["MAX_LAPS"].get() > 0 else f"Laps: {lap_count}/∞")
         root.after(200, update_status)
 
+    _prev_label_pos = {"front": None, "left": None, "right": None, "angle": None}
     def update_plot():
+        global _prev_label_pos
+
         if time_data:
+            # Update lines
             front_line.set_data(range(len(front_data)), front_data)
             left_line.set_data(range(len(left_data)), left_data)
             right_line.set_data(range(len(right_data)), [-v for v in right_data])
             angle_line.set_data(range(len(angle_data)), angle_data)
-
+    
+            # Set axis limits
             ax_front.set_xlim(0, MAX_POINTS)
             ax_side.set_xlim(0, MAX_POINTS)
             ax_angle.set_xlim(0, MAX_POINTS)
-
+    
+            # Remove previous text annotations
+            for ax in [ax_front, ax_side, ax_angle]:
+                for t in ax.texts:
+                    t.remove()
+    
+            # Helper for smoothing
+            def smooth_move(prev, target, alpha=0.3):
+                if prev is None:
+                    return target
+                return prev + alpha * (target - prev)
+    
+            # ----------------------------
+            # FRONT SENSOR
+            # ----------------------------
+            if len(front_data) > 0:
+                x = len(front_data) - 1
+                y_target = front_data[-1]
+                y_prev = _prev_label_pos["front"]
+                y_smooth = smooth_move(y_prev, y_target)
+                _prev_label_pos["front"] = y_smooth
+                ax_front.text(x, y_smooth, f"{y_target:.1f} cm", color="blue",
+                              fontsize=9, fontweight="bold", va="bottom", ha="left")
+    
+            # ----------------------------
+            # LEFT SENSOR
+            # ----------------------------
+            if len(left_data) > 0:
+                x = len(left_data) - 1
+                y_target = left_data[-1]
+                y_prev = _prev_label_pos["left"]
+                y_smooth = smooth_move(y_prev, y_target)
+                _prev_label_pos["left"] = y_smooth
+                ax_side.text(x, y_smooth, f"L: {y_target:.1f} cm", color="green",
+                             fontsize=9, fontweight="bold", va="bottom", ha="left")
+    
+            # ----------------------------
+            # RIGHT SENSOR
+            # ----------------------------
+            if len(right_data) > 0:
+                x = len(right_data) - 1
+                y_target = -right_data[-1]
+                y_prev = _prev_label_pos["right"]
+                y_smooth = smooth_move(y_prev, y_target)
+                _prev_label_pos["right"] = y_smooth
+                ax_side.text(x, y_smooth, f"R: {right_data[-1]:.1f} cm", color="orange",
+                             fontsize=9, fontweight="bold", va="bottom", ha="left")
+    
+            # ----------------------------
+            # YAW ANGLE
+            # ----------------------------
+            if len(angle_data) > 0:
+                x = len(angle_data) - 1
+                y_target = angle_data[-1]
+                y_prev = _prev_label_pos["angle"]
+                y_smooth = smooth_move(y_prev, y_target)
+                _prev_label_pos["angle"] = y_smooth
+                ax_angle.text(x, y_smooth, f"{y_target:.1f}°", color="purple",
+                              fontsize=9, fontweight="bold", va="bottom", ha="left")
+    
+            # ----------------------------
+            # Dynamic Y-axis scaling for yaw
+            # ----------------------------
             if angle_data:
                 min_angle = min(angle_data)
                 max_angle = max(angle_data)
@@ -1022,11 +1092,12 @@ def launch_gui():
                     ax_angle.set_ylim(-180, 180)
                 else:
                     ax_angle.set_ylim(min_angle - 10, max_angle + 10)
-
+    
+            # Draw updated plots
             canvas.draw()
-
-        root.after(100, update_plot)
-
+    
+        root.after(100, update_plot) 
+        
     def on_closing():
         stop_loop()
         #try:
