@@ -1274,7 +1274,7 @@ def export_data_csv():
                 lap_count,
                 globals().get("servo_angle", 0),  # latest steering
                 globals().get("SPEED_CRUISE", 0),
-                "YES" if "Turning" in state_data[i] else "NO",
+                "YES" if "TURNING" in state_data[i] else "NO",
                 globals().get("locked_turn_direction", "")
             ]
             row += [slider_values[name] for name in slider_values.keys()]
