@@ -538,8 +538,7 @@ def robot_loop():
     current_servo_angle = SERVO_CENTER
     target_heading = None                   # absolute heading goal for current turn
     HEADING_TOL = float(TURN_ANGLE_TOLERANCE)
-Kp_trim = 0.6                           # small P for post-turn heading trim
-
+    Kp_trim = 0.6                           # small P for post-turn heading trim
 
     # Ensure robot stopped at start
     robot.stop_motor()
@@ -585,7 +584,8 @@ Kp_trim = 0.6                           # small P for post-turn heading trim
         front_data.append(robot.d_front if robot.d_front is not None else 0)
         left_data.append(robot.d_left if robot.d_left is not None else 0)
         right_data.append(robot.d_right if robot.d_right is not None else 0)
-        angle_data.append(yaw)
+        #angle_data.append(yaw)
+        angle_data.append(wrap_deg(yaw))
         state_data.append(state.name)
 
         # ----------------------------
@@ -706,6 +706,7 @@ Kp_trim = 0.6                           # small P for post-turn heading trim
             status_text = f"Turning {direction}"
             turn_start_yaw = wrap_deg(yaw)
             turn_start_time = current_time
+            turn_reference_side_distance = robot.d_right if direction == "LEFT" else robot.d_left
         
             # Grid-snap current heading, target next cardinal (uses global HEADING_STEP)
             base_cardinal = snap_to_grid(turn_start_yaw, HEADING_STEP)
