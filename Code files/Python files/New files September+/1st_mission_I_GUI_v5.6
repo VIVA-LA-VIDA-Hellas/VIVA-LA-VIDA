@@ -721,7 +721,7 @@ def robot_loop():
             angle = TURN_ANGLE_LEFT if direction == "LEFT" else TURN_ANGLE_RIGHT
             robot.set_servo(angle)
             robot.set_state_speed(state.name)
-    state = RobotState.TURNING
+            state = RobotState.TURNING
             
         elif state == RobotState.TURNING:
             # Stop the turn when we hit the absolute target heading (with guards)
@@ -1088,13 +1088,13 @@ def launch_gui():
             # ----------------------------
             # Dynamic Y-axis scaling for yaw
             # ----------------------------
-            if angle_data:
-                min_angle = min(angle_data)
-                max_angle = max(angle_data)
-                if max_angle - min_angle > 180:
-                    ax_angle.set_ylim(-180, 180)
-                else:
-                    ax_angle.set_ylim(min_angle - 10, max_angle + 10)
+            #if angle_data:
+            #    min_angle = min(angle_data)
+            #    max_angle = max(angle_data)
+            #    if max_angle - min_angle > 180:
+            #        ax_angle.set_ylim(-180, 180)
+            #    else:
+            #        ax_angle.set_ylim(min_angle - 10, max_angle + 10)
     
             # Draw updated plots
             canvas.draw()
@@ -1175,13 +1175,13 @@ def update_plot():
         ax_side.set_xlim(0, MAX_POINTS)
         ax_angle.set_xlim(0, MAX_POINTS)
 
-        if angle_data:
-            min_angle = min(angle_data)
-            max_angle = max(angle_data)
-            if max_angle - min_angle > 180:
-                ax_angle.set_ylim(-180, 180)
-            else:
-                ax_angle.set_ylim(min_angle - 10, max_angle + 10)
+        #if angle_data:
+        #    min_angle = min(angle_data)
+        #    max_angle = max(angle_data)
+        #    if max_angle - min_angle > 180:
+        #        ax_angle.set_ylim(-180, 180)
+        #    else:
+        #        ax_angle.set_ylim(min_angle - 10, max_angle + 10)
 
         canvas.draw()
 
