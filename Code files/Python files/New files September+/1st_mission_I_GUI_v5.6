@@ -701,12 +701,14 @@ def robot_loop():
             # -------------------------------
             if turn_count >= 1:
                 #desired_servo_angle = robot.safe_straight_control(robot.d_left, robot.d_right)
+                follow_side = FOLLOW_SIDE
                 desired_servo_angle = robot.wall_follow_simple(robot.d_left, robot.d_right, follow_side)
                 robot.set_servo(desired_servo_angle)
             else:
                 desired_servo_angle = SERVO_CENTER
-                robot.set_state_speed(state.name)
                 correction_active = False
+                
+            robot.set_state_speed(state.name)
             
             # -------------------------------
             # Timed servo correction behavior
