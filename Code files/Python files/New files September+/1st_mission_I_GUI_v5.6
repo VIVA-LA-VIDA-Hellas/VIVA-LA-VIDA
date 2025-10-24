@@ -19,6 +19,7 @@
 #     - changes def turn_decision
 # v5.6:
 #     - turn end logic change (corrected yaw calculation)
+#     - change to keep wall following logic
 # TO DO - check time.sleep(LOOP_DELAY) if needed in all instances
 # TO DO - test end turn only with gyro and not distances
 # to do: add buttons & leds & buzzer
@@ -94,6 +95,9 @@ SOFT_MARGIN = 30              # Distance from wall where small steering correcti
 MAX_CORRECTION = 9            # Maximum servo correction applied for wall-following (degrees)
 STOP_THRESHOLD = 20           # Front distance (cm) at which robot stops immediately
 CORRECTION_DURATION = 0.25     # How long a side-correction is held (seconds)
+
+FOLLOW_SIDE = "RIGHT"   # or "LEFT"
+KP_WALL = 1.4           # try 1.0–2.0
 
 # ---------- Turn management ----------
 FRONT_TURN_TRIGGER = 90       # Front distance (cm) at which a turn is triggered
@@ -455,7 +459,22 @@ class RobotController:
             correction = -(SOFT_MARGIN - d_right)*2
         correction = max(-MAX_CORRECTION, min(MAX_CORRECTION, correction))
         return SERVO_CENTER + correction
-     
+
+    def wall_follow_simple(self, d_left, d_right, side=FOLLOW_SIDE):
+        #Keep a fixed distance from the chosen wall using a plain P controller.
+        dist = d_left if side == "LEFT" else d_right
+        if dist is None or dist == 999:
+            return SERVO_CENTER  # no reading → go straight
+    
+        error = TARGET_DISTANCE - dist      # + if too far, - if too close
+        correction = KP_WALL * error        # P only
+        if side == "RIGHT":
+            correction = -correction        # flip sign for right wall
+    
+        # clamp to your steering limit
+        correction = max(-MAX_CORRECTION, min(MAX_CORRECTION, correction))
+        return SERVO_CENTER + correction
+    
     def turn_decision(self, d_left, d_right):
         left_open  = (d_left  is None) or (d_left  == 999) or (d_left  > TURN_DECISION_THRESHOLD)
         right_open = (d_right is None) or (d_right == 999) or (d_right > TURN_DECISION_THRESHOLD)
@@ -639,7 +658,8 @@ def robot_loop():
         
                 if proposed_direction is None or proposed_direction == 999:
                     # No side available: keep driving straight until a valid turn appears
-                    desired_servo_angle = robot.safe_straight_control(robot.d_left, robot.d_right)
+                    #desired_servo_angle = robot.safe_straight_control(robot.d_left, robot.d_right)
+                    desired_servo_angle = robot.wall_follow_simple(robot.d_left, robot.d_right, FOLLOW_SIDE)
                     robot.set_servo(desired_servo_angle)
                     robot.rotate_motor(SPEED_TURN_INIT)
                     #robot.set_state_speed(state.name)
@@ -680,10 +700,12 @@ def robot_loop():
             # Safe straight control active only after the 1st turn
             # -------------------------------
             if turn_count >= 1:
-                desired_servo_angle = robot.safe_straight_control(robot.d_left, robot.d_right)
+                #desired_servo_angle = robot.safe_straight_control(robot.d_left, robot.d_right)
+                desired_servo_angle = robot.wall_follow_simple(robot.d_left, robot.d_right, follow_side)
                 robot.set_servo(desired_servo_angle)
             else:
                 desired_servo_angle = SERVO_CENTER
+                robot.set_state_speed(state.name)
                 correction_active = False
             
             # -------------------------------
