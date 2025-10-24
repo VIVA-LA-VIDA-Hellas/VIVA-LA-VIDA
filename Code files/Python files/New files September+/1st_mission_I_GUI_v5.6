@@ -110,6 +110,8 @@ LOCK_TURN_DIRECTION = 1       # 1 = enable turn lock direction after 1st turn, 0
 TARGET_TURN_ANGLE = 80        # Degrees to turn per corner
 TURN_ANGLE_TOLERANCE = 5      # Acceptable overshoot (degrees)
 
+HEADING_STEP = 90.0           # degrees between cardinals; keep 90 for square track
+
 # ---------- Turn angle constraints ----------
 MIN_TURN_ANGLE = 75           # Minimum yaw change (degrees) before turn can stop
 MAX_TURN_ANGLE = 105          # Maximum yaw change (degrees) to force stop turn
@@ -155,6 +157,14 @@ TRIG_PULSE_DURATION = 0.000010     # Trigger pulse duration for ultrasonic senso
 
 # ---------- Plotting ----------
 MAX_POINTS = 500                   # Maximum number of points to store for plotting
+
+def wrap_deg(d):
+    # [-180, 180)
+    return ((d + 180.0) % 360.0) - 180.0
+
+def snap_to_grid(d, step=90.0):
+    # nearest multiple of `step` (e.g., 90°)
+    return round(d / step) * step
 
 # ===============================
 # HARDWARE SETUP
@@ -526,6 +536,10 @@ def robot_loop():
     correction_start_time = 0.0
     correction_angle = SERVO_CENTER
     current_servo_angle = SERVO_CENTER
+    target_heading = None                   # absolute heading goal for current turn
+    HEADING_TOL = float(TURN_ANGLE_TOLERANCE)
+Kp_trim = 0.6                           # small P for post-turn heading trim
+
 
     # Ensure robot stopped at start
     robot.stop_motor()
@@ -690,26 +704,46 @@ def robot_loop():
         elif state == RobotState.TURN_INIT:
             # Initialize turning: set servo & motor for turn, store yaw/time
             status_text = f"Turning {direction}"
-            turn_start_yaw = yaw
+            turn_start_yaw = wrap_deg(yaw)
             turn_start_time = current_time
-            turn_reference_side_distance = robot.d_right if direction == "LEFT" else robot.d_left
-            print(f"🔄 Turn initiated {direction}. Left: {robot.d_left:.1f} cm, Right: {robot.d_right:.1f} cm")
-            # set steering angle
+        
+            # Grid-snap current heading, target next cardinal (uses global HEADING_STEP)
+            base_cardinal = snap_to_grid(turn_start_yaw, HEADING_STEP)
+            delta = +90.0 if direction == "LEFT" else -90.0
+            target_heading = wrap_deg(base_cardinal + delta)
+        
+            print(f"🔄 Turn initiated {direction}. "
+                  f"L: {robot.d_left if robot.d_left is not None else 0:.1f} cm, "
+                  f"R: {robot.d_right if robot.d_right is not None else 0:.1f} cm, "
+                  f"target={target_heading:.1f}°")
+        
             angle = TURN_ANGLE_LEFT if direction == "LEFT" else TURN_ANGLE_RIGHT
             robot.set_servo(angle)
-            #robot.rotate_motor(SPEED_TURN)
             robot.set_state_speed(state.name)
-            state = RobotState.TURNING
-
+    state = RobotState.TURNING
+            
         elif state == RobotState.TURNING:
-            # active turning: monitor yaw & safety/time conditions to stop
-            # compute turn angle relative to start
-            turn_angle = yaw - turn_start_yaw  # positive for LEFT, negative for RIGHT
-            target_angle = TARGET_TURN_ANGLE if direction == "LEFT" else -TARGET_TURN_ANGLE
-
+            # Stop the turn when we hit the absolute target heading (with guards)
+            yaw_now = wrap_deg(yaw)
+            heading_error = wrap_deg(target_heading - yaw_now)   # signed
+            turned_rel = wrap_deg(yaw_now - turn_start_yaw)      # relative turn in this corner
+        
             stop_condition = False
-
-            # Condition A: side distance convergence (monitor opposite wall)
+        
+            # A) absolute-heading tolerance, but only after some rotation
+            if abs(heading_error) <= HEADING_TOL and abs(turned_rel) >= MIN_TURN_ANGLE:
+                print("Stop Turn - Absolute heading matched")
+                stop_condition = True
+        
+            # B) safety: timeout / max angle
+            if current_time - turn_start_time > TURN_TIMEOUT:
+                print("Stop Turn - Max turn time")
+                stop_condition = True
+            if abs(turned_rel) >= MAX_TURN_ANGLE:
+                print("Stop Turn - Max turn angle")
+                stop_condition = True
+            
+            # C: side distance convergence (monitor opposite wall)
             side_distance_monitor = robot.d_left if direction == "RIGHT" else robot.d_right
             MIN_SIDE_CHANGE = 5  # cm
             if side_distance_monitor is not None and turn_reference_side_distance is not None:
@@ -719,50 +753,25 @@ def robot_loop():
                     if lower_bound <= side_distance_monitor <= upper_bound:
                         print("Stop Turn - Opposite distance")
                         stop_condition = True
-
-            # Condition B: front + side safe
-            side_distance = robot.d_left if direction == "LEFT" else robot.d_right
-            if robot.d_front is not None and robot.d_front > FRONT_SAFE_DISTANCE and side_distance is not None and side_distance > SIDE_SAFE_DISTANCE:
-                print("Stop Turn - Front distance")
-                stop_condition = True
-
-            # Condition C: reached target angle ± tolerance
-            if abs(turn_angle - target_angle) <= TURN_ANGLE_TOLERANCE:
-                print("Stop Turn - Target Angle")
-                stop_condition = True
-
-            # Condition C: reached target angle ± tolerance
-            #if direction == "LEFT" and turn_angle >= target_angle - TURN_ANGLE_TOLERANCE:
-            #    stop_condition = True
-            #elif direction == "RIGHT" and turn_angle <= target_angle + TURN_ANGLE_TOLERANCE:
-             #   stop_condition = True
-
-            # Condition D: timeout or extreme yaw
-            if current_time - turn_start_time > TURN_TIMEOUT:
-                print("Stop Turn - Max turn time")
-                stop_condition = True
-            if abs(turn_angle) >= MAX_TURN_ANGLE:
-                print("Stop Turn - Max turn time")
-                stop_condition = True
-
-            # If any stop condition met -> finish turn
+        
+            # (Optional) keep your distance-based stop as extra fail-safe if you like:
+            # if robot.d_front is not None and robot.d_front > FRONT_SAFE_DISTANCE:
+            #     stop_condition = True
+        
             if stop_condition:
                 robot.stop_motor()
                 robot.set_servo(SERVO_CENTER)
-                current_servo_angle = SERVO_CENTER
                 last_turn_time = current_time
-                # Snap yaw to target for consistency
-                yaw = turn_start_yaw + target_angle
-                # update counters
+        
+                # snap internal yaw to target so drift doesn't accumulate
+                yaw = target_heading
+        
                 turn_count += 1
                 if turn_count % 4 == 0:
                     lap_count += 1
                     print(f"✅ Lap completed! Total laps: {lap_count}")
-                    # if reached max laps -> do final drive then stop (as in original logic)
                     if MAX_LAPS > 0 and lap_count >= MAX_LAPS:
-                        # Drive forward a little before stopping
                         robot.set_servo(SERVO_CENTER)
-                        #robot.rotate_motor(SPEED_CRUISE)
                         robot.set_state_speed(state.name)
                         time.sleep(POST_LAP_DURATION)
                         robot.stop_motor()
@@ -770,20 +779,24 @@ def robot_loop():
                         state = RobotState.STOPPED
                         status_text = f"Stopped - Max Laps ({MAX_LAPS}) reached"
                         continue
-
-                # prepare post-turn
+        
                 post_turn_start = current_time
                 state = RobotState.POST_TURN
                 status_text = "Driving (post-turn)"
-
+           
         elif state == RobotState.POST_TURN:
-            # drive straight for short duration then return to CRUISE
+            # brief trim towards the absolute target heading
+            yaw_now = wrap_deg(yaw)
+            err = wrap_deg(target_heading - yaw_now)
+        
             if current_time - post_turn_start < POST_TURN_DURATION:
-                robot.set_servo(SERVO_CENTER)
-                #robot.rotate_motor(SPEED_CRUISE)
+                trim = -Kp_trim * err  # small P control towards target
+                servo_cmd = max(SERVO_MIN_ANGLE, min(SERVO_MAX_ANGLE, SERVO_CENTER + trim))
+                robot.set_servo(servo_cmd)
                 robot.set_state_speed(state.name)
-                status_text = "Driving (post-turn)"
+                status_text = "Driving (post-turn align)"
             else:
+                robot.set_servo(SERVO_CENTER)
                 state = RobotState.CRUISE
                 status_text = "Driving (cruise)"
 
@@ -899,7 +912,7 @@ def launch_gui():
             ("Front Turn Trigger (cm)", "FRONT_TURN_TRIGGER", 50, 150, "int"),
             ("Turn Decision Threshold (Left/Right) (cm)", "TURN_DECISION_THRESHOLD", 0, 200, "int"),
             ("Turn Timeout (s)", "TURN_TIMEOUT", 0.1, 10, "float"),
-            ("Max Turn Angle (o)", "MAX_TURN_ANGLE", 90, 120, "int"),
+            ("Max Turn Angle (o)", "MAX_TURN_ANGLE", 60, 150, "int"),
             ("Post Turn Duration (s)", "POST_TURN_DURATION", 0, 5, "float"),
             ("Turn Lockout (s)", "TURN_LOCKOUT", 0.1, 5, "float")
         ],
