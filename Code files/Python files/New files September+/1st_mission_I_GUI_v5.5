@@ -16,6 +16,7 @@
 #     - Removed logic to end turn based on front/side distance
 # v5.5:
 #     - add numners to plots
+#     - changes def turn_decision
 # TO DO - check time.sleep(LOOP_DELAY) if needed in all instances
 # TO DO - test end turn only with gyro and not distances
 # to do: add buttons & leds & buzzer
@@ -444,27 +445,13 @@ class RobotController:
         return SERVO_CENTER + correction
      
     def turn_decision(self, d_left, d_right):
-        left_valid = d_left is None or d_left > TURN_DECISION_THRESHOLD
-        right_valid = d_right is None or d_right > TURN_DECISION_THRESHOLD
-
-        #if left_valid and not right_valid:
-        #    return "LEFT"
-        #else:
-        #    return None
-        #if right_valid and not left_valid:
-        #    return "RIGHT"
-        #else:
-        #    return None
-
-        if d_left is None or d_left == 999 or d_left > TURN_DECISION_THRESHOLD:
-            return "LEFT"
-        if d_right is None or d_right == 999 or d_right > TURN_DECISION_THRESHOLD:
-            return "RIGHT"
-        #if d_left > d_right:
-        #    return "LEFT"
-        #if d_right > d_left:
-        #    return "RIGHT"
-        #return "LEFT"
+        left_open  = (d_left  is None) or (d_left  == 999) or (d_left  > TURN_DECISION_THRESHOLD)
+        right_open = (d_right is None) or (d_right == 999) or (d_right > TURN_DECISION_THRESHOLD)
+    
+        # Decide only when exactly one side is open; otherwise keep trying.
+        if left_open ^ right_open:               #XOR: exactly one is True
+            return "LEFT" if left_open else "RIGHT"
+        return None # both open or both closed → keep trying
 
 robot = RobotController(pca)
 
