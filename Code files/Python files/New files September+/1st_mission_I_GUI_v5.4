@@ -1133,7 +1133,8 @@ def start_readings():
     if not hasattr(start_readings, "sensor_thread_started"):
         threading.Thread(target=sensor_reader, daemon=True).start()
         #threading.Thread(target=robot_loop, daemon=True).start()
-        start_readings.thread_started = True
+        #start_readings.thread_started = True
+        start_readings.sensor_thread_started = True
 
 def start_loop():
     """Start the robot driving loop."""
