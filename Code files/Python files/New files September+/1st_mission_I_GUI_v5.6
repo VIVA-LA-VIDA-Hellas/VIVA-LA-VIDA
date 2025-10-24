@@ -536,6 +536,9 @@ def robot_loop():
     correction_start_time = 0.0
     correction_angle = SERVO_CENTER
     current_servo_angle = SERVO_CENTER
+
+    turn_reference_side_distance = None
+    
     target_heading = None                   # absolute heading goal for current turn
     HEADING_TOL = float(TURN_ANGLE_TOLERANCE)
     Kp_trim = 0.6                           # small P for post-turn heading trim
@@ -745,17 +748,15 @@ def robot_loop():
                 stop_condition = True
             
             # C: side distance convergence (monitor opposite wall)
+            # Optional side-distance guard (simple: stop when it changed enough)
             side_distance_monitor = robot.d_left if direction == "RIGHT" else robot.d_right
             MIN_SIDE_CHANGE = 5  # cm
             if side_distance_monitor is not None and turn_reference_side_distance is not None:
-                if abs(side_distance_monitor - turn_reference_side_distance) > MIN_SIDE_CHANGE:
-                    lower_bound = turn_reference_side_distance * 0.95
-                    upper_bound = turn_reference_side_distance * 1.05
-                    if lower_bound <= side_distance_monitor <= upper_bound:
-                        print("Stop Turn - Opposite distance")
-                        stop_condition = True
-        
-            # (Optional) keep your distance-based stop as extra fail-safe if you like:
+                if abs(side_distance_monitor - turn_reference_side_distance) >= MIN_SIDE_CHANGE:
+                    print("Stop Turn - Opposite distance changed enough")
+                    stop_condition = True
+
+                # (Optional) keep your distance-based stop as extra fail-safe if you like:
             # if robot.d_front is not None and robot.d_front > FRONT_SAFE_DISTANCE:
             #     stop_condition = True
         
@@ -1012,7 +1013,8 @@ def launch_gui():
 
     _prev_label_pos = {"front": None, "left": None, "right": None, "angle": None}
     def update_plot():
-        global _prev_label_pos
+        #global _prev_label_pos
+        nonlocal _prev_label_pos
 
         if time_data:
             # Update lines
