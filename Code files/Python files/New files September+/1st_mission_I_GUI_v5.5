@@ -148,7 +148,7 @@ FILTER_JUMP_TOF = 999
 
 # ---------- Loop timing ----------
 LOOP_DELAY = 0.02                # Delay between main loop iterations (seconds)
-SENSOR_DELAY = 0.005
+SENSOR_DELAY = 0.02
 TRIG_PULSE_DURATION = 0.000010     # Trigger pulse duration for ultrasonic sensor (seconds)
 
 # ---------- Plotting ----------
@@ -160,7 +160,7 @@ MAX_POINTS = 500                   # Maximum number of points to store for plott
 
 GPIO.setmode(GPIO.BCM)
 GPIO.setwarnings(False)
-i2c = busio.I2C(board.SCL, board.SDA)
+i2c = busio.I2C(board.SCL, board.SDA, frequency=400000 )
 
 START_BTN = 21
 GPIO.setup(START_BTN, GPIO.IN, pull_up_down=GPIO.PUD_UP)
