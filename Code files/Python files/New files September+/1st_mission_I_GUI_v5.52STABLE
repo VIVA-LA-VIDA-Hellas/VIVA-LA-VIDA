@@ -17,9 +17,9 @@
 # v5.5:
 #     - add numners to plots
 #     - changes def turn_decision
-# v5.1:
+# v5.51:
 #     - fixed start readings button 
-# v5.2:
+# v5.52:
 #     - code cleaning
 # TO DO - check time.sleep(LOOP_DELAY) if needed in all instances
 # TO DO - test end turn only with gyro and not distances
