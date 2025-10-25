@@ -741,10 +741,10 @@ def robot_loop():
                         stop_condition = True
 
             # Condition B: front + side safe
-            side_distance = robot.d_left if direction == "LEFT" else robot.d_right
-            if robot.d_front is not None and robot.d_front > FRONT_SAFE_DISTANCE and side_distance is not None and side_distance > SIDE_SAFE_DISTANCE:
-                print("Stop Turn - Front distance")
-                stop_condition = True
+            #side_distance = robot.d_left if direction == "LEFT" else robot.d_right
+            #if robot.d_front is not None and robot.d_front > FRONT_SAFE_DISTANCE and side_distance is not None and side_distance > SIDE_SAFE_DISTANCE:
+            #    print("Stop Turn - Front distance")
+            #    stop_condition = True
 
             # Condition C: reached target angle ± tolerance
             if abs(turn_angle - target_angle) <= TURN_ANGLE_TOLERANCE:
