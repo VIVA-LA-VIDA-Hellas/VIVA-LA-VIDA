@@ -203,9 +203,10 @@ This wasnt working for us. The camera couldn't be as high up as it was originall
 >[!NOTE]
 >The fact that this detection process didn't work for us doesn't render it unuseable. Combined with the use of a different logic specifically for turns, there is potential for a useable output but we decided to take a different approach.
 
-Example values:
 ### Recognising turns - Detecting Blue and Orange lines
 Using the same colour picking process we created earlier, we can also detect blue and orange. Using these colours we were able to turn as well as the direction of said turn.
+
+Example values:
 ## $${\color{blue}Blue}$$
 ```python
     blue_lower = np.array([100, 60, 80])
@@ -219,7 +220,81 @@ Using the same colour picking process we created earlier, we can also detect blu
     mask_orange = cv2.inRange(imgHSV, orange_lower, orange_upper)
 ```
 
-Of course, these values have to be calibrated before the launch of every mission due to the changes in lighting conditions, but we found that this process was much more failproof so it was utilised for the second mission
+Of course, these values have to be calibrated before the launch of every mission due to the changes in lighting conditions, but we found that this process was much more failproof so it was utilised for the second mission.
 
+The logic of the [Blue and Orange turn detection](https://github.com/VIVA-LA-VIDA-Hellas/VIVA-LA-VIDA/blob/main/Code%20files/Python%20files/New%20files%20September%2B/Stage%202/Orange%20Blue%20detection.py) Program is as follows:
+
+Using the HSV mask, this time with blue and orange instead of red and green, we detect the presense of those colours in the feed.
+The difference between the detection comes with the shape of what we're trying to detect. Instead of the cube shaped obstacles that were being previously detected as squares, we needed to now detect lines - continuous strings of pixels with either colour.
+
+ We detected the lines using Hough Transform
+ ```python
+    lines_orange = cv2.HoughLinesP(edges_orange, 1, np.pi / 180, threshold=50, minLineLength=50, maxLineGap=10)
+    lines_blue = cv2.HoughLinesP(edges_blue, 1, np.pi / 180, threshold=50, minLineLength=50, maxLineGap=10)
+
+    img_lines = img.copy()
+
+    # Draw lines for visualization
+    if lines_orange is not None:
+        for x1, y1, x2, y2 in lines_orange[:, 0]:
+            cv2.line(img_lines, (x1, y1), (x2, y2), (255, 0, 0), 2)
+
+    if lines_blue is not None:
+        for x1, y1, x2, y2 in lines_blue[:, 0]:
+            cv2.line(img_lines, (x1, y1), (x2, y2), (0, 165, 255), 2)
+ ```
+We needed to track which of the two lines (If they were visible) was closest to the robot.
+Since the camera output is in 2d, the depth that we see is changed into height.
+
+From our angle:
+
+<img width="640" height="326" alt="image" src="https://github.com/user-attachments/assets/3061790a-a697-474f-b5d3-856471fcd83a" />
+
+From the robot's point of view:
+
+<img width="640" height="326" alt="image" src="https://github.com/user-attachments/assets/21ff6a7e-6255-4585-8d0d-ccff888c40de" />
+
+From the robot's perpective, the line that is closer to it is also <ins> the line that appears lower on its y axis. </ins>
+
+<img width="1061" height="791" alt="gird(1)" src="https://github.com/user-attachments/assets/7c7c9697-de80-4b93-b7c0-9bc996c9000f" />
+
+As you can see in the above image, in this specific scenario where the orange line is clearly closer than the blue one, it is also lower at the point where it intersects with the y axis.
+We utilised this property in our code, but instead of using the point y=0 (midpoint) as reference, we used the pixels of our camera output.
+Since when we start out camera configuration, we always set it to:
+
+```python
+picam2 = Picamera2()
+picam2.configure(picam2.create_preview_configuration(main={"size": (640, 480)}))
+picam2.start()  
+```
+So, a total of 640 pixels on the y axis and 480 on the x axis,
+>[!NOTE]
+>The values start at the top-left most corner where (x,y) is (0,0), Therefore when an object is detected at (example) (x,600), it is at the bottom of the screen.
+>Since we want the object to be close to the robot when it turns to avoid turning too early, we set a reference point of y=400 to act as a "secondary x axis", where if orange/blue is detected above that limit (so, on the lower third of the screen), the car should turn.
+
+For safety, we also implemented a condition to eliminate the chanse of both a orange and blue line simulatiously being found bellow the threshold, where the robot only takes into account the one which is closest to itself.
+
+```python
+        orange_y = 0
+        blue_y = 0
+        orange_y = y_at_center(lines_orange)
+        blue_y = y_at_center(lines_blue)
+ ```
+
+*The values of orange_y and blue_y are originally set to 0 to avoid an error we encountered where the lower line was detected bellow the threshold before the further one was detected at all, returning a non valid value ("NONE") and ending the program abruptly.
+
+```python
+        if orange_y > blue_y and orange_y > 400:
+            print("Turn right (orange line lower at center)")
+            Turn = "Right"
+            TURN_ANGLE = 120
+        elif blue_y > orange_y and blue_y > 400:
+            print("Turn left (blue line lower at center)")
+            Turn = "Left"
+            TURN_ANGLE = 60
+        else:
+            print("No line detected at center")
+            Turn = "No"
+```
 
 
