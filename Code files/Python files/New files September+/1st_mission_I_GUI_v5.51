@@ -23,9 +23,6 @@
 # to do: reduce speed if sensors are none or before turning, logic for movements after stop due to obstacle
 #---------------------------------------------------------------------------------------------------------------------
 
-#errors:
-# readings button does not work
-
 # ===============================
 # IMPORTS
 # ===============================
@@ -534,7 +531,8 @@ def robot_loop():
         dt = current_time - last_time
         last_time = current_time
 
-        if not readings_flag or not loop_flag:
+        #if not readings_flag or not loop_flag:
+        if not reading_flag:
             # if readings not started, keep motors stopped and idle
             robot.stop_motor()
             state = RobotState.IDLE
@@ -571,6 +569,14 @@ def robot_loop():
         right_data.append(robot.d_right if robot.d_right is not None else 0)
         angle_data.append(yaw)
         state_data.append(state.name)
+       
+        # If loop_flag is still False, do NOT run FSM/motors yet—just update plots
+        if not loop_flag:
+            robot.stop_motor()
+            state = RobotState.IDLE
+            status_text = "Sensor readings started"
+            time.sleep(LOOP_DELAY)
+            continue
 
         # ----------------------------
         # FSM transitions & actions
@@ -719,10 +725,10 @@ def robot_loop():
                         stop_condition = True
 
             # Condition B: front + side safe
-            side_distance = robot.d_left if direction == "LEFT" else robot.d_right
-            if robot.d_front is not None and robot.d_front > FRONT_SAFE_DISTANCE and side_distance is not None and side_distance > SIDE_SAFE_DISTANCE:
-                print("Stop Turn - Front distance")
-                stop_condition = True
+            #side_distance = robot.d_left if direction == "LEFT" else robot.d_right
+            #if robot.d_front is not None and robot.d_front > FRONT_SAFE_DISTANCE and side_distance is not None and side_distance > SIDE_SAFE_DISTANCE:
+            #    print("Stop Turn - Front distance")
+            #    stop_condition = True
 
             # Condition C: reached target angle ± tolerance
             if abs(turn_angle - target_angle) <= TURN_ANGLE_TOLERANCE:
@@ -1194,6 +1200,11 @@ def start_readings():
         #start_readings.thread_started = True
         start_readings.sensor_thread_started = True
 
+    if not hasattr(start_readings, "loop_thread_started"):
+        threading.Thread(target=robot_loop, daemon=True).start()
+        start_readings.loop_thread_started = True
+
+
 def start_loop():
     """Start the robot driving loop."""
     global loop_flag, status_text
@@ -1206,9 +1217,9 @@ def start_loop():
     btn_start.config(state="disabled")
     btn_stop.config(state="normal")
 
-    if not hasattr(start_loop, "loop_thread_started"):
-      threading.Thread(target=robot_loop, daemon=True).start()
-      start_loop.loop_thread_started = True
+    #if not hasattr(start_loop, "loop_thread_started"):
+    #  threading.Thread(target=robot_loop, daemon=True).start()
+    #  start_loop.loop_thread_started = True
 
 def stop_loop():
     """Stop the robot loop and motor."""
