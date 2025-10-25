@@ -532,7 +532,7 @@ def robot_loop():
         last_time = current_time
 
         #if not readings_flag or not loop_flag:
-        if not reading_flag:
+        if not reading_flags:
             # if readings not started, keep motors stopped and idle
             robot.stop_motor()
             state = RobotState.IDLE
