@@ -252,7 +252,7 @@ From our angle:
 
 From the robot's point of view:
 
-<img width="640" height="300" alt="image" src="https://github.com/user-attachments/assets/21ff6a7e-6255-4585-8d0d-ccff888c40de" />
+<img width="400" height="307" alt="image" src="https://github.com/user-attachments/assets/21ff6a7e-6255-4585-8d0d-ccff888c40de" />
 
 From the robot's perpective, the line that is closer to it is also <ins> the line that appears lower on its y axis. </ins>
 
