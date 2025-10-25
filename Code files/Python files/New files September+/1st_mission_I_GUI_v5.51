@@ -159,7 +159,7 @@ MAX_POINTS = 500                   # Maximum number of points to store for plott
 
 GPIO.setmode(GPIO.BCM)
 GPIO.setwarnings(False)
-i2c = busio.I2C(board.SCL, board.SDA, frequency=400000 )
+i2c = busio.I2C(board.SCL, board.SDA)
 
 START_BTN = 21
 GPIO.setup(START_BTN, GPIO.IN, pull_up_down=GPIO.PUD_UP)
