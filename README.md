@@ -3,6 +3,11 @@
 > ## HELLENIC TEAM
 ![LOGO_450](https://github.com/user-attachments/assets/4a292dbd-1131-4ac2-b4f5-d45ed665847f)
 
+[![Website](https://github.com/user-attachments/assets/f1bfa494-2a5e-4585-bf28-51d1a5533952)](https://www.viva-la-vida.gr/)
+[![Youtube](https://github.com/user-attachments/assets/c10c4d61-6fc6-457f-85e5-6aa6828ff37e)](https://www.youtube.com/@VIVALAVIDAFutureEnginners)
+[![Facebook](https://github.com/user-attachments/assets/10681b5e-b159-4361-8e9c-d3817352d55c)](https://www.facebook.com/groups/1252558666360750)
+[![Instagram](https://github.com/user-attachments/assets/63fcdc3d-b6c2-4050-a2b3-9f876ce8534f)](https://www.instagram.com/viva_la_vida_gr/)
+[![TikTok](https://github.com/user-attachments/assets/80eab410-b11f-48c7-bab8-3bb86a1b5e76)](https://www.tiktok.com/@viva_la_vida_gr)
 
 ## TEAM MEMBERS:
 ### Nikol Vasilopoulou (user: Quart0xe)
@@ -299,7 +304,7 @@ For safety, we also implemented a condition to eliminate the chanse of both a or
             Turn = "No"
 ```
 
-Using the above logic combined with an IMU for turning, we managed to make our [imucameraturn.py](https://github.com/VIVA-LA-VIDA-Hellas/VIVA-LA-VIDA/blob/main/Code%20files/Python%20files/New%20files%20September%2B/Stage%202/imucameraturn.py) programm.
+Using the above logic combined with an IMU for turning, we managed to make our [imucameraturn.py](https://github.com/VIVA-LA-VIDA-Hellas/VIVA-LA-VIDA/blob/main/Code%20files/Python%20files/New%20files%20September%2B/Stage%202/imucameraturn.py) program.
 > ## A program that:
 > Moves forward until either a blue or orange line is detected
 > Depending on which one is a) lower and b) bellow our set threshold of 400 pixels, output the turn direction (left or right)
