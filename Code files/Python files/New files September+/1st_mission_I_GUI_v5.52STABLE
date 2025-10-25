@@ -152,7 +152,7 @@ MOTOR_REV = 2                 # PCA9685 channel for reverse motor control
 
 # ---------- Servo ----------
 SERVO_CHANNEL = 0             # PCA9685 channel controlling steering servo
-SERVO_CENTER = 88             # Neutral servo angle (degrees)
+SERVO_CENTER = 92             # Neutral servo angle (degrees)
 SERVO_MIN_ANGLE = 50          # Minimum physical servo angle (degrees)
 SERVO_MAX_ANGLE = 130         # Maximum physical servo angle (degrees)
 SERVO_PULSE_MIN = 1000        # Minimum PWM pulse width (microseconds)
