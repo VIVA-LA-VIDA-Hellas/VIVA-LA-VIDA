@@ -201,8 +201,8 @@ But, when we tested multiple different cameras connected to a raspberry pi, incl
 This wasnt working for us. The camera couldn't be as high up as it was originally when its placed on the robot -in the track- and it also needed the robot to go relatively slow so it can catch up with the camera feedback. This is fine for the second mission, where obstacle avoidance is a higher priority than speed, but for a quick first mission we had to find a new way to sense when and how much the car needs to turn.
 
 ### Recognising turns - Detecting Blue and Orange lines
-$${\color{blue}Blue}$$
-$${\color{orange}Orange}$$
+## $${\color{blue}Blue}$$
+## $${\color{orange}Orange}$$
 
 
 
