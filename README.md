@@ -248,15 +248,15 @@ Since the camera output is in 2d, the depth that we see is changed into height.
 
 From our angle:
 
-<img width="640" height="326" alt="image" src="https://github.com/user-attachments/assets/3061790a-a697-474f-b5d3-856471fcd83a" />
+<img width="400" height="200" alt="image" src="https://github.com/user-attachments/assets/3061790a-a697-474f-b5d3-856471fcd83a" />
 
 From the robot's point of view:
 
-<img width="640" height="477" alt="image" src="https://github.com/user-attachments/assets/21ff6a7e-6255-4585-8d0d-ccff888c40de" />
+<img width="640" height="300" alt="image" src="https://github.com/user-attachments/assets/21ff6a7e-6255-4585-8d0d-ccff888c40de" />
 
 From the robot's perpective, the line that is closer to it is also <ins> the line that appears lower on its y axis. </ins>
 
-<img width="1061" height="791" alt="gird(1)" src="https://github.com/user-attachments/assets/7c7c9697-de80-4b93-b7c0-9bc996c9000f" />
+<img width="845" height="650" alt="gird(1)" src="https://github.com/user-attachments/assets/7c7c9697-de80-4b93-b7c0-9bc996c9000f" />
 
 As you can see in the above image, in this specific scenario where the orange line is clearly closer than the blue one, it is also lower at the point where it intersects with the y axis.
 We utilised this property in our code, but instead of using the point y=0 (midpoint) as reference, we used the pixels of our camera output.
