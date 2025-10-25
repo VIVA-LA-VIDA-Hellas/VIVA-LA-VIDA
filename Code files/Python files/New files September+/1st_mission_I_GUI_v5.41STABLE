@@ -13,6 +13,9 @@
 #     - added SENSOR_DELAY variable, 
 #     - speed factor per state
 #     - last_turn_time set to a high value to enable initial turn
+# v5.41:
+#     - fixed start reading button
+#     - added numbering in plots
 # TO DO - check time.sleep(LOOP_DELAY) if needed in all instances
 # TO DO - test end turn only with gyro and not distances
 # to do: add buttons & leds & buzzer
@@ -544,7 +547,8 @@ def robot_loop():
         dt = current_time - last_time
         last_time = current_time
 
-        if not readings_flag or not loop_flag:
+        #if not readings_flag or not loop_flag:
+        if not readings_flag:
             # if readings not started, keep motors stopped and idle
             robot.stop_motor()
             state = RobotState.IDLE
@@ -581,6 +585,14 @@ def robot_loop():
         right_data.append(robot.d_right if robot.d_right is not None else 0)
         angle_data.append(yaw)
         state_data.append(state.name)
+
+        # If loop_flag is still False, do NOT run FSM/motors yet—just update plots
+            if not loop_flag:
+                robot.stop_motor()
+                state = RobotState.IDLE
+                status_text = "Sensor readings started"
+                time.sleep(LOOP_DELAY)
+                continue
 
         # ----------------------------
         # FSM transitions & actions
@@ -1136,6 +1148,10 @@ def start_readings():
         #start_readings.thread_started = True
         start_readings.sensor_thread_started = True
 
+    if not hasattr(start_readings, "loop_thread_started"):
+        threading.Thread(target=robot_loop, daemon=True).start()
+        start_readings.loop_thread_started = True
+
 def start_loop():
     """Start the robot driving loop."""
     global loop_flag, status_text
@@ -1148,9 +1164,9 @@ def start_loop():
     btn_start.config(state="disabled")
     btn_stop.config(state="normal")
 
-    if not hasattr(start_loop, "loop_thread_started"):
-      threading.Thread(target=robot_loop, daemon=True).start()
-      start_loop.loop_thread_started = True
+    #if not hasattr(start_loop, "loop_thread_started"):
+    #  threading.Thread(target=robot_loop, daemon=True).start()
+    #  start_loop.loop_thread_started = True
 
 def stop_loop():
     """Stop the robot loop and motor."""
