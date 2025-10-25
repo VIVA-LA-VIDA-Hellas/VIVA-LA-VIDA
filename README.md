@@ -3,12 +3,11 @@
 > ## HELLENIC TEAM
 ![LOGO_450](https://github.com/user-attachments/assets/4a292dbd-1131-4ac2-b4f5-d45ed665847f)
 
-
 [![Website](https://github.com/user-attachments/assets/fa1ad200-2d47-4041-9703-a8c66c8fa962)](https://www.viva-la-vida.gr/)
-[![Youtube](https://github.com/user-attachments/assets/c10c4d61-6fc6-457f-85e5-6aa6828ff37e)](https://www.youtube.com/@VIVALAVIDAFutureEnginners)
-[![Facebook](https://github.com/user-attachments/assets/df25912f-5b99-4e95-aafd-ba152d62b989)](https://www.facebook.com/groups/1252558666360750)
-[![Instagram](https://github.com/user-attachments/assets/63fcdc3d-b6c2-4050-a2b3-9f876ce8534f)](https://www.instagram.com/viva_la_vida_gr/)
-[![TikTok](https://github.com/user-attachments/assets/80eab410-b11f-48c7-bab8-3bb86a1b5e76)](https://www.tiktok.com/@viva_la_vida_gr)
+[![Youtube](https://github.com/user-attachments/assets/7d082bd6-6470-4c37-881f-5a0bc8695a7f)](https://www.youtube.com/@VIVALAVIDAFutureEnginners)
+[![Facebook](https://github.com/user-attachments/assets/b5805394-0b60-4032-b5c8-41c79e29a313)](https://www.facebook.com/groups/1252558666360750)
+[![Instagram](https://github.com/user-attachments/assets/1af99f41-1ca3-42ba-8c58-24f4023c03de)](https://www.instagram.com/viva_la_vida_gr/)
+[![TikTok](https://github.com/user-attachments/assets/efb356f7-1a95-40ec-9479-392f2e362c01)](https://www.tiktok.com/@viva_la_vida_gr)
 
 ## TEAM MEMBERS:
 ### Nikol Vasilopoulou (user: Quart0xe)
