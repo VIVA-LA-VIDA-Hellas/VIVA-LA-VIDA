@@ -571,7 +571,8 @@ def robot_loop():
         dt = current_time - last_time
         last_time = current_time
 
-        if not readings_flag or not loop_flag:
+        #if not readings_flag or not loop_flag:
+        if not readings_flag:
             # if readings not started, keep motors stopped and idle
             robot.stop_motor()
             state = RobotState.IDLE
@@ -609,6 +610,13 @@ def robot_loop():
         #angle_data.append(yaw)
         angle_data.append(wrap_deg(yaw))
         state_data.append(state.name)
+
+        if not loop_flag:
+            robot.stop_motor()
+            state = RobotState.IDLE
+            status_text = "Sensor readings started"
+            time.sleep(LOOP_DELAY)
+            continue
 
         # ----------------------------
         # FSM transitions & actions
@@ -1235,6 +1243,9 @@ def start_readings():
         #threading.Thread(target=robot_loop, daemon=True).start()
         #start_readings.thread_started = True
         start_readings.sensor_thread_started = True
+    if not hasattr(start_readings, "robot_thread_started"):
+        threading.Thread(target=robot_loop, daemon=True).start()
+        start_readings.robot_thread_started = True
 
 def start_loop():
     """Start the robot driving loop."""
