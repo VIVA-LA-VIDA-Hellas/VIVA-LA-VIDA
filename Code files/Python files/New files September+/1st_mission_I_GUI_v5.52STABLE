@@ -1304,5 +1304,4 @@ if __name__ == "__main__":
         except KeyboardInterrupt:
             print("\n❌ Keyboard interrupt received. Stopping robot loop.")
             loop_flag = False
-            GPIO.output(GREEN_LED, GPIO.LOW)
-            GPIO.output(RED_LED, GPIO.LOW)
+            GPIO.cleanup()
