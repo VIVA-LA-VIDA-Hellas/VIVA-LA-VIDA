@@ -17,6 +17,8 @@
 # v5.5:
 #     - add numners to plots
 #     - changes def turn_decision
+# v5.1:
+#     - fixed start readings button 
 # TO DO - check time.sleep(LOOP_DELAY) if needed in all instances
 # TO DO - test end turn only with gyro and not distances
 # to do: add buttons & leds & buzzer
@@ -1002,7 +1004,7 @@ def launch_gui():
 
     _prev_label_pos = {"front": None, "left": None, "right": None, "angle": None}
     def update_plot():
-        global _prev_label_pos
+        #global _prev_label_pos
 
         if time_data:
             # Update lines
