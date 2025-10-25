@@ -63,7 +63,7 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__)) # Get directory of the run
 
 # ---------- Initialization ----------
 USE_GUI = 1                   # 1 = run with GUI (Tkinter), 0 = run headless (no GUI)
-USE_TOF_SIDES = 1             # Side:  0 = Ultrasonic, 1 = ToF
+USE_TOF_SIDES = 0             # Side:  0 = Ultrasonic, 1 = ToF
 USE_TOF_FRONT = 0             # Front: 0 = Ultrasonic, 1 = ToF
 
 # ---------- Speeds ----------
