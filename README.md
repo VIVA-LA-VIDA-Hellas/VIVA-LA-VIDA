@@ -255,6 +255,9 @@ From the robot's point of view:
 <img width="400" height="307" alt="image" src="https://github.com/user-attachments/assets/21ff6a7e-6255-4585-8d0d-ccff888c40de" />
 
 From the robot's perpective, the line that is closer to it is also <ins> the line that appears lower on its y axis. </ins>
+<p align="center" width="100%">
+    <img width="33%" src="https://github.com/user-attachments/assets/7c7c9697-de80-4b93-b7c0-9bc996c9000f"> 
+</p>
 
 <img width="845" height="650" alt="gird(1)" src="https://github.com/user-attachments/assets/7c7c9697-de80-4b93-b7c0-9bc996c9000f" />
 
