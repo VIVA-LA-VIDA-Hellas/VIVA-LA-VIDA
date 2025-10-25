@@ -53,8 +53,6 @@ from gpiozero import DistanceSensor
 from gpiozero import Device
 from gpiozero.pins.pigpio import PiGPIOFactory
 
-#Device.pin_factory = PiGPIOFactory() - pigpio, needs the daemon.
-
 BASE_DIR = os.path.dirname(os.path.abspath(__file__)) # Get directory of the running script
 
 # ===============================
@@ -67,24 +65,12 @@ USE_TOF_SIDES = 0             # Side:  0 = Ultrasonic, 1 = ToF
 USE_TOF_FRONT = 0             # Front: 0 = Ultrasonic, 1 = ToF
 
 # ---------- Speeds ----------
-#SPEED_CRUISE = 20             # Motor speed for normal straight driving (0-100%)
-#SPEED_TURN = 18               # Motor speed during turns (0-100%)
-
 SPEED_IDLE = 0
 SPEED_STOPPED = 0
-SPEED_CRUISE = 15
+SPEED_CRUISE = 15             # Motor speed for normal straight driving (0-100%)
 SPEED_TURN_INIT = 15
 SPEED_TURN = 15
 SPEED_POST_TURN = 15
-
-STATE_SPEED = {
-    "IDLE": SPEED_IDLE,
-    "STOPPED": SPEED_STOPPED,
-    "CRUISE": SPEED_CRUISE,
-    "TURN_INIT": SPEED_TURN_INIT,
-    "TURNING": SPEED_TURN,
-    "POST_TURN": SPEED_POST_TURN
-}
 
 # ---------- Driving ----------
 SOFT_MARGIN = 18              # Distance from wall where small steering corrections start (cm)
@@ -115,28 +101,6 @@ MAX_TURN_ANGLE = 115          # Maximum yaw change (degrees) to force stop turn
 MAX_LAPS = 3                  # Maximum number of laps before stopping (0 = unlimited)
 POST_LAP_DURATION = 0.9       # Time to drive forward after final lap before stopping (seconds)
 
-# ---------- Servo ----------
-SERVO_CHANNEL = 0             # PCA9685 channel controlling steering servo
-SERVO_CENTER = 88             # Neutral servo angle (degrees)
-SERVO_MIN_ANGLE = 50          # Minimum physical servo angle (degrees)
-SERVO_MAX_ANGLE = 130         # Maximum physical servo angle (degrees)
-SERVO_PULSE_MIN = 1000        # Minimum PWM pulse width (microseconds)
-SERVO_PULSE_MAX = 2000        # Maximum PWM pulse width (microseconds)
-SERVO_PERIOD = 20000          # Servo PWM period (microseconds)
-
-# ---------- Motor ----------
-MOTOR_FWD = 1                 # PCA9685 channel for forward motor control
-MOTOR_REV = 2                 # PCA9685 channel for reverse motor control
-
-# ---------- Ultrasonic sensor pins ----------
-TRIG_FRONT, ECHO_FRONT = 22, 23  # GPIO pins for front sensor
-TRIG_LEFT, ECHO_LEFT = 27, 17    # GPIO pins for left sensor
-TRIG_RIGHT, ECHO_RIGHT = 5, 6    # GPIO pins for right sensor
-
-ULTRASONIC_TIMEOUT = 0.02        # Timeout for ultrasonic sensor reading (seconds)
-# Max distance measurable by a sensor = timeout×17150 - 0.02x17150=343cm maximum distance
-SOUND_SPEED = 17150              # Speed of sound in cm/s for distance calculation for a round trip
-
 # ---------- Sensor data filtering ----------
 N_READINGS = 3                    # Number of readings stored for median filtering
 US_QUEUE_LEN = 3            #Queue_len for Ultrasonic gpiozero.DistanceSensor
@@ -163,6 +127,24 @@ i2c = busio.I2C(board.SCL, board.SDA)
 
 START_BTN = 21
 GPIO.setup(START_BTN, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+
+# ---------- Ultrasonic sensor pins ----------
+TRIG_FRONT, ECHO_FRONT = 22, 23  # GPIO pins for front sensor
+TRIG_LEFT, ECHO_LEFT = 27, 17    # GPIO pins for left sensor
+TRIG_RIGHT, ECHO_RIGHT = 5, 6    # GPIO pins for right sensor
+
+# ---------- Motor ----------
+MOTOR_FWD = 1                 # PCA9685 channel for forward motor control
+MOTOR_REV = 2                 # PCA9685 channel for reverse motor control
+
+# ---------- Servo ----------
+SERVO_CHANNEL = 0             # PCA9685 channel controlling steering servo
+SERVO_CENTER = 88             # Neutral servo angle (degrees)
+SERVO_MIN_ANGLE = 50          # Minimum physical servo angle (degrees)
+SERVO_MAX_ANGLE = 130         # Maximum physical servo angle (degrees)
+SERVO_PULSE_MIN = 1000        # Minimum PWM pulse width (microseconds)
+SERVO_PULSE_MAX = 2000        # Maximum PWM pulse width (microseconds)
+SERVO_PERIOD = 20000          # Servo PWM period (microseconds)
 
 # ===============================
 # SENSOR INITIALIZATION (ToF + Ultrasonic, flexible for mixed scenarios)
@@ -246,16 +228,9 @@ print(f"  Front: {'ToF' if USE_TOF_FRONT else 'Ultrasonic'}")
 print(f"  Left : {'ToF' if USE_TOF_SIDES else 'Ultrasonic'}")
 print(f"  Right: {'ToF' if USE_TOF_SIDES else 'Ultrasonic'}")
 
-    
 pca = PCA9685(i2c)
 pca.frequency = 50
 mpu = adafruit_mpu6050.MPU6050(i2c)
-
-#for trig in [TRIG_FRONT, TRIG_LEFT, TRIG_RIGHT]:
-#    GPIO.setup(trig, GPIO.OUT)
-#    GPIO.output(trig, GPIO.LOW)
-#for echo in [ECHO_FRONT, ECHO_LEFT, ECHO_RIGHT]:
-#    GPIO.setup(echo, GPIO.IN)
 
 # ---------- Calibrate gyro bias at startup ----------
 print("Calibrating gyro...")
@@ -270,6 +245,15 @@ bias /= N
 # ===============================
 # CONTROL FLAGS & STORAGE
 # ===============================
+
+STATE_SPEED = {
+    "IDLE": SPEED_IDLE,
+    "STOPPED": SPEED_STOPPED,
+    "CRUISE": SPEED_CRUISE,
+    "TURN_INIT": SPEED_TURN_INIT,
+    "TURNING": SPEED_TURN,
+    "POST_TURN": SPEED_POST_TURN
+}
 
 # ---------- CONTROL FLAGS ----------
 
@@ -344,24 +328,6 @@ class RobotController:
         # Set motor speed based on FSM state.
         speed = STATE_SPEED.get(state, SPEED_CRUISE)  # default to cruise if unknown
         self.rotate_motor(speed)
-
-    #def get_distance(self, trig, echo):
-    #    try:
-    #        GPIO.output(trig, True)
-    #        time.sleep(TRIG_PULSE_DURATION)
-    #        GPIO.output(trig, False)
-    #        start = time.perf_counter()
-    #        while GPIO.input(echo) == 0:
-    #            if time.perf_counter() - start > ULTRASONIC_TIMEOUT:
-    #                return None
-    #        pulse_start = time.perf_counter()
-    #        while GPIO.input(echo) == 1:
-    #            if time.perf_counter() - pulse_start > ULTRASONIC_TIMEOUT:
-    #                return None
-    #        pulse_end = time.perf_counter()
-    #        return (pulse_end - pulse_start) * SOUND_SPEED
-    #    except:
-    #        return None
 
     def get_distance(self, sensor):
         #sensor: a gpiozero.DistanceSensor instance
@@ -716,15 +682,15 @@ def robot_loop():
             stop_condition = False
 
             # Condition A: side distance convergence (monitor opposite wall)
-            side_distance_monitor = robot.d_left if direction == "RIGHT" else robot.d_right
-            MIN_SIDE_CHANGE = 5  # cm
-            if side_distance_monitor is not None and turn_reference_side_distance is not None:
-                if abs(side_distance_monitor - turn_reference_side_distance) > MIN_SIDE_CHANGE:
-                    lower_bound = turn_reference_side_distance * 0.95
-                    upper_bound = turn_reference_side_distance * 1.05
-                    if lower_bound <= side_distance_monitor <= upper_bound:
-                        print("Stop Turn - Opposite distance")
-                        stop_condition = True
+            #side_distance_monitor = robot.d_left if direction == "RIGHT" else robot.d_right
+            #MIN_SIDE_CHANGE = 5  # cm
+            #if side_distance_monitor is not None and turn_reference_side_distance is not None:
+            #    if abs(side_distance_monitor - turn_reference_side_distance) > MIN_SIDE_CHANGE:
+            #        lower_bound = turn_reference_side_distance * 0.95
+            #        upper_bound = turn_reference_side_distance * 1.05
+            #        if lower_bound <= side_distance_monitor <= upper_bound:
+            #            print("Stop Turn - Opposite distance")
+            #            stop_condition = True
 
             # Condition B: front + side safe
             #side_distance = robot.d_left if direction == "LEFT" else robot.d_right
@@ -736,12 +702,6 @@ def robot_loop():
             if abs(turn_angle - target_angle) <= TURN_ANGLE_TOLERANCE:
                 print("Stop Turn - Target Angle")
                 stop_condition = True
-
-            # Condition C: reached target angle ± tolerance
-            #if direction == "LEFT" and turn_angle >= target_angle - TURN_ANGLE_TOLERANCE:
-            #    stop_condition = True
-            #elif direction == "RIGHT" and turn_angle <= target_angle + TURN_ANGLE_TOLERANCE:
-             #   stop_condition = True
 
             # Condition D: timeout or extreme yaw
             if current_time - turn_start_time > TURN_TIMEOUT:
@@ -768,7 +728,6 @@ def robot_loop():
                     if MAX_LAPS > 0 and lap_count >= MAX_LAPS:
                         # Drive forward a little before stopping
                         robot.set_servo(SERVO_CENTER)
-                        #robot.rotate_motor(SPEED_CRUISE)
                         robot.set_state_speed(state.name)
                         time.sleep(POST_LAP_DURATION)
                         robot.stop_motor()
@@ -786,7 +745,6 @@ def robot_loop():
             # drive straight for short duration then return to CRUISE
             if current_time - post_turn_start < POST_TURN_DURATION:
                 robot.set_servo(SERVO_CENTER)
-                #robot.rotate_motor(SPEED_CRUISE)
                 robot.set_state_speed(state.name)
                 status_text = "Driving (post-turn)"
             else:
@@ -805,7 +763,6 @@ def robot_loop():
 
         # small delay to yield CPU
         time.sleep(LOOP_DELAY)
-
 
 # ===============================
 # GUI SECTION
@@ -1095,14 +1052,6 @@ def launch_gui():
         
     def on_closing():
         stop_loop()
-        #try:
-        #    for pin in [xshut_left, xshut_right, xshut_front, xshut_back]:
-        #        if pin is not None:
-        #            pin.value = False
-        #    time.sleep(0.1)  # give sensors time to power down
-        #except NameError:
-        #    pass  # pins not initialized, skip
-
         # Stop all ToF sensors cleanly
         for sensor in [vl53_left, vl53_right, vl53_front, vl53_back]:
             if sensor is not None:
@@ -1313,9 +1262,6 @@ def load_sliders_json():
 # ===============================
 # MAIN
 # ===============================
-
-#if __name__ == "__main__":
-#    launch_gui()
 
 if __name__ == "__main__":
     print(f"Starting VivaLaVida Autonomous Drive - GUI mode: {USE_GUI}")
