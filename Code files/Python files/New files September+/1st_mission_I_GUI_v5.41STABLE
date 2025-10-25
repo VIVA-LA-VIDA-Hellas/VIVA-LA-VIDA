@@ -587,12 +587,12 @@ def robot_loop():
         state_data.append(state.name)
 
         # If loop_flag is still False, do NOT run FSM/motors yet—just update plots
-            if not loop_flag:
-                robot.stop_motor()
-                state = RobotState.IDLE
-                status_text = "Sensor readings started"
-                time.sleep(LOOP_DELAY)
-                continue
+        if not loop_flag:
+            robot.stop_motor()
+            state = RobotState.IDLE
+            status_text = "Sensor readings started"
+            time.sleep(LOOP_DELAY)
+            continue
 
         # ----------------------------
         # FSM transitions & actions
