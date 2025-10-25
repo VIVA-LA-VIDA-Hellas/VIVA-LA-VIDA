@@ -250,8 +250,8 @@ Since the camera output is in 2d, the depth that we see is changed into height.
     From our angle vs from the robots point of view: 
 </p>
 <p align="center" width="100%">
-    <img width="40%" src="https://github.com/user-attachments/assets/3061790a-a697-474f-b5d3-856471fcd83a"> 
-    <img width="40%" src="https://github.com/user-attachments/assets/21ff6a7e-6255-4585-8d0d-ccff888c40de"> 
+    <img width="50%" src="https://github.com/user-attachments/assets/3061790a-a697-474f-b5d3-856471fcd83a"> 
+    <img width="30%" src="https://github.com/user-attachments/assets/21ff6a7e-6255-4585-8d0d-ccff888c40de"> 
 </p>
 
 
