@@ -201,13 +201,25 @@ But, when we tested multiple different cameras connected to a raspberry pi, incl
 This wasnt working for us. The camera couldn't be as high up as it was originally when its placed on the robot -in the track- and it also needed the robot to go relatively slow so it can catch up with the camera feedback. This is fine for the second mission, where obstacle avoidance is a higher priority than speed, but for a quick first mission we had to find a new way to sense when and how much the car needs to turn.
 
 >[!NOTE]
->The fact that this detection process didn't work for us doesn't render it unuseable. Combined with the use of a different logic specifically for turns, there is potential >for a good output but we decided to take a different approach.
+>The fact that this detection process didn't work for us doesn't render it unuseable. Combined with the use of a different logic specifically for turns, there is potential for a useable output but we decided to take a different approach.
 
+Example values:
 ### Recognising turns - Detecting Blue and Orange lines
+Using the same colour picking process we created earlier, we can also detect blue and orange. Using these colours we were able to turn as well as the direction of said turn.
 ## $${\color{blue}Blue}$$
-
+'''python
+    blue_lower = np.array([100, 60, 80])
+    blue_upper = np.array([120, 120, 170])
+    mask_blue = cv2.inRange(imgHSV, blue_lower, blue_upper)
+'''
 ## $${\color{orange}Orange}$$
+'''python
+    orange_lower = np.array([0, 110, 110])
+    orange_upper = np.array([20, 160, 230])
+    mask_orange = cv2.inRange(imgHSV, orange_lower, orange_upper)
+'''
 
+Of course, these values have to be calibrated before the launch of every mission due to the changes in lighting conditions, but we found that this process was much more failproof so it was utilised for the second mission
 
 
 
