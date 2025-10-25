@@ -859,6 +859,11 @@ def launch_gui():
     ax_angle.grid(True)
     angle_line, = ax_angle.plot([], [], color="purple")
 
+    front_txt = ax_front.text(0.98, 0.90, "", transform=ax_front.transAxes, ha="right", va="center", fontsize=12, bbox=dict(boxstyle="round", fc="white", alpha=0.6))
+    left_txt  = ax_side.text(0.02, 0.90, "", transform=ax_side.transAxes, ha="left", va="center", fontsize=12, bbox=dict(boxstyle="round", fc="white", alpha=0.6))
+    right_txt = ax_side.text(0.98, 0.90, "", transform=ax_side.transAxes, ha="right", va="center", fontsize=12, bbox=dict(boxstyle="round", fc="white", alpha=0.6))
+    angle_txt = ax_angle.text(0.98, 0.90, "", transform=ax_angle.transAxes, ha="right", va="center", fontsize=12, bbox=dict(boxstyle="round", fc="white", alpha=0.6))
+    
     # ---------- Buttons ----------
     btn_readings = tk.Button(root, text="Start Readings", command=start_readings,
                              width=20, height=2, bg="blue", fg="white")
@@ -1034,6 +1039,17 @@ def launch_gui():
                     ax_angle.set_ylim(-180, 180)
                 else:
                     ax_angle.set_ylim(min_angle - 10, max_angle + 10)
+            
+            # --- SIMPLE NUMBERS (no smoothing) ---
+            latest_front = robot.d_front if robot.d_front is not None else 0.0
+            latest_left  = robot.d_left  if robot.d_left  is not None else 0.0
+            latest_right = robot.d_right if robot.d_right is not None else 0.0
+            latest_angle = angle_data[-1] if angle_data else 0.0
+    
+            front_txt.set_text(f"{latest_front:.1f} cm")
+            left_txt.set_text(f"L: {latest_left:.1f} cm")
+            right_txt.set_text(f"R: {latest_right:.1f} cm")
+            angle_txt.set_text(f"{latest_angle:.1f}°")
 
             canvas.draw()
 
