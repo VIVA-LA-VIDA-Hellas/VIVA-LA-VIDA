@@ -299,9 +299,10 @@ For safety, we also implemented a condition to eliminate the chanse of both a or
             Turn = "No"
 ```
 
-Using the above logic combined with an IMU for turning, we managed to make a program that:
+Using the above logic combined with an IMU for turning, we managed to make our [imucameraturn.py](https://github.com/VIVA-LA-VIDA-Hellas/VIVA-LA-VIDA/blob/main/Code%20files/Python%20files/New%20files%20September%2B/Stage%202/imucameraturn.py) programm.
+> ## A program that:
 > Moves forward until either a blue or orange line is detected
 > Depending on which one is a) lower and b) bellow our set threshold of 400 pixels, output the turn direction (left or right)
 > Steer untill the IMU detects the 90 degree change, by setting the servo angle to point left or right accordingly.
 
-This straight-forward logic was ready to be implemented in the trials for the second mission.
+This straight-forward logic was ready to be implemented in the trials for the **second mission.**
