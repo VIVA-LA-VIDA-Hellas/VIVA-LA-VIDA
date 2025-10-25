@@ -1,0 +1,137 @@
+import time
+import board
+import busio
+import digitalio
+import adafruit_vl53l0x
+from pca9685_control import set_servo_angle, set_motor_speed
+from gpiozero import Button
+
+start_button = Button(20)
+
+
+# ===============================
+# MOTOR / SERVO CHANNELS
+# ===============================
+MOTOR_FWD = 1
+MOTOR_REV = 2
+SERVO_CHANNEL = 0
+
+# ===============================
+# SETUP I2C & ToF SENSORS
+# ===============================
+i2c = busio.I2C(board.SCL, board.SDA)
+
+xshut_pins = {
+    "left": board.D16,
+    "right": board.D25,
+    "front": board.D26,
+    "back": board.D24
+}
+addresses = {
+    "left": 0x30,
+    "right": 0x31,
+    "front": 0x32,
+    "back": 0x33
+}
+
+xshuts = {}
+for name, pin in xshut_pins.items():
+    x = digitalio.DigitalInOut(pin)
+    x.direction = digitalio.Direction.OUTPUT
+    x.value = False
+    xshuts[name] = x
+time.sleep(0.1)
+
+sensors = {}
+for name in ["left", "right", "front", "back"]:
+    xshuts[name].value = True
+    time.sleep(0.05)
+    s = adafruit_vl53l0x.VL53L0X(i2c)
+    s.set_address(addresses[name])
+    s.start_continuous()
+    sensors[name] = s
+    print(f"[TOF] {name.upper()} active at {hex(addresses[name])}")
+
+# ===============================
+# HELPER FUNCTIONS
+# ===============================
+def tof_cm(sensor):
+    try:
+        val = sensor.range / 10.0
+        if val <= 0 or val > 150:
+            return 999
+        return val
+    except:
+        return 999
+
+def stable_trigger(sensor, threshold, below=True, count=3):
+    """Return True if sensor stays below/above threshold for 'count' consecutive readings."""
+    hits = 0
+    while True:
+        val = tof_cm(sensor)
+        print(f"→ {sensor}: {val:.2f} cm")
+        if below and 0 < val < threshold:
+            hits += 1
+        elif not below and val > threshold:
+            hits += 1
+        else:
+            hits = 0
+        if hits >= count:
+            return True
+        time.sleep(0.1)
+
+# ===============================
+# MAIN SEQUENCE
+# ===============================
+print("\n=== LEFT TURN SEQUENCE START ===")
+
+# Wait for a single press
+start_button.wait_for_press()
+print("Button pressed! Starting sequence...")
+
+# Optional: do something after press
+for i in range(5):
+    print(f"Running step {i+1}")
+    time.sleep(1)
+
+try:
+    # Center wheels and stop motor
+    set_servo_angle(SERVO_CHANNEL, 88)
+    set_motor_speed(MOTOR_FWD, MOTOR_REV, 0)
+    time.sleep(1)
+
+    # 1️⃣ LEFT turn until front < 4 cm
+    print("[STEP 1] Turning LEFT & moving forward until front < 4 cm...")
+    set_servo_angle(SERVO_CHANNEL, 55)  # left limit
+    set_motor_speed(MOTOR_FWD, MOTOR_REV, 13)  # slower forward
+    time.sleep(0.5)
+    stable_trigger(sensors["front"], 6, below=True)
+    print("➡ Front < 4 cm confirmed.")
+    set_motor_speed(MOTOR_FWD, MOTOR_REV, 0)
+    time.sleep(0.5)
+
+    # 2️⃣ RIGHT turn & reverse until back < 3.5 cm
+    print("[STEP 2] Turning RIGHT & reversing until back < 3.5 cm...")
+    set_servo_angle(SERVO_CHANNEL, 130)  # right limit
+    set_motor_speed(MOTOR_FWD, MOTOR_REV, -13)  # slower reverse
+    stable_trigger(sensors["back"],7.5, below=True)
+    print("➡ Back < 3.5 cm confirmed.")
+    set_motor_speed(MOTOR_FWD, MOTOR_REV, 0)
+
+    # 3️⃣ LEFT again and hold
+    print("[STEP 3] Turning LEFT & staying there.")
+    set_servo_angle(SERVO_CHANNEL, 50)  # left limit
+    set_motor_speed(MOTOR_FWD, MOTOR_REV, 13)
+
+    print("[DONE] Final position: LEFT. Sequence complete.\nHolding position...")
+
+    while True:
+        f = tof_cm(sensors["front"])
+        b = tof_cm(sensors["back"])
+        print(f"[MONITOR] Front={f:.2f} cm | Back={b:.2f} cm")
+        time.sleep(1)
+
+except KeyboardInterrupt:
+    print("\n[STOPPED] by user.")
+    set_servo_angle(SERVO_CHANNEL, 88)
+    set_motor_speed(MOTOR_FWD, MOTOR_REV, 0)
