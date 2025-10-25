@@ -246,6 +246,12 @@ The difference between the detection comes with the shape of what we're trying t
 We needed to track which of the two lines (If they were visible) was closest to the robot.
 Since the camera output is in 2d, the depth that we see is changed into height.
 
+<p align="center" width="100%">
+    From our angle: <img width="50%" src="https://github.com/user-attachments/assets/3061790a-a697-474f-b5d3-856471fcd83a"> 
+    From the robot's point of view: <img width="50%" src="https://github.com/user-attachments/assets/21ff6a7e-6255-4585-8d0d-ccff888c40de"> 
+</p>
+
+
 From our angle:
 
 <img width="400" height="200" alt="image" src="https://github.com/user-attachments/assets/3061790a-a697-474f-b5d3-856471fcd83a" />
