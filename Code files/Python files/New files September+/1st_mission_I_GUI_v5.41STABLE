@@ -22,9 +22,6 @@
 # to do: reduce speed if sensors are none or before turning, logic for movements after stop due to obstacle
 #---------------------------------------------------------------------------------------------------------------------
 
-#errors:
-# readings button does not work
-
 # ===============================
 # IMPORTS
 # ===============================
