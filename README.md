@@ -247,7 +247,7 @@ We needed to track which of the two lines (If they were visible) was closest to 
 Since the camera output is in 2d, the depth that we see is changed into height.
 
 <p align="center" width="100%">
-    From our angle vs from the robots point of view: 
+    ### From our angle vs from the robots point of view: 
 </p>
 <p align="center" width="100%">
     <img width="45%" src="https://github.com/user-attachments/assets/3061790a-a697-474f-b5d3-856471fcd83a"> 
@@ -255,7 +255,7 @@ Since the camera output is in 2d, the depth that we see is changed into height.
 </p>
 
 <p align="center" width="100%">
-    From the robot's perpective, the line that is closer to it is also <ins> the line that appears lower on its y axis. </ins>
+    ### From the robot's perpective, the line that is closer to it is also <ins> the line that appears lower on its y axis. </ins>
     <img width="60%" src="https://github.com/user-attachments/assets/7c7c9697-de80-4b93-b7c0-9bc996c9000f"> 
 </p>
 
