@@ -19,6 +19,8 @@
 #     - changes def turn_decision
 # v5.1:
 #     - fixed start readings button 
+# v5.2:
+#     - code cleaning
 # TO DO - check time.sleep(LOOP_DELAY) if needed in all instances
 # TO DO - test end turn only with gyro and not distances
 # to do: add buttons & leds & buzzer
@@ -112,7 +114,6 @@ FILTER_JUMP_TOF = 999
 # ---------- Loop timing ----------
 LOOP_DELAY = 0.02               # Delay between main loop iterations (seconds) 0.02
 SENSOR_DELAY = 0.01                 
-TRIG_PULSE_DURATION = 0.000010     # Trigger pulse duration for ultrasonic sensor (seconds)
 
 # ---------- Plotting ----------
 MAX_POINTS = 500                   # Maximum number of points to store for plotting
