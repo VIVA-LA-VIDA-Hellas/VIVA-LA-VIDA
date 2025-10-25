@@ -4,7 +4,7 @@
 ![LOGO_450](https://github.com/user-attachments/assets/4a292dbd-1131-4ac2-b4f5-d45ed665847f)
 
 
-[![Website](https://github.com/user-attachments/assets/f1bfa494-2a5e-4585-bf28-51d1a5533952)](https://www.viva-la-vida.gr/)
+[![Website](https://github.com/user-attachments/assets/fa1ad200-2d47-4041-9703-a8c66c8fa962)](https://www.viva-la-vida.gr/)
 [![Youtube](https://github.com/user-attachments/assets/c10c4d61-6fc6-457f-85e5-6aa6828ff37e)](https://www.youtube.com/@VIVALAVIDAFutureEnginners)
 [![Facebook](https://github.com/user-attachments/assets/df25912f-5b99-4e95-aafd-ba152d62b989)](https://www.facebook.com/groups/1252558666360750)
 [![Instagram](https://github.com/user-attachments/assets/63fcdc3d-b6c2-4050-a2b3-9f876ce8534f)](https://www.instagram.com/viva_la_vida_gr/)
