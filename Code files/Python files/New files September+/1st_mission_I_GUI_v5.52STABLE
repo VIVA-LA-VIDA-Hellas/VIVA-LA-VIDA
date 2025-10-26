@@ -1,35 +1,69 @@
-#----------------------------------------------------------------------------------------------------------------------
-# Autonomous drive - VivaLaVida
-# v5.0 - Gold version
-# v5.1 - minor fixes
-# v5.2 - threaded, low-latency sensor reading, Exponential Moving Average (EMA) layer, turn initiation logic
-# v5.3:
-#     - fix stop loop to stop the motor (change at RobotState.IDLE), 
-#     - added timing and continuous reading in tof initialization and also changed tof settings on closing, 
-#     - added linear accelaration in RobotState.IDLE during start, 
-#     - def sensor_reader reduced sleep (0.005 from 0.01)
-# v5.4:
-#     - gpiozero, 
-#     - added SENSOR_DELAY variable, 
-#     - speed factor per state
-#     - last_turn_time set to a high value to enable initial turn
-#     - Removed logic to end turn based on front/side distance
-# v5.5:
-#     - add numners to plots
-#     - changes def turn_decision
-# v5.51:
-#     - fixed start readings button 
-# v5.52:
-#     - code cleaning
-# TO DO - check time.sleep(LOOP_DELAY) if needed in all instances
-# TO DO - test end turn only with gyro and not distances
-# to do: add buttons & leds & buzzer
-# to do: reduce speed if sensors are none or before turning, logic for movements after stop due to obstacle
-#---------------------------------------------------------------------------------------------------------------------
+"""
+-----------------------------------------------------------------------------------------------------------------------
+Autonomous drive 1st Mission WRO 2025
+- VivaLaVida - 
 
-# TIPS:
-# -adjust max distance for Ultrasonic sensor readings (eg max 1m for side)
-# -use 0 delay time
+v5.0 - Gold version
+v5.1 - minor fixes
+v5.2 - threaded, low-latency sensor reading, Exponential Moving Average (EMA) layer, turn initiation logic
+v5.3:
+     - fix stop loop to stop the motor (change at RobotState.IDLE), 
+     - added timing and continuous reading in tof initialization and also changed tof settings on closing, 
+     - added linear accelaration in RobotState.IDLE during start, 
+     - def sensor_reader reduced sleep (0.005 from 0.01)
+v5.4:
+     - gpiozero, 
+     - added SENSOR_DELAY variable, 
+     - speed factor per state
+     - last_turn_time set to a high value to enable initial turn
+     - Removed logic to end turn based on front/side distance
+v5.5:
+     - add numners to plots
+     - changes def turn_decision
+ v5.51:
+     - fixed start readings button 
+v5.52:
+     - code cleaning
+
+TO DO - check time.sleep(LOOP_DELAY) if needed in all instances
+TO DO - test end turn only with gyro and not distances
+to do: add buttons & leds & buzzer
+to do: reduce speed if sensors are none or before turning, logic for movements after stop due to obstacle
+
+TIPS:
+-adjust max distance for Ultrasonic sensor readings (eg max 1m for side)
+-use lower delay time
+----------------------------------------------------------------------------------------------------------------------
+"""
+"""
+______________________________________________________________________________________________________________________
+🚀 Code Structure:
+
+1. Imports
+    - External Libraries
+    - Internal Modules
+2. Variables
+    - Global Constants
+    - Robot-Specific Variables
+3. H/W Setup
+    - Hardware Configuration
+    - Pin Assignments
+4. Robot Classes
+    - Sensor Handling
+    - Motor Control
+    - State Management
+5. Robot Loop
+    - Main Control Loop
+    - Decision Making
+    - Movement Logic
+6. GUI
+    - Tkinter Setup
+    - Sliders & Data Visualization
+7. Main
+    - Initialization
+    - Robot Execution
+______________________________________________________________________________________________________________________
+"""
 
 # ===============================
 # IMPORTS
@@ -66,7 +100,7 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__)) # Get directory of the run
 # ===============================
 
 # ---------- Initialization ----------
-USE_GUI = 0                   # 1 = run with GUI (Tkinter), 0 = run headless (no GUI)
+USE_GUI = 1                   # 1 = run with GUI (Tkinter), 0 = run headless (no GUI)
 USE_TOF_SIDES = 0             # Side:  0 = Ultrasonic, 1 = ToF
 USE_TOF_FRONT = 0             # Front: 0 = Ultrasonic, 1 = ToF
 
