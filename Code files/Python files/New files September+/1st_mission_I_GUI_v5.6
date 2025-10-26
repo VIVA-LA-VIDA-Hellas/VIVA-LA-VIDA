@@ -189,24 +189,24 @@ DIST_ENV_FACTOR  = 1.0  # for distance-related thresholds
 
 # --- Helper functions to get "effective" (scaled) values ---
 def eff_max_correction():
-    return max(1, int(BASE_MAX_CORRECTION * DIST_ENV_FACTOR))
+    return max(1, int(MAX_CORRECTION * DIST_ENV_FACTOR))
 
 def eff_front_turn_trigger():
-    return int(BASE_FRONT_TURN_TRIGGER * DIST_ENV_FACTOR)
+    return int(FRONT_TURN_TRIGGER * DIST_ENV_FACTOR)
 
 def eff_stop_threshold():
-    return int(BASE_STOP_THRESHOLD * DIST_ENV_FACTOR)
+    return int(STOP_THRESHOLD * DIST_ENV_FACTOR)
 
 # --- Scaled state speeds ---
 def state_speed_value(state_name: str) -> int:
     base = {
-        "IDLE":      BASE_SPEED_IDLE,
-        "STOPPED":   BASE_SPEED_STOPPED,
-        "CRUISE":    BASE_SPEED_CRUISE,
-        "TURN_INIT": BASE_SPEED_TURN_INIT,
-        "TURNING":   BASE_SPEED_TURN,
-        "POST_TURN": BASE_SPEED_POST_TURN,
-    }.get(state_name, BASE_SPEED_CRUISE)
+        "IDLE":      SPEED_IDLE,
+        "STOPPED":   SPEED_STOPPED,
+        "CRUISE":    SPEED_CRUISE,
+        "TURN_INIT": SPEED_TURN_INIT,
+        "TURNING":   SPEED_TURN,
+        "POST_TURN": SPEED_POST_TURN,
+    }.get(state_name, SPEED_CRUISE)
     return int(base * SPEED_ENV_FACTOR)
 
 # ===============================
@@ -701,7 +701,8 @@ def robot_loop():
                     desired_servo_angle = robot.safe_straight_control(robot.d_left, robot.d_right)
                     robot.set_servo(desired_servo_angle)
                     #robot.rotate_motor(SPEED_TURN_INIT)
-                    robot.set_state_speed(state.name)
+                    #robot.set_state_speed(state.name)
+                    robot.set_state_speed("TURN_INIT")
                     status_text = "Approaching turn - waiting for side clear"
                     print(status_text)
                     time.sleep(LOOP_DELAY)
