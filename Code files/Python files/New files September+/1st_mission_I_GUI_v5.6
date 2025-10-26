@@ -188,13 +188,20 @@ SPEED_ENV_FACTOR = 1.0
 DIST_ENV_FACTOR  = 1.0  # for distance-related thresholds
 
 # --- Helper functions to get "effective" (scaled) values ---
+def eff_soft_margin():
+    """Return scaled soft margin distance (cm) for gentle steering corrections."""
+    return int(SOFT_MARGIN * DIST_ENV_FACTOR)
+
 def eff_max_correction():
+    """Return scaled maximum steering correction (degrees)."""
     return max(1, int(MAX_CORRECTION * DIST_ENV_FACTOR))
 
 def eff_front_turn_trigger():
+    """Return scaled front distance threshold (cm) for initiating a turn."""
     return int(FRONT_TURN_TRIGGER * DIST_ENV_FACTOR)
 
 def eff_stop_threshold():
+    """Return scaled front distance threshold (cm) for immediate stop."""
     return int(STOP_THRESHOLD * DIST_ENV_FACTOR)
 
 # --- Scaled state speeds ---
@@ -474,10 +481,10 @@ class RobotController:
 
     def safe_straight_control(self, d_left, d_right):
         correction = 0
-        if d_left is not None and d_left < SOFT_MARGIN:
-            correction = (SOFT_MARGIN - d_left)*2
-        elif d_right is not None and d_right < SOFT_MARGIN:
-            correction = -(SOFT_MARGIN - d_right)*2
+        if d_left is not None and d_left < eff_soft_margin():
+            correction = (eff_soft_margin() - d_left)*2
+        elif d_right is not None and d_right < eff_soft_margin():
+            correction = -(eff_soft_margin() - d_right)*2
         #correction = max(-MAX_CORRECTION, min(MAX_CORRECTION, correction))
         correction = max(-eff_max_correction(), min(eff_max_correction(), correction))
         return SERVO_CENTER + correction
