@@ -446,56 +446,29 @@ class RobotController:
             return new_val
         return alpha * new_val + (1 - alpha) * prev_val    
 
-    def filtered_distance_us(self, sensor_obj, history, smooth_attr):
-        try:
-            d = sensor_obj.distance * 100.0  # meters → cm
-        except:
-            d = None
-        history.append(d)
-    
-        valid = [x for x in history if x is not None]
-        if not valid:
-            return 999
-    
-        s = sorted(valid)
-        mid = len(s) // 2
-        median_val = (s[mid - 1] + s[mid]) / 2 if len(s) % 2 == 0 else s[mid]
-        avg_val = sum(valid) / len(valid)
-        filtered_val = 0.7 * median_val + 0.3 * avg_val
-    
-        prev_val = getattr(self, smooth_attr)
-        smoothed_val = self.stable_filter(filtered_val, prev_val, alpha=FILTER_ALPHA, max_jump=FILTER_JUMP)
-        setattr(self, smooth_attr, smoothed_val)
-        return smoothed_val
+    def filtered_distance(self, sensor_obj, history, smooth_attr, sensor_type='us'):
+         try:
+             d = sensor_obj.range / 10.0 if sensor_type == 'tof' else sensor_obj.distance * 100.0
+         except:
+             d = None
+     
+         history.append(d)
+         valid = [x for x in history if x is not None]
+         if not valid:
+             return 999
+     
+         median_val = np.median(valid)
+         avg_val = np.mean(valid)
+         filtered_val = 0.7 * median_val + 0.3 * avg_val
+     
+         prev_val = getattr(self, smooth_attr)
+         alpha = FILTER_ALPHA_TOF if sensor_type == 'tof' else FILTER_ALPHA
+         max_jump = FILTER_JUMP_TOF if sensor_type == 'tof' else FILTER_JUMP
+         smoothed_val = self.stable_filter(filtered_val, prev_val, alpha, max_jump)
+     
+         setattr(self, smooth_attr, smoothed_val)
+         return smoothed_val
 
-    def get_tof_distance(self, sensor):
-        try:
-            d = sensor.range  # mm
-            if d < 20 or d > 2000:
-                return None
-            return d / 10.0  # convert mm → cm
-        except Exception:
-            return None
-
-    def filtered_tof(self, sensor, history, smooth_attr):
-        d = self.get_tof_distance(sensor)
-        history.append(d)
-    
-        valid = [x for x in history if x is not None]
-        if not valid:
-            return 999
-
-        s = sorted(valid)
-        mid = len(s) // 2
-        median_val = (s[mid - 1] + s[mid]) / 2 if len(s) % 2 == 0 else s[mid]
-        avg_val = sum(valid) / len(valid)
-        filtered_val = 0.7 * median_val + 0.3 * avg_val
-    
-        prev_val = getattr(self, smooth_attr)
-        smoothed_val = self.stable_filter(filtered_val, prev_val, alpha=FILTER_ALPHA_TOF, max_jump=FILTER_JUMP_TOF)
-    
-        setattr(self, smooth_attr, smoothed_val)
-        return smoothed_val
 
     def safe_straight_control(self, d_left, d_right):
         correction = 0
@@ -523,25 +496,25 @@ def sensor_reader():
     while True:
         # Left sensor
         if vl53_left:  # ToF
-            left = robot.filtered_tof(vl53_left, robot.left_history, "smooth_left")
+            left = robot.filtered_distance(vl53_left, robot.left_history, "smooth_left")
         elif us_left:  # ultrasonic
-            left = robot.filtered_distance_us(us_left, robot.left_history, "smooth_left")
+            left = robot.filtered_distance(us_left, robot.left_history, "smooth_left")
         else:
             left = None
 
         # Right sensor
         if vl53_right:
-            right = robot.filtered_tof(vl53_right, robot.right_history, "smooth_right")
+            right = robot.filtered_distance(vl53_right, robot.right_history, "smooth_right")
         elif us_right:
-            right = robot.filtered_distance_us(us_right, robot.right_history, "smooth_right")
+            right = robot.filtered_distance(us_right, robot.right_history, "smooth_right")
         else:
             right = None
 
         # Front sensor
         if vl53_front:
-            front = robot.filtered_tof(vl53_front, robot.front_history, "smooth_front")
+            front = robot.filtered_distance(vl53_front, robot.front_history, "smooth_front")
         elif us_front:
-            front = robot.filtered_distance_us(us_front, robot.front_history, "smooth_front")
+            front = robot.filtered_distance(us_front, robot.front_history, "smooth_front")
         else:
             front = None
 
@@ -1196,71 +1169,6 @@ def launch_gui():
     update_status()
     update_plot()
     root.mainloop()
-
-# ===============================
-# GUI UPDATE FUNCTIONS (duplicate helpers used outside nested GUI function)
-# ===============================
-def status_color(state: str) -> str:
-    if "Stopped" in state:
-        return "red"
-    elif "Turning" in state:
-        return "yellow"
-    elif "Driving" in state:
-        return "green"
-    elif "Loop Started" in state or "Sensor readings started" in state:
-        return "blue"
-    else:
-        return "grey"
-
-def status_label(state: str) -> str:
-    if "Stopped" in state:
-        return "STOP"
-    elif "Turning" in state:
-        return "TURN"
-    elif "Driving" in state:
-        return "GO"
-    elif "Loop Started" in state:
-        return "LOOP"
-    elif "Sensor readings started" in state:
-        return "READ"
-    else:
-        return "IDLE"
-
-def update_status():
-    lbl_status.config(text=status_text)
-    status_canvas.itemconfig(status_circle, fill=status_color(status_text))
-    status_canvas.itemconfig(status_text_id, text=status_label(status_text))
-    lbl_turns.config(text=f"Turns: {turn_count}")
-    lbl_laps.config(text=f"Laps: {lap_count}" if slider_vars["MAX_LAPS"].get() > 0 else f"Laps: {lap_count}/∞")
-    root.after(200, update_status)
-
-def update_plot():
-    if time_data:
-        front_line.set_data(range(len(front_data)), front_data)
-        left_line.set_data(range(len(left_data)), left_data)
-        right_line.set_data(range(len(right_data)), [-v for v in right_data])
-        angle_line.set_data(range(len(angle_data)), angle_data)
-
-        ax_front.set_xlim(0, MAX_POINTS)
-        ax_side.set_xlim(0, MAX_POINTS)
-        ax_angle.set_xlim(0, MAX_POINTS)
-
-        if angle_data:
-            min_angle = min(angle_data)
-            max_angle = max(angle_data)
-            if max_angle - min_angle > 180:
-                ax_angle.set_ylim(-180, 180)
-            else:
-                ax_angle.set_ylim(min_angle - 10, max_angle + 10)
-
-        canvas.draw()
-
-    root.after(100, update_plot)
-
-def on_closing():
-    stop_loop()
-    GPIO.cleanup()
-    root.destroy()
 
 # -------------------------
 # Start / Stop
