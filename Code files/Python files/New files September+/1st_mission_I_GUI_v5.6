@@ -721,7 +721,8 @@ def robot_loop():
                         print(status_text)
                         robot.set_servo(robot.safe_straight_control(robot.d_left, robot.d_right))
                         #robot.rotate_motor(SPEED_CRUISE)
-                        robot.set_state_speed(state.name)
+                        #robot.set_state_speed(state.name)
+                        robot.set_state_speed("TURN_INIT")
                         time.sleep(LOOP_DELAY)
                         continue
                     direction = locked_turn_direction
