@@ -306,6 +306,9 @@ STATE_SPEED = {
     "POST_TURN": SPEED_POST_TURN
 }
 
+# Corridor width status (updated by robot_loop, read by GUI)
+corridor_mode = "UNKNOWN"   # "NARROW", "NORMAL", "UNKNOWN"
+
 # ---------- CONTROL FLAGS ----------
 
 loop_flag = False
@@ -474,6 +477,10 @@ class RobotController:
     
         if d_left is not None and d_right is not None:
             combined_distance = d_left + d_right
+            is_narrow = combined_distance <= WALL_DISTANCE_THRESHOLD
+            corridor_mode = "NARROW" if is_narrow else "NORMAL"
+        else:
+            corridor_mode = "UNKNOWN"
     
             if combined_distance <= WALL_DISTANCE_THRESHOLD:  # If combined distance is below 0.6m, adjust for narrow space
                 # Scale the existing parameters based on Z (e.g., reduce by (1 - Z))
@@ -910,6 +917,14 @@ def launch_gui():
     actions_frame = tk.LabelFrame(root, text="Actions", padx=10, pady=10)
     actions_frame.grid(row=0, column=2, rowspan=8, sticky="ns", padx=10, pady=5)
 
+     # ---------- Corridor badge ----------
+     corridor_canvas = tk.Canvas(actions_frame, width=80, height=80, highlightthickness=0)
+     corridor_circle = corridor_canvas.create_oval(10, 10, 70, 70, fill="grey", outline="")
+     corridor_text   = corridor_canvas.create_text(40, 40, text="—", fill="white", font=("Arial", 12, "bold"))
+     corridor_label  = tk.Label(actions_frame, text="Corridor", font=("Arial", 10))
+     corridor_canvas.pack(pady=(10,2))
+     corridor_label.pack()
+
     # ---------- Two-column layout ----------
     btn_readings.grid(row=0, column=0, sticky="ew", padx=5, pady=2)
     btn_start.grid(row=1, column=0, sticky="ew", padx=5, pady=2)
@@ -1039,6 +1054,19 @@ def launch_gui():
         status_canvas.itemconfig(status_text_id, text=status_label(status_text))
         lbl_turns.config(text=f"Turns: {turn_count}")
         lbl_laps.config(text=f"Laps: {lap_count}" if slider_vars["MAX_LAPS"].get() > 0 else f"Laps: {lap_count}/∞")
+
+        # Corridor badge update
+        mode = corridor_mode  # uses global set by robot_loop
+        if mode == "NARROW":
+             color, text = "orange", "NAR"
+        elif mode == "NORMAL":
+             color, text = "teal", "NOR"
+        else:
+             color, text = "grey", "—"
+        corridor_canvas.itemconfig(corridor_circle, fill=color)
+        corridor_canvas.itemconfig(corridor_text, text=text)
+
+        
         root.after(200, update_status)
 
     _prev_label_pos = {"front": None, "left": None, "right": None, "angle": None}
