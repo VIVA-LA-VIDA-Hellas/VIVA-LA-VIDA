@@ -159,13 +159,13 @@ US_MAX_DISTANCE_FRONT = 3.43  # Ultrasonic front max read distance
 US_MAX_DISTANCE_SIDE = 3.43   # Ultrasonic side max read distance
 
 # ---------- Loop timing ----------
-LOOP_DELAY = 0.02               # Delay between main loop iterations (seconds) 0.02
-SENSOR_DELAY = 0.02             # Delay between sensor reads
+LOOP_DELAY = 0.02             # Delay between main loop iterations (seconds) 0.02
+SENSOR_DELAY = 0.02           # Delay between sensor reads
 
 #-----------------------------------------------------------------------------------------
 
 # ---------- Plotting ----------
-MAX_POINTS = 500                   # Maximum number of points to store for plotting
+MAX_POINTS = 500               # Maximum number of points to store for plotting
 
 # --- Store immutable base values for scaling ---
 BASE_SPEED_IDLE        = SPEED_IDLE
