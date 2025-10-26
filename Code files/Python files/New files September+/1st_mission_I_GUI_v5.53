@@ -165,7 +165,7 @@ SENSOR_DELAY = 0.02
 # ---------- Plotting ----------
 MAX_POINTS = 500                   # Maximum number of points to store for plotting
 
-# Keep immutable baselines so GUI sliders can still change the "base" values.
+# --- Store immutable base values for scaling ---
 BASE_SPEED_IDLE        = SPEED_IDLE
 BASE_SPEED_STOPPED     = SPEED_STOPPED
 BASE_SPEED_CRUISE      = SPEED_CRUISE
@@ -173,28 +173,25 @@ BASE_SPEED_TURN_INIT   = SPEED_TURN_INIT
 BASE_SPEED_TURN        = SPEED_TURN
 BASE_SPEED_POST_TURN   = SPEED_POST_TURN
 
-BASE_MAX_CORRECTION        = MAX_CORRECTION
-BASE_FRONT_TURN_TRIGGER    = FRONT_TURN_TRIGGER
-BASE_FRONT_SAFE_DISTANCE   = FRONT_SAFE_DISTANCE
-BASE_SIDE_SAFE_DISTANCE    = SIDE_SAFE_DISTANCE
+BASE_MAX_CORRECTION     = MAX_CORRECTION
+BASE_FRONT_TURN_TRIGGER = FRONT_TURN_TRIGGER
+BASE_STOP_THRESHOLD     = STOP_THRESHOLD
 
-# Global env factor controlled by the left+right sum detector
+# --- Global factors (automatically updated) ---
 SPEED_ENV_FACTOR = 1.0
-DIST_ENV_FACTOR  = 1.0  # for thresholds / safe distances
+DIST_ENV_FACTOR  = 1.0  # for distance-related thresholds
 
+# --- Helper functions to get "effective" (scaled) values ---
 def eff_max_correction():
     return max(1, int(BASE_MAX_CORRECTION * DIST_ENV_FACTOR))
 
 def eff_front_turn_trigger():
     return int(BASE_FRONT_TURN_TRIGGER * DIST_ENV_FACTOR)
 
-def eff_front_safe_distance():
-    return int(BASE_FRONT_SAFE_DISTANCE * DIST_ENV_FACTOR)
+def eff_stop_threshold():
+    return int(BASE_STOP_THRESHOLD * DIST_ENV_FACTOR)
 
-def eff_side_safe_distance():
-    return int(BASE_SIDE_SAFE_DISTANCE * DIST_ENV_FACTOR)
-
-# Rebuild STATE_SPEED on demand from the baselines and SPEED_ENV_FACTOR
+# --- Scaled state speeds ---
 def state_speed_value(state_name: str) -> int:
     base = {
         "IDLE":      BASE_SPEED_IDLE,
@@ -618,15 +615,13 @@ def robot_loop():
         robot.d_left = d_left
         robot.d_right = d_right
 
-        # ---- Narrow corridor detector (right+left) ----
-        # Keep a persistent flag across iterations
+        # ---- Narrow corridor detector (sum of side distances) ----
         if not hasattr(robot_loop, "_narrow_mode"):
             robot_loop._narrow_mode = False
      
-        # Treat missing readings as "wide" so we don't accidentally slow down
+        # Use None-safe math (ignore invalid readings)
         l = robot.d_left  if (robot.d_left  is not None and robot.d_left  != 999) else None
         r = robot.d_right if (robot.d_right is not None and robot.d_right != 999) else None
-     
         sum_lr = None if (l is None or r is None) else (l + r)
      
         enter_thresh = NARROW_SUM_THRESHOLD
@@ -639,15 +634,16 @@ def robot_loop():
             elif robot_loop._narrow_mode and sum_lr > exit_thresh:
                 robot_loop._narrow_mode = False
      
-        # Apply factors
+        # Apply global factors
         global SPEED_ENV_FACTOR, DIST_ENV_FACTOR
         SPEED_ENV_FACTOR = NARROW_FACTOR if robot_loop._narrow_mode else 1.0
         DIST_ENV_FACTOR  = NARROW_FACTOR if robot_loop._narrow_mode else 1.0
      
+        # Optional console feedback
         if robot_loop._narrow_mode != prev_mode:
             mode_txt = "NARROW mode ON" if robot_loop._narrow_mode else "NARROW mode OFF"
             print(f"[corridor] {mode_txt} (L+R = {sum_lr:.1f} cm)" if sum_lr is not None else f"[corridor] {mode_txt}")
-
+             
         # Gyro integration
         raw_gyro_z = mpu.gyro[2] - bias
         ALPHA = 0.8
@@ -697,7 +693,7 @@ def robot_loop():
             # -------------------------------
             # Emergency stop: immediate
             # -------------------------------
-            if robot.d_front is not None and robot.d_front < STOP_THRESHOLD:
+            if robot.d_front is not None and robot.d_front < eff_stop_threshold():
                 robot.stop_motor()
                 status_text = "Stopped! Obstacle ahead"
                 print(status_text)
@@ -713,7 +709,7 @@ def robot_loop():
             #              (left_far or right_far) and \
             #              (current_time - last_turn_time >= TURN_LOCKOUT)
 
-            can_trigger = (robot.d_front is not None and robot.d_front < eff_front_turn_trigger()) and \ (left_far or right_far) and \ (current_time - last_turn_time >= TURN_LOCKOUT)
+            can_trigger = (robot.d_front is not None and robot.d_front < eff_front_turn_trigger()) and (left_far or right_far) and (current_time - last_turn_time >= TURN_LOCKOUT)
 
             # -------------------------------
             # Decide to transition to TURN_INIT
