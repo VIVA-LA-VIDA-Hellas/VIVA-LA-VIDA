@@ -107,6 +107,10 @@ USE_GUI = 1                   # 1 = run with GUI (Tkinter), 0 = run headless (no
 USE_TOF_SIDES = 0             # Side:  0 = Ultrasonic, 1 = ToF
 USE_TOF_FRONT = 0             # Front: 0 = Ultrasonic, 1 = ToF
 
+NARROW_SUM_THRESHOLD = 80     # cm; tune to your field
+NARROW_HYSTERESIS = 10        # cm; prevents rapid toggling
+NARROW_FACTOR = 0.6           # multiply by this when narrow
+
 # ---------- Speeds ----------
 SPEED_IDLE = 0
 SPEED_STOPPED = 0
@@ -160,6 +164,47 @@ SENSOR_DELAY = 0.02
 
 # ---------- Plotting ----------
 MAX_POINTS = 500                   # Maximum number of points to store for plotting
+
+# Keep immutable baselines so GUI sliders can still change the "base" values.
+BASE_SPEED_IDLE        = SPEED_IDLE
+BASE_SPEED_STOPPED     = SPEED_STOPPED
+BASE_SPEED_CRUISE      = SPEED_CRUISE
+BASE_SPEED_TURN_INIT   = SPEED_TURN_INIT
+BASE_SPEED_TURN        = SPEED_TURN
+BASE_SPEED_POST_TURN   = SPEED_POST_TURN
+
+BASE_MAX_CORRECTION        = MAX_CORRECTION
+BASE_FRONT_TURN_TRIGGER    = FRONT_TURN_TRIGGER
+BASE_FRONT_SAFE_DISTANCE   = FRONT_SAFE_DISTANCE
+BASE_SIDE_SAFE_DISTANCE    = SIDE_SAFE_DISTANCE
+
+# Global env factor controlled by the left+right sum detector
+SPEED_ENV_FACTOR = 1.0
+DIST_ENV_FACTOR  = 1.0  # for thresholds / safe distances
+
+def eff_max_correction():
+    return max(1, int(BASE_MAX_CORRECTION * DIST_ENV_FACTOR))
+
+def eff_front_turn_trigger():
+    return int(BASE_FRONT_TURN_TRIGGER * DIST_ENV_FACTOR)
+
+def eff_front_safe_distance():
+    return int(BASE_FRONT_SAFE_DISTANCE * DIST_ENV_FACTOR)
+
+def eff_side_safe_distance():
+    return int(BASE_SIDE_SAFE_DISTANCE * DIST_ENV_FACTOR)
+
+# Rebuild STATE_SPEED on demand from the baselines and SPEED_ENV_FACTOR
+def state_speed_value(state_name: str) -> int:
+    base = {
+        "IDLE":      BASE_SPEED_IDLE,
+        "STOPPED":   BASE_SPEED_STOPPED,
+        "CRUISE":    BASE_SPEED_CRUISE,
+        "TURN_INIT": BASE_SPEED_TURN_INIT,
+        "TURNING":   BASE_SPEED_TURN,
+        "POST_TURN": BASE_SPEED_POST_TURN,
+    }.get(state_name, BASE_SPEED_CRUISE)
+    return int(base * SPEED_ENV_FACTOR)
 
 # ===============================
 # HARDWARE SETUP
@@ -376,7 +421,8 @@ class RobotController:
 
     def set_state_speed(self, state):
         # Set motor speed based on FSM state.
-        speed = STATE_SPEED.get(state, SPEED_CRUISE)  # default to cruise if unknown
+        #speed = STATE_SPEED.get(state, SPEED_CRUISE)  # default to cruise if unknown
+        speed = state_speed_value(state)
         self.rotate_motor(speed)
 
     def get_distance(self, sensor):
@@ -456,7 +502,8 @@ class RobotController:
             correction = (SOFT_MARGIN - d_left)*2
         elif d_right is not None and d_right < SOFT_MARGIN:
             correction = -(SOFT_MARGIN - d_right)*2
-        correction = max(-MAX_CORRECTION, min(MAX_CORRECTION, correction))
+        #correction = max(-MAX_CORRECTION, min(MAX_CORRECTION, correction))
+        correction = max(-eff_max_correction(), min(eff_max_correction(), correction))
         return SERVO_CENTER + correction
      
     def turn_decision(self, d_left, d_right):
@@ -571,6 +618,36 @@ def robot_loop():
         robot.d_left = d_left
         robot.d_right = d_right
 
+        # ---- Narrow corridor detector (right+left) ----
+        # Keep a persistent flag across iterations
+        if not hasattr(robot_loop, "_narrow_mode"):
+            robot_loop._narrow_mode = False
+     
+        # Treat missing readings as "wide" so we don't accidentally slow down
+        l = robot.d_left  if (robot.d_left  is not None and robot.d_left  != 999) else None
+        r = robot.d_right if (robot.d_right is not None and robot.d_right != 999) else None
+     
+        sum_lr = None if (l is None or r is None) else (l + r)
+     
+        enter_thresh = NARROW_SUM_THRESHOLD
+        exit_thresh  = NARROW_SUM_THRESHOLD + NARROW_HYSTERESIS
+     
+        prev_mode = robot_loop._narrow_mode
+        if sum_lr is not None:
+            if not robot_loop._narrow_mode and sum_lr < enter_thresh:
+                robot_loop._narrow_mode = True
+            elif robot_loop._narrow_mode and sum_lr > exit_thresh:
+                robot_loop._narrow_mode = False
+     
+        # Apply factors
+        global SPEED_ENV_FACTOR, DIST_ENV_FACTOR
+        SPEED_ENV_FACTOR = NARROW_FACTOR if robot_loop._narrow_mode else 1.0
+        DIST_ENV_FACTOR  = NARROW_FACTOR if robot_loop._narrow_mode else 1.0
+     
+        if robot_loop._narrow_mode != prev_mode:
+            mode_txt = "NARROW mode ON" if robot_loop._narrow_mode else "NARROW mode OFF"
+            print(f"[corridor] {mode_txt} (L+R = {sum_lr:.1f} cm)" if sum_lr is not None else f"[corridor] {mode_txt}")
+
         # Gyro integration
         raw_gyro_z = mpu.gyro[2] - bias
         ALPHA = 0.8
@@ -632,10 +709,12 @@ def robot_loop():
             # -------------------------------
             left_far = (robot.d_left is None) or (robot.d_left > TURN_DECISION_THRESHOLD)
             right_far = (robot.d_right is None) or (robot.d_right > TURN_DECISION_THRESHOLD)
-            can_trigger = (robot.d_front is not None and robot.d_front < FRONT_TURN_TRIGGER) and \
-                          (left_far or right_far) and \
-                          (current_time - last_turn_time >= TURN_LOCKOUT)
-        
+            #can_trigger = (robot.d_front is not None and robot.d_front < FRONT_TURN_TRIGGER) and \
+            #              (left_far or right_far) and \
+            #              (current_time - last_turn_time >= TURN_LOCKOUT)
+
+            can_trigger = (robot.d_front is not None and robot.d_front < eff_front_turn_trigger()) and \ (left_far or right_far) and \ (current_time - last_turn_time >= TURN_LOCKOUT)
+
             # -------------------------------
             # Decide to transition to TURN_INIT
             # -------------------------------
