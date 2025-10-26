@@ -487,8 +487,11 @@ class RobotController:
             correction = -(eff_soft_margin() - d_right)*2
         #correction = max(-MAX_CORRECTION, min(MAX_CORRECTION, correction))
         correction = max(-eff_max_correction(), min(eff_max_correction(), correction))
-        return SERVO_CENTER + correction
-     
+        #return SERVO_CENTER + correction
+        angle = SERVO_CENTER + correction
+        angle = max(SERVO_MIN_ANGLE, min(SERVO_MAX_ANGLE, angle))
+        return angle
+
     def turn_decision(self, d_left, d_right):
         left_open  = (d_left  is None) or (d_left  == 999) or (d_left  > TURN_DECISION_THRESHOLD)
         right_open = (d_right is None) or (d_right == 999) or (d_right > TURN_DECISION_THRESHOLD)
