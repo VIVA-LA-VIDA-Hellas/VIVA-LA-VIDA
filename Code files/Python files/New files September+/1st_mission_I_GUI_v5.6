@@ -20,7 +20,7 @@ v5.4:
 v5.5:
      - add numners to plots
      - changes def turn_decision
- v5.51:
+v5.51:
      - fixed start readings button 
 v5.52:
      - code cleaning
@@ -698,8 +698,8 @@ def robot_loop():
                     # No side available: keep driving straight until a valid turn appears
                     desired_servo_angle = robot.safe_straight_control(robot.d_left, robot.d_right)
                     robot.set_servo(desired_servo_angle)
-                    robot.rotate_motor(SPEED_TURN_INIT)
-                    #robot.set_state_speed(state.name)
+                    #robot.rotate_motor(SPEED_TURN_INIT)
+                    robot.set_state_speed(state.name)
                     status_text = "Approaching turn - waiting for side clear"
                     print(status_text)
                     time.sleep(LOOP_DELAY)
