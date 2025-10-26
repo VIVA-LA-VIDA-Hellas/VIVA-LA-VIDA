@@ -783,7 +783,7 @@ def robot_loop():
             # compute turn angle relative to start
             turn_angle = yaw - turn_start_yaw  # positive for LEFT, negative for RIGHT
             target_angle = TARGET_TURN_ANGLE if direction == "LEFT" else -TARGET_TURN_ANGLE
-
+            robot.set_state_speed("TURNING")
             stop_condition = False
 
             # Condition A: side distance convergence (monitor opposite wall)
