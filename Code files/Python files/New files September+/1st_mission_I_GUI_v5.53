@@ -103,9 +103,9 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__)) # Get directory of the run
 # ===============================
 
 # ---------- Initialization ----------
-USE_GUI = 1                   # 1 = run with GUI (Tkinter), 0 = run headless (no GUI)
-USE_TOF_SIDES = 0             # Side:  0 = Ultrasonic, 1 = ToF
-USE_TOF_FRONT = 0             # Front: 0 = Ultrasonic, 1 = ToF
+USE_GUI = 1                   # 1 = Debugging mode (run with GUI), 0 = COMPETITION MODE (run headless, no GUI)
+USE_TOF_SIDES = 0             # Side sensors:  0 = Ultrasonic, 1 = ToF
+USE_TOF_FRONT = 0             # Front sensor:  0 = Ultrasonic, 1 = ToF
 
 NARROW_SUM_THRESHOLD = 60     # cm; left+right distance threshold to decide if in between narrow walls
 NARROW_HYSTERESIS = 10        # cm; prevents rapid toggling
@@ -115,9 +115,9 @@ NARROW_FACTOR = 0.7           # multiply by this when narrow, eg speed * factor
 SPEED_IDLE = 0
 SPEED_STOPPED = 0
 SPEED_CRUISE = 15             # Motor speed for normal straight driving (0-100%)
-SPEED_TURN_INIT = 15
-SPEED_TURN = 15
-SPEED_POST_TURN = 15
+SPEED_TURN_INIT = 15          # Motor speed while waiting for open side to turn
+SPEED_TURN = 15               # Motor speed while turning
+SPEED_POST_TURN = 15          # Motor speed following a turn
 
 # ---------- Driving ----------
 SOFT_MARGIN = 18              # Distance from wall where small steering corrections start (cm)
@@ -160,8 +160,7 @@ US_MAX_DISTANCE_SIDE = 3.43   # Ultrasonic side max read distance
 
 # ---------- Loop timing ----------
 LOOP_DELAY = 0.02               # Delay between main loop iterations (seconds) 0.02
-SENSOR_DELAY = 0.02                 
-
+SENSOR_DELAY = 0.02             # Delay between sensor reads
 
 #-----------------------------------------------------------------------------------------
 
