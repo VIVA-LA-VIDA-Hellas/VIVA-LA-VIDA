@@ -25,6 +25,7 @@ v5.5:
 v5.52:
      - code cleaning
 
+TO DO - Change variables (speed etc) if wall is narrow
 TO DO - check time.sleep(LOOP_DELAY) if needed in all instances
 TO DO - test end turn only with gyro and not distances
 to do: add buttons & leds & buzzer
