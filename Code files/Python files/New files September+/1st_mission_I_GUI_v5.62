@@ -33,6 +33,7 @@ v5.61:
      - efficiency improvements (Events + responsive waits, High-precision timing with monotonic_ns
 v5.62:
      - stop due to obstacle (wait for clear front to continue)
+     - code cleaning
      
 TO DO - Change variables (speed etc) if wall is narrow
 TO DO - check time.sleep(LOOP_DELAY) if needed in all instances
@@ -118,7 +119,9 @@ USE_TOF_FRONT = 0             # Front sensor:  0 = Ultrasonic, 1 = ToF
 
 NARROW_SUM_THRESHOLD = 60     # cm; left+right distance threshold to decide if in between narrow walls
 NARROW_HYSTERESIS = 10        # cm; prevents rapid toggling
-NARROW_FACTOR = 1.0          # multiply by this when narrow, eg speed * factor
+NARROW_FACTOR = 1.0           # multiply by this when narrow, eg speed * factor
+NARROW_FACTOR_SPEED = 1.0     # multiply state speeds when in narrow corridors
+NARROW_FACTOR_DIST  = 1.0     # multiply distance-based thresholds/corrections when in narrow corridors
 
 # ---------- Speeds ----------
 SPEED_IDLE = 0
@@ -646,8 +649,8 @@ def robot_loop():
      
         # Apply global factors
         global SPEED_ENV_FACTOR, DIST_ENV_FACTOR
-        SPEED_ENV_FACTOR = NARROW_FACTOR if robot_loop._narrow_mode else 1.0
-        DIST_ENV_FACTOR  = NARROW_FACTOR if robot_loop._narrow_mode else 1.0
+        SPEED_ENV_FACTOR = NARROW_FACTOR_SPEED if robot_loop._narrow_mode else 1.0
+        DIST_ENV_FACTOR  = NARROW_FACTOR_DIST  if robot_loop._narrow_mode else 1.0
      
         # Optional console feedback
         if robot_loop._narrow_mode != prev_mode:
