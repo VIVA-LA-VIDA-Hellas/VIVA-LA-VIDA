@@ -98,8 +98,8 @@ import adafruit_vl53l0x
 from enum import Enum, auto
 import numpy as np
 from gpiozero import DistanceSensor
-from gpiozero import Device
-from gpiozero.pins.pigpio import PiGPIOFactory
+#from gpiozero import Device
+#from gpiozero.pins.pigpio import PiGPIOFactory
 from threading import Event
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__)) # Get directory of the running script
@@ -876,7 +876,8 @@ def robot_loop():
                         # Drive forward a little before stopping
                         robot.set_servo(SERVO_CENTER)
                         robot.set_state_speed(state.name)
-                        time.sleep(POST_LAP_DURATION)
+                        #time.sleep(POST_LAP_DURATION)
+                        sensor_tick.wait(POST_LAP_DURATION); sensor_tick.clear()
                         robot.stop_motor()
                         #loop_flag = False
                         #state = RobotState.STOPPED
