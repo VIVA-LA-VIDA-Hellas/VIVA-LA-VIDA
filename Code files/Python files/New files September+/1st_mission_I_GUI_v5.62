@@ -719,6 +719,7 @@ def robot_loop():
             # -------------------------------
             if robot.d_front is not None and robot.d_front < eff_stop_threshold():
                 robot.stop_motor()
+                robot.set_servo(SERVO_CENTER)     
                 status_text = "Stopped! Obstacle ahead"
                 print(status_text)
                 state = RobotState.STOPPED
