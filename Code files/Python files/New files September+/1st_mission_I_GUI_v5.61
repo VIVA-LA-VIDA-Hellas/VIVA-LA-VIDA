@@ -686,7 +686,8 @@ def robot_loop():
         # FSM transitions & actions
         # ----------------------------
         if state == RobotState.IDLE:
-            status_text = "Ready (readings started, loop not started)" if readings_flag else "Idle"
+            #status_text = "Ready (readings started, loop not started)" if readings_flag else "Idle"
+            status_text = "Ready (readings started, loop not started)" if readings_event.is_set() else "Idle"
             robot.stop_motor()
             robot.set_servo(SERVO_CENTER)
             correction_active = False
@@ -877,7 +878,11 @@ def robot_loop():
                         robot.set_state_speed(state.name)
                         time.sleep(POST_LAP_DURATION)
                         robot.stop_motor()
-                        loop_flag = False
+                        #loop_flag = False
+                        #state = RobotState.STOPPED
+                        #status_text = f"Stopped - Max Laps ({MAX_LAPS}) reached"
+                        loop_event.clear()
+                        sensor_tick.set()  # wake waits immediately
                         state = RobotState.STOPPED
                         status_text = f"Stopped - Max Laps ({MAX_LAPS}) reached"
                         continue
