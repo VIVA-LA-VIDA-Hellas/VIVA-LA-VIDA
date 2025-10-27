@@ -173,6 +173,8 @@ SENSOR_DELAY = 0.02           # Delay between sensor reads
 # ---------- Plotting ----------
 MAX_POINTS = 500               # Maximum number of points to store for plotting
 
+RAD2DEG = 180.0 / 3.141592653589793
+
 # --- Store immutable base values for scaling ---
 BASE_SPEED_IDLE        = SPEED_IDLE
 BASE_SPEED_STOPPED     = SPEED_STOPPED
@@ -568,8 +570,10 @@ def robot_loop():
     post_turn_start = 0.0
     #last_turn_time = -TURN_LOCKOUT
     last_turn_time = -999
-    last_time = time.monotonic()
-    start_time = time.monotonic()
+    #last_time = time.monotonic()
+    #start_time = time.monotonic()
+    last_ns = time.monotonic_ns()
+    start_ns = last_ns
     use_post_turn_ref = False
     post_turn_ref_diff = None
     correction_active = False
@@ -582,9 +586,13 @@ def robot_loop():
     robot.set_servo(SERVO_CENTER)
 
     while True:
-        current_time = time.monotonic()
-        dt = current_time - last_time
-        last_time = current_time
+        #current_time = time.monotonic()
+        #dt = current_time - last_time
+        #last_time = current_time
+        current_ns = time.monotonic_ns()
+        dt = (current_ns - last_ns) * 1e-9   # seconds
+        last_ns = current_ns
+        current_time = current_ns * 1e-9     # float seconds, used by UI/timers
 
         #if not readings_flag or not loop_flag:
         #if not readings_flag:
@@ -640,15 +648,23 @@ def robot_loop():
             print(f"[corridor] {mode_txt} (L+R = {sum_lr:.1f} cm)" if sum_lr is not None else f"[corridor] {mode_txt}")
              
         # Gyro integration
-        raw_gyro_z = mpu.gyro[2] - bias
+        #raw_gyro_z = mpu.gyro[2] - bias
+        #ALPHA = 0.8
+        #gyro_z_filtered = ALPHA * raw_gyro_z + (1 - ALPHA) * getattr(robot, 'gyro_z_prev', 0)
+        #robot.gyro_z_prev = gyro_z_filtered
+        #gyro_z_deg = gyro_z_filtered * (180 / 3.14159265)
+        #yaw += gyro_z_deg * dt
+
+        raw_gyro_z = mpu.gyro[2] - bias      # rad/s from MPU6050
         ALPHA = 0.8
-        gyro_z_filtered = ALPHA * raw_gyro_z + (1 - ALPHA) * getattr(robot, 'gyro_z_prev', 0)
+        gyro_z_filtered = ALPHA * raw_gyro_z + (1 - ALPHA) * getattr(robot, 'gyro_z_prev', 0.0)
         robot.gyro_z_prev = gyro_z_filtered
-        gyro_z_deg = gyro_z_filtered * (180 / 3.14159265)
-        yaw += gyro_z_deg * dt
+        yaw += (gyro_z_filtered * RAD2DEG) * dt
+
 
         # Append to deques for plotting/logging
-        elapsed_time = current_time - start_time
+        #elapsed_time = current_time - start_time
+        elapsed_time = (current_ns - start_ns) * 1e-9
         time_data.append(elapsed_time)
         front_data.append(robot.d_front if robot.d_front is not None else 0)
         left_data.append(robot.d_left if robot.d_left is not None else 0)
