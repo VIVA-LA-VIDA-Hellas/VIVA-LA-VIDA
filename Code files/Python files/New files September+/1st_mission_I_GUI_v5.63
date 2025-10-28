@@ -38,7 +38,9 @@ v5.62:
 v5.63:
      - Turn init state/speed fix
      - Variable to adjust servo speed
-     
+
+Notes: 
+- Correction active is only available in cruise and not in turn init
 TO DO - Change variables (speed etc) if wall is narrow
 TO DO - check time.sleep(LOOP_DELAY) if needed in all instances
 TO DO - test end turn only with gyro and not distances
