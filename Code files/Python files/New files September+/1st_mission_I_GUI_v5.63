@@ -37,6 +37,7 @@ v5.62:
      - code cleaning
 v5.63:
      - Turn init state/speed fix
+     - Variable to adjust servo speed
      
 TO DO - Change variables (speed etc) if wall is narrow
 TO DO - check time.sleep(LOOP_DELAY) if needed in all instances
@@ -155,6 +156,10 @@ POST_TURN_DURATION = 0.5      # Time to drive straight after a turn (seconds)
 LOCK_TURN_DIRECTION = 1       # 1 = enable turn lock direction after 1st turn, 0 = disable
 TARGET_TURN_ANGLE = 85        # Degrees to turn per corner
 TURN_ANGLE_TOLERANCE = 5      # Acceptable overshoot (degrees)
+
+SERVO_SLEW_DPS = 300.0        # max degrees/second the servo command may change (0 = no limit)
+# Reduce to ~200 for gentler turns, increase to ~450 for sharper response.
+# Set to 0 to disable limiting and go back to “as fast as the servo can”.
 
 # ---------- Turn angle constraints ----------
 MIN_TURN_ANGLE = 65           # Minimum yaw change (degrees) before turn can stop
@@ -421,17 +426,43 @@ class RobotController:
         self.d_right = None
         self.sensor_index = 0
         self.gyro_z_prev = 0
+        self._servo_last_angle = SERVO_CENTER
+        self._servo_last_ns = time.monotonic_ns()
 
     def set_filter_size(self, n):
         self.front_history = deque(list(self.front_history)[-n:], maxlen=n)
         self.left_history = deque(list(self.left_history)[-n:], maxlen=n)
         self.right_history = deque(list(self.right_history)[-n:], maxlen=n)
 
+    #def set_servo(self, angle):
+    #    angle = max(SERVO_MIN_ANGLE, min(SERVO_MAX_ANGLE, angle))
+    #    pulse = int(SERVO_PULSE_MIN + (SERVO_PULSE_MAX - SERVO_PULSE_MIN) *
+    #                ((angle - SERVO_MIN_ANGLE) / (SERVO_MAX_ANGLE - SERVO_MIN_ANGLE)))
+    #    self.pca.channels[SERVO_CHANNEL].duty_cycle = int(pulse * 65535 / SERVO_PERIOD)
+
     def set_servo(self, angle):
-        angle = max(SERVO_MIN_ANGLE, min(SERVO_MAX_ANGLE, angle))
+        # 1) clamp target
+        target = max(SERVO_MIN_ANGLE, min(SERVO_MAX_ANGLE, angle))
+     
+        # 2) simple built-in slew limiter using one knob: SERVO_SLEW_DPS
+        now_ns = time.monotonic_ns()
+        dt = max(0.0, (now_ns - self._servo_last_ns) * 1e-9)
+        if SERVO_SLEW_DPS > 0 and dt > 0:
+            max_step = SERVO_SLEW_DPS * dt
+            diff = target - self._servo_last_angle
+            if abs(diff) > max_step:
+                target = self._servo_last_angle + (max_step if diff > 0 else -max_step)
+    
+        # 3) remember for next call
+        self._servo_last_angle = target
+        self._servo_last_ns = now_ns
+    
+        # 4) convert to pulse & send (unchanged)
         pulse = int(SERVO_PULSE_MIN + (SERVO_PULSE_MAX - SERVO_PULSE_MIN) *
-                    ((angle - SERVO_MIN_ANGLE) / (SERVO_MAX_ANGLE - SERVO_MIN_ANGLE)))
+                    ((target - SERVO_MIN_ANGLE) / (SERVO_MAX_ANGLE - SERVO_MIN_ANGLE)))
         self.pca.channels[SERVO_CHANNEL].duty_cycle = int(pulse * 65535 / SERVO_PERIOD)
+    
+        return target  # handy if you want to log the actual command
 
     def rotate_motor(self, speed):
         duty_cycle = int(min(max(abs(speed), 0), 100)/100*65535)
