@@ -739,6 +739,7 @@ def robot_loop():
             if loop_event.is_set():
                 state = RobotState.CRUISE
                 status_text = "Driving (cruise)"
+                correction_active = False  # Reset correction when transitioning to CRUISE
                 for speed in range(0, SPEED_CRUISE + 1):
                     #if not loop_flag:
                     if not loop_event.is_set():
@@ -776,38 +777,39 @@ def robot_loop():
                 state = RobotState.TURN_INIT
                 status_text = "Approaching turn – waiting for side to open"
                 continue
-            
-            #left_far = (robot.d_left is None) or (robot.d_left > TURN_DECISION_THRESHOLD)
-            #right_far = (robot.d_right is None) or (robot.d_right > TURN_DECISION_THRESHOLD)
-            #can_trigger = (robot.d_front is not None and robot.d_front < FRONT_TURN_TRIGGER) and \
-            #              (left_far or right_far) and \
-            #              (current_time - last_turn_time >= TURN_LOCKOUT)
-
-            #can_trigger = (robot.d_front is not None and robot.d_front < eff_front_turn_trigger()) and (left_far or right_far) and (current_time - last_turn_time >= TURN_LOCKOUT)
-
-            # -------------------------------
-            # Decide to transition to TURN_INIT
-            # -------------------------------
-            #if can_trigger and loop_flag:
-            #front_triggered = (robot.d_front is not None and robot.d_front < eff_front_turn_trigger())
-            #lockout_ok = (current_time - last_turn_time >= TURN_LOCKOUT)
-
-            #if front_triggered and lockout_ok and loop_event.is_set():
-            #    # immediately enter TURN_INIT and drop speed
-            #    state = RobotState.TURN_INIT
-            #    status_text = "Approaching turn – waiting for side to open"
-            #    continue
-        
+                  
             # -------------------------------
             # Normal cruise servo control
             # Safe straight control active only after the 1st turn
             # -------------------------------
             if turn_count >= 1:
-                desired_servo_angle = robot.safe_straight_control(robot.d_left, robot.d_right)
-                robot.set_servo(desired_servo_angle)
+            # Wall-following correction after the first turn
+            desired_servo_angle = robot.safe_straight_control(robot.d_left, robot.d_right)
+     
+                 # Start correction if robot is too close to a wall
+                 if (robot.d_left is not None and robot.d_left < eff_soft_margin()) or (robot.d_right is not None and robot.d_right < eff_soft_margin()):
+                     if not correction_active:  # Start correction if not already active
+                         correction_active = True
+                         correction_start_time = current_time  # Record the start time of correction
+                         status_text = "Driving (correction)"
+                         print(f"↔️ Correction started. Servo angle: {desired_servo_angle}")
+          
+                 # If correction is active, apply the correction angle
+                 if correction_active:
+                     # If correction duration is up, stop correction
+                     if current_time - correction_start_time >= CORRECTION_DURATION:
+                         correction_active = False
+                         desired_servo_angle = SERVO_CENTER  # Reset to center once correction is done
+                         status_text = "Driving (correction ended)"
+                         print(f"↔️ Correction ended. Servo angle: {desired_servo_angle}")
+          
+                 robot.set_servo(desired_servo_angle)  # Apply the desired servo angle (corrected or not)
+
             else:
-                desired_servo_angle = SERVO_CENTER
-                correction_active = False
+                 # Before the first turn, keep the servo centered and don't apply correction
+                 desired_servo_angle = SERVO_CENTER
+                 correction_active = False
+                 robot.set_servo(desired_servo_angle)  # Keep centered
             
             # -------------------------------
             # Timed servo correction behavior
@@ -832,6 +834,7 @@ def robot_loop():
             # If you prefer slight wall-following here, use safe_straight_control().
             status_text = "Turn init – waiting for open side"
             robot.set_state_speed(state.name)
+            correction_active = False  # Reset when entering TURN_INIT
         
             # fail-safe: if front becomes safe again, return to cruise
             if robot.d_front is not None and robot.d_front >= eff_front_turn_trigger():
@@ -843,9 +846,15 @@ def robot_loop():
                 continue
         
             # keep the wheels centered (or gentle straight correction)
-            desired_servo_angle = robot.safe_straight_control(robot.d_left, robot.d_right) if turn_count >= 1 else SERVO_CENTER
+            #desired_servo_angle = robot.safe_straight_control(robot.d_left, robot.d_right) if turn_count >= 1 else SERVO_CENTER
+            #robot.set_servo(desired_servo_angle)
+            if turn_count >= 1:
+                 desired_servo_angle = robot.safe_straight_control(robot.d_left, robot.d_right)
+            else:
+                 # No correction before first turn: keep the wheels centered (or gentle straight correction)
+                 desired_servo_angle = SERVO_CENTER
             robot.set_servo(desired_servo_angle)
-        
+
             # Decide direction only when exactly one side is open
             proposed_direction = robot.turn_decision(robot.d_left, robot.d_right)
         
@@ -966,6 +975,7 @@ def robot_loop():
             # motors must be stopped; remain stopped until loop_flag cleared by GUI or user
         elif state == RobotState.STOPPED:
             robot.stop_motor()
+            robot.set_servo(SERVO_CENTER)
         
             # --- Obstacle-driven stop: auto-retry after OBSTACLE_WAIT_TIME ---
             if stop_reason == "OBSTACLE":
