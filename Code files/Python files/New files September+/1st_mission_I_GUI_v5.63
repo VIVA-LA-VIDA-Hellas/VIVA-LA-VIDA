@@ -777,26 +777,26 @@ def robot_loop():
                 status_text = "Approaching turn – waiting for side to open"
                 continue
             
-            left_far = (robot.d_left is None) or (robot.d_left > TURN_DECISION_THRESHOLD)
-            right_far = (robot.d_right is None) or (robot.d_right > TURN_DECISION_THRESHOLD)
+            #left_far = (robot.d_left is None) or (robot.d_left > TURN_DECISION_THRESHOLD)
+            #right_far = (robot.d_right is None) or (robot.d_right > TURN_DECISION_THRESHOLD)
             #can_trigger = (robot.d_front is not None and robot.d_front < FRONT_TURN_TRIGGER) and \
             #              (left_far or right_far) and \
             #              (current_time - last_turn_time >= TURN_LOCKOUT)
 
-            can_trigger = (robot.d_front is not None and robot.d_front < eff_front_turn_trigger()) and (left_far or right_far) and (current_time - last_turn_time >= TURN_LOCKOUT)
+            #can_trigger = (robot.d_front is not None and robot.d_front < eff_front_turn_trigger()) and (left_far or right_far) and (current_time - last_turn_time >= TURN_LOCKOUT)
 
             # -------------------------------
             # Decide to transition to TURN_INIT
             # -------------------------------
             #if can_trigger and loop_flag:
-            front_triggered = (robot.d_front is not None and robot.d_front < eff_front_turn_trigger())
-            lockout_ok = (current_time - last_turn_time >= TURN_LOCKOUT)
+            #front_triggered = (robot.d_front is not None and robot.d_front < eff_front_turn_trigger())
+            #lockout_ok = (current_time - last_turn_time >= TURN_LOCKOUT)
 
-            if front_triggered and lockout_ok and loop_event.is_set():
-                # immediately enter TURN_INIT and drop speed
-                state = RobotState.TURN_INIT
-                status_text = "Approaching turn – waiting for side to open"
-                continue
+            #if front_triggered and lockout_ok and loop_event.is_set():
+            #    # immediately enter TURN_INIT and drop speed
+            #    state = RobotState.TURN_INIT
+            #    status_text = "Approaching turn – waiting for side to open"
+            #    continue
         
             # -------------------------------
             # Normal cruise servo control
@@ -831,7 +831,7 @@ def robot_loop():
             # Stay slow and keep wheels mostly straight while we wait for a side to open.
             # If you prefer slight wall-following here, use safe_straight_control().
             status_text = "Turn init – waiting for open side"
-            robot.set_state_speed("state.name")
+            robot.set_state_speed(state.name)
         
             # fail-safe: if front becomes safe again, return to cruise
             if robot.d_front is not None and robot.d_front >= eff_front_turn_trigger():
@@ -913,7 +913,7 @@ def robot_loop():
                 print("Stop Turn - Max turn time")
                 stop_condition = True
             if abs(turn_angle) >= MAX_TURN_ANGLE:
-                print("Stop Turn - Max turn time")
+                print("Stop Turn - Max turn angle")
                 stop_condition = True
 
             # If any stop condition met -> finish turn
