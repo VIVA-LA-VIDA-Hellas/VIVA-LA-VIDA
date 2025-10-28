@@ -34,6 +34,7 @@ v5.61:
 v5.62:
      - stop due to obstacle (wait for clear front to continue)
      - code cleaning
+     - turn init state/speed fix
      
 TO DO - Change variables (speed etc) if wall is narrow
 TO DO - check time.sleep(LOOP_DELAY) if needed in all instances
