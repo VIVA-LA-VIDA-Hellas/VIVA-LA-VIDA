@@ -159,7 +159,7 @@ LOCK_TURN_DIRECTION = 1       # 1 = enable turn lock direction after 1st turn, 0
 TARGET_TURN_ANGLE = 85        # Degrees to turn per corner
 TURN_ANGLE_TOLERANCE = 5      # Acceptable overshoot (degrees)
 
-SERVO_SLEW_DPS = 300.0        # max degrees/second the servo command may change (0 = no limit)
+SERVO_SLEW_DPS = 0        # max degrees/second the servo command may change (0 = no limit)
 # Reduce to ~200 for gentler turns, increase to ~450 for sharper response.
 # Set to 0 to disable limiting and go back to “as fast as the servo can”.
 
