@@ -788,30 +788,30 @@ def robot_loop():
             # Wall-following correction after the first turn
             desired_servo_angle = robot.safe_straight_control(robot.d_left, robot.d_right)
      
-                 # Start correction if robot is too close to a wall
-                 if (robot.d_left is not None and robot.d_left < eff_soft_margin()) or (robot.d_right is not None and robot.d_right < eff_soft_margin()):
-                     if not correction_active:  # Start correction if not already active
-                         correction_active = True
-                         correction_start_time = current_time  # Record the start time of correction
-                         status_text = "Driving (correction)"
-                         print(f"↔️ Correction started. Servo angle: {desired_servo_angle}")
+                # Start correction if robot is too close to a wall
+                if (robot.d_left is not None and robot.d_left < eff_soft_margin()) or (robot.d_right is not None and robot.d_right < eff_soft_margin()):
+                    if not correction_active:  # Start correction if not already active
+                        correction_active = True
+                        correction_start_time = current_time  # Record the start time of correction
+                        status_text = "Driving (correction)"
+                        print(f"↔️ Correction started. Servo angle: {desired_servo_angle}")
           
-                 # If correction is active, apply the correction angle
-                 if correction_active:
-                     # If correction duration is up, stop correction
-                     if current_time - correction_start_time >= CORRECTION_DURATION:
-                         correction_active = False
-                         desired_servo_angle = SERVO_CENTER  # Reset to center once correction is done
-                         status_text = "Driving (correction ended)"
-                         print(f"↔️ Correction ended. Servo angle: {desired_servo_angle}")
+                # If correction is active, apply the correction angle
+                if correction_active:
+                    # If correction duration is up, stop correction
+                    if current_time - correction_start_time >= CORRECTION_DURATION:
+                        correction_active = False
+                        desired_servo_angle = SERVO_CENTER  # Reset to center once correction is done
+                        status_text = "Driving (correction ended)"
+                        print(f"↔️ Correction ended. Servo angle: {desired_servo_angle}")
           
-                 robot.set_servo(desired_servo_angle)  # Apply the desired servo angle (corrected or not)
+                robot.set_servo(desired_servo_angle)  # Apply the desired servo angle (corrected or not)
 
             else:
-                 # Before the first turn, keep the servo centered and don't apply correction
-                 desired_servo_angle = SERVO_CENTER
-                 correction_active = False
-                 robot.set_servo(desired_servo_angle)  # Keep centered
+                # Before the first turn, keep the servo centered and don't apply correction
+                desired_servo_angle = SERVO_CENTER
+                correction_active = False
+                robot.set_servo(desired_servo_angle)  # Keep centered
             
             # -------------------------------
             # Timed servo correction behavior
