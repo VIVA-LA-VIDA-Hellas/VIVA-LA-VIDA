@@ -194,6 +194,39 @@ MAX_POINTS = 500               # Maximum number of points to store for plotting
 
 RAD2DEG = 180.0 / 3.141592653589793
 
+# ===============================
+# LOAD VARIABLES FROM JSON (if exists)
+# ===============================
+import json  # already imported above; safe to keep
+
+CONFIG_FILE = os.path.join(BASE_DIR, "1st_mission_variables.json")
+
+def load_variables_from_json(path=CONFIG_FILE):
+    """
+    Override defaults with values from JSON if the file exists.
+    If missing or invalid, keep the built-in defaults from the code.
+    """
+    if not os.path.exists(path):
+        print("⚙️ No external config found — using built-in defaults.")
+        return
+    try:
+        with open(path, "r") as f:
+            data = json.load(f)
+        # Only override keys that already exist in globals()
+        for k, v in data.items():
+            if k in globals():
+                globals()[k] = v
+        print(f"✅ Loaded {len(data)} variables from {os.path.basename(path)}")
+    except Exception as e:
+        print(f"[ERROR] Config load failed: {e} — using built-in defaults.")
+
+# Call it right after defining defaults so everything below sees the overrides
+load_variables_from_json()
+
+
+
+
+
 # --- Store immutable base values for scaling ---
 BASE_SPEED_IDLE        = SPEED_IDLE
 BASE_SPEED_STOPPED     = SPEED_STOPPED
