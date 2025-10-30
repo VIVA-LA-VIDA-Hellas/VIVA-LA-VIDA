@@ -1,0 +1,55 @@
+-----------------------------------------------------------------------------------------------------------------------
+Autonomous drive 1st Mission WRO 2025
+- VivaLaVida - 
+
+v5.0 - Gold version
+v5.1 - minor fixes
+v5.2 - threaded, low-latency sensor reading, Exponential Moving Average (EMA) layer, turn initiation logic
+v5.3:
+     - fix stop loop to stop the motor (change at RobotState.IDLE), 
+     - added timing and continuous reading in tof initialization and also changed tof settings on closing, 
+     - added linear accelaration in RobotState.IDLE during start, 
+     - def sensor_reader reduced sleep (0.005 from 0.01)
+v5.4:
+     - gpiozero, 
+     - added SENSOR_DELAY variable, 
+     - speed factor per state
+     - last_turn_time set to a high value to enable initial turn
+     - Removed logic to end turn based on front/side distance
+v5.5:
+     - add numners to plots
+     - changes def turn_decision
+v5.51:
+     - fixed start readings button 
+v5.52:
+     - code cleaning
+v5.53:
+     - factor to change variables if in between narrow walls
+v5.6:
+     - code cleaning
+     - bugs to fix: turn init speed probably not working, check speed sliders if ok, check BASE speeds if needed
+v5.61:
+     - efficiency improvements (Events + responsive waits, High-precision timing with monotonic_ns
+v5.62:
+     - stop due to obstacle (wait for clear front to continue)
+     - code cleaning
+v5.63:
+     - Turn init state/speed fix
+     - Variable to adjust servo speed
+v5.64:
+     - load variables from json file
+v5.7:
+     - code cleaning
+
+Notes: 
+- Correction active is only available in cruise and not in turn init
+TO DO - Change variables (speed etc) if wall is narrow
+TO DO - check time.sleep(LOOP_DELAY) if needed in all instances
+TO DO - test end turn only with gyro and not distances
+to do: add buttons & leds & buzzer
+to do: reduce speed if sensors are none or before turning, logic for movements after stop due to obstacle
+
+TIPS:
+-adjust max distance for Ultrasonic sensor readings (eg max 1m for side)
+-use lower delay time
+----------------------------------------------------------------------------------------------------------------------
