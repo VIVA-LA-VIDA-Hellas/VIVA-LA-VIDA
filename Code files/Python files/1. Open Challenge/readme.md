@@ -154,9 +154,7 @@ gpiozero
 
 ## 🏁 Run Modes
 - **Debugging (GUI) Mode:**
-  ```bash
-  USE_GUI = 1
-  ```
+  Set `USE_GUI = 1` and press Start Readings & Start Loop button.
 - **Headless Mode:**
   Set `USE_GUI = 0` and press the hardware start button.
 
