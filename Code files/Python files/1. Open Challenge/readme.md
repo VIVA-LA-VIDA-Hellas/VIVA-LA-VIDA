@@ -65,17 +65,6 @@ Built with **Tkinter** and **matplotlib**, providing:
 Configuration values are defined in code but can be overridden using `1st_mission_variables.json`.
 All GUI slider changes can be saved and reloaded.
 
-### Example JSON Structure
-```json
-{
-  "SPEED_CRUISE": 25,
-  "TURN_ANGLE_LEFT": 60,
-  "TURN_ANGLE_RIGHT": 120,
-  "MAX_LAPS": 3,
-  "FILTER_ALPHA": 0.5
-}
-```
-
 ---
 
 ## 🧱 System Architecture Diagram
@@ -100,9 +89,9 @@ All GUI slider changes can be saved and reloaded.
                     ▼
  ┌──────────────────────────────────────────┐
  │             GUI / HEADLESS MODE          │
- │  - Tkinter dashboard                    │
- │  - Sliders, plots, and CSV export       │
- │  - Physical start button (headless)     │
+ │  - Dashboard                             │
+ │  - Sliders, plots, and CSV export        │
+ │  - Physical start button (headless)      │
  └──────────────────────────────────────────┘
 ```
 
@@ -110,30 +99,19 @@ All GUI slider changes can be saved and reloaded.
 
 ## 📈 Mission Path Diagram
 ```
-+-------------------------------------------+
-|                                           |
++--------------------------------------------+
+|                                            |
 |   ←──────────── Lap 1 ────────────→        |
 |   |                               |        |
-|   |     +-----------+             |        |
-|   |     |  Center   |             |        |
-|   |     |  Obstacle |             |        |
-|   |     +-----------+             |        |
+|   |        +-----------+          |        |
+|   |        |  Center   |          |        |
+|   |        |  Obstacle |          |        |
+|   |        +-----------+          |        |
 |   |                               |        |
 |   ←──────────── Lap 2 ────────────→        |
-|                                           |
-+-------------------------------------------+
+|                                            |
++--------------------------------------------+
 ```
-
----
-
-## 🧾 Parameter Summary
-| Category | Variable | Description | Example |
-|-----------|-----------|-------------|----------|
-| Speed | `SPEED_CRUISE` | Normal drive speed | 25 |
-| Turn | `TURN_ANGLE_LEFT` / `RIGHT` | Servo turn angles | 60 / 120 |
-| Safety | `STOP_THRESHOLD` | Distance to stop (cm) | 20 |
-| Sensor | `FILTER_ALPHA` | Filter smoothing | 0.5 |
-| Logic | `MAX_LAPS` | Total laps before stop | 3 |
 
 ---
 
@@ -143,19 +121,14 @@ adafruit_pca9685
 adafruit_mpu6050
 adafruit_vl53l0x
 gpiozero
-matplotlib
-tkinter
-numpy
-json
-csv
 ```
 
 ---
 
 ## 🏁 Run Modes
-- **GUI Mode:**
+- **Debugging (GUI) Mode:**
   ```bash
-  python3 autonomous_drive.py
+ Set `USE_GUI = 1`
   ```
 - **Headless Mode:**
   Set `USE_GUI = 0` and press the hardware start button.
@@ -168,6 +141,4 @@ Developed by the VivaLaVida Robotics Team.
 
 ---
 
-## 🧾 License
-Released under the **MIT License** for educational and competition use.
 
