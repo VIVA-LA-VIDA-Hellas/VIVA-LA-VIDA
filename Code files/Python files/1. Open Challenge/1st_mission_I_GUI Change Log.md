@@ -1,6 +1,17 @@
 Autonomous drive 1st Mission WRO 2025
 - VivaLaVida - 
 
+
+v4 - 23/9/2025
+v4.1 - remove camera, add logging
+v4.2 - improved turn logic and timeout slider
+v4.3 - graph and turn improvements
+v4.5 - rewrite
+v4.5 - new turn logic with PID clear after turn
+v4.6 - new wall following rules
+v4.7 - new GUI, rewrite
+v4.8 - added gyroscope
+
 v5.0 - Gold version
 v5.1 - minor fixes
 v5.2 - threaded, low-latency sensor reading, Exponential Moving Average (EMA) layer, turn initiation logic
@@ -39,3 +50,4 @@ v5.64:
      - load variables from json file
 v5.7:
      - code cleaning
+
