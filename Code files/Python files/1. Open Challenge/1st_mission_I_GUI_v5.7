@@ -137,7 +137,7 @@ def load_variables_from_json(path=CONFIG_FILE):
                  globals()[k] = v
                  count += 1
          print(f"✅ Loaded {count} variables from {os.path.basename(path)}")
-     except Exception as e:
+    except Exception as e:
          print(f"[ERROR] Config load failed: {e} — using built-in defaults.")
 
 # Call it right after defining defaults so everything below sees the overrides
