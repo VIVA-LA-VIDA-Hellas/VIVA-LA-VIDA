@@ -37,14 +37,14 @@ The program runs on a **Raspberry Pi** and offers two operation modes:
 
 ---
 
-## 🧩 GUI Features
-Built with **Tkinter** and **matplotlib**, providing:
+## 🧩 Control Logic (high level)
+- **CRUISE:** Straight motion; after 1st turn, apply timed wall-following corrections if side distance < soft margin.
+- **TURN_INIT:** When `front < FRONT_TURN_TRIGGER` and lockout OK; keep straight (or gentle correction after 1st turn) while waiting for **exactly one** open side. Apply optional **direction lock** after the first decision.
+- **TURNING:** Set servo to the commanded (left/right) angle; integrate gyro Z and **stop when target yaw** is reached within tolerance. Guards: timeout and max yaw.
+- **POST_TURN:** Short straight stretch to stabilize, then return to CRUISE.
+- **STOPPED:** Triggered by obstacle or max-laps; obstacle mode self‑retries after a wait window.
 
-- Live plots (front, side, yaw)
-- Color-coded state and servo visualization
-- Adjustable sliders for key parameters
-- Save/Load configuration to JSON
-- Data export to CSV for post-run analysis
+**Narrow Mode:** If `left+right` (valid readings) < threshold, scale speeds/thresholds to be conservative in tight corridors.
 
 ---
 
