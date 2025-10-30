@@ -11,6 +11,15 @@ v4.5 - new turn logic with PID clear after turn
 v4.6 - new wall following rules
 v4.7 - new GUI, rewrite
 v4.8 - added gyroscope
+v4.9 - added sliders, max lap, save/load slide values, csv export with data
+v4.92 - check servo correction during cruise
+v4.93 - add lap reset button (stop loop), slider name correction
+v4.94 - Sensor readings filtering improvements, read in sequence. Lock turn side. Improve driving between walls with new rules.
+v4.95 - Code cleaning, turn based on gyroscope
+v4.96 - add/remove corrections
+v4.98 - turn initiation stop logic (merge from v4.7-4.8 plus extra conditions), added tof
+v4.98FSM - finite state machine (FSM)
+v4.99 - option to run w/o GIO
 
 v5.0 - Gold version
 v5.1 - minor fixes
@@ -50,4 +59,5 @@ v5.64:
      - load variables from json file
 v5.7:
      - code cleaning
+
 
