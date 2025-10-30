@@ -10,9 +10,6 @@
 - [Configuration](#configuration)
 - [System Architecture Diagram](#system-architecture-diagram)
 - [Mission Path Diagram](#mission-path-diagram)
-- [Libraries](#libraries)
-- [Run Modes](#run-modes)
-- [Authors](#authors)
 <!-- /TOC -->
 
 ## 🧠 Project Overview <a id="project-overview"></a>
