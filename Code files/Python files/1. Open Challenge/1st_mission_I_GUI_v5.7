@@ -49,7 +49,6 @@ USE_TOF_FRONT = 0             # Front sensor:  0 = Ultrasonic, 1 = ToF
 
 NARROW_SUM_THRESHOLD = 60     # cm; left+right distance threshold to decide if in between narrow walls
 NARROW_HYSTERESIS = 10        # cm; prevents rapid toggling
-NARROW_FACTOR = 1.0           # multiply by this when narrow, eg speed * factor
 NARROW_FACTOR_SPEED = 1.0     # multiply state speeds when in narrow corridors
 NARROW_FACTOR_DIST  = 1.0     # multiply distance-based thresholds/corrections when in narrow corridors
 
@@ -70,14 +69,13 @@ OBSTACLE_WAIT_TIME = 5.0      # seconds to wait before retrying after a front-st
 
 # ---------- Turn management ----------
 FRONT_TURN_TRIGGER = 90       # Front distance (cm) at which a turn is triggered
-TURN_DECISION_THRESHOLD = 100  # Minimum side distance (cm) to allow turn in that direction
+TURN_DECISION_THRESHOLD = 90  # Minimum side distance (cm) to allow turn in that direction
 TURN_ANGLE_LEFT = 60          # Servo angle for left turn
 TURN_ANGLE_RIGHT = 120        # Servo angle for right turn
 FRONT_SAFE_DISTANCE = 160     # Front distance considered safe to end a turn (cm)
 SIDE_SAFE_DISTANCE = 30       # Side distance considered safe to end a turn (cm)
-TARGET_DISTANCE = 30          # Desired distance from side walls (cm)
 TURN_TIMEOUT = 4.5            # Maximum time allowed for a turn (seconds)
-TURN_LOCKOUT = 1.5            # Minimum interval between consecutive turns (seconds)
+TURN_LOCKOUT = 1.0            # Minimum interval between consecutive turns (seconds)
 POST_TURN_DURATION = 0.5      # Time to drive straight after a turn (seconds)
 LOCK_TURN_DIRECTION = 1       # 1 = enable turn lock direction after 1st turn, 0 = disable
 TARGET_TURN_ANGLE = 85        # Degrees to turn per corner
@@ -107,7 +105,7 @@ US_MAX_DISTANCE_SIDE = 1.72   # Ultrasonic side max read distance
 
 # ---------- Loop timing ----------
 LOOP_DELAY = 0.001            # Delay between main loop iterations (seconds) 0.02
-SENSOR_DELAY = 0.005          # Delay between sensor reads
+SENSOR_DELAY = 0.003          # Delay between sensor reads
 
 #-----------------------------------------------------------------------------------------
 
@@ -558,9 +556,7 @@ class RobotState(Enum):
 # Keep a global locked_turn_direction variable to persist across runs (reset in stop_loop)
 locked_turn_direction = None
 
-def robot_loop():
-    
-    #global loop_flag, readings_flag, status_text, turn_count, lap_count, locked_turn_direction
+def robot_loop():   
     global status_text, turn_count, lap_count, locked_turn_direction, stop_reason, obstacle_wait_deadline
     state = RobotState.IDLE
     direction = None
@@ -568,7 +564,6 @@ def robot_loop():
     turn_start_yaw = 0.0
     turn_start_time = 0.0
     post_turn_start = 0.0
-    #last_turn_time = -TURN_LOCKOUT
     last_turn_time = -999
     #last_time = time.monotonic()
     #start_time = time.monotonic()
@@ -586,16 +581,11 @@ def robot_loop():
     robot.set_servo(SERVO_CENTER)
 
     while True:
-        #current_time = time.monotonic()
-        #dt = current_time - last_time
-        #last_time = current_time
         current_ns = time.monotonic_ns()
         dt = (current_ns - last_ns) * 1e-9   # seconds
         last_ns = current_ns
         current_time = current_ns * 1e-9     # float seconds, used by UI/timers
 
-        #if not readings_flag or not loop_flag:
-        #if not readings_flag:
         if not readings_event.is_set():
             # if readings not started, keep motors stopped and idle
             robot.stop_motor()
@@ -647,14 +637,6 @@ def robot_loop():
             mode_txt = "NARROW mode ON" if robot_loop._narrow_mode else "NARROW mode OFF"
             print(f"[corridor] {mode_txt} (L+R = {sum_lr:.1f} cm)" if sum_lr is not None else f"[corridor] {mode_txt}")
              
-        # Gyro integration
-        #raw_gyro_z = mpu.gyro[2] - bias
-        #ALPHA = 0.8
-        #gyro_z_filtered = ALPHA * raw_gyro_z + (1 - ALPHA) * getattr(robot, 'gyro_z_prev', 0)
-        #robot.gyro_z_prev = gyro_z_filtered
-        #gyro_z_deg = gyro_z_filtered * (180 / 3.14159265)
-        #yaw += gyro_z_deg * dt
-
         raw_gyro_z = mpu.gyro[2] - bias      # rad/s from MPU6050
         ALPHA = 0.8
         gyro_z_filtered = ALPHA * raw_gyro_z + (1 - ALPHA) * getattr(robot, 'gyro_z_prev', 0.0)
@@ -686,23 +668,19 @@ def robot_loop():
         # FSM transitions & actions
         # ----------------------------
         if state == RobotState.IDLE:
-            #status_text = "Ready (readings started, loop not started)" if readings_flag else "Idle"
             status_text = "Ready (readings started, loop not started)" if readings_event.is_set() else "Idle"
             robot.stop_motor()
             robot.set_servo(SERVO_CENTER)
             correction_active = False
-            #if loop_flag:
             if loop_event.is_set():
                 state = RobotState.CRUISE
                 status_text = "Driving (cruise)"
                 correction_active = False  # Reset correction when transitioning to CRUISE
                 for speed in range(0, SPEED_CRUISE + 1):
-                    #if not loop_flag:
                     if not loop_event.is_set():
                         robot.stop_motor()
                         break
                     robot.rotate_motor(speed)
-                    #time.sleep(0.01)
                     sensor_tick.wait(LOOP_DELAY); sensor_tick.clear()
 
         elif state == RobotState.CRUISE:
@@ -740,7 +718,7 @@ def robot_loop():
             # -------------------------------
             if turn_count >= 1:
             # Wall-following correction after the first turn
-            desired_servo_angle = robot.safe_straight_control(robot.d_left, robot.d_right)
+                desired_servo_angle = robot.safe_straight_control(robot.d_left, robot.d_right)
      
                 # Start correction if robot is too close to a wall
                 if (robot.d_left is not None and robot.d_left < eff_soft_margin()) or (robot.d_right is not None and robot.d_right < eff_soft_margin()):
@@ -782,7 +760,6 @@ def robot_loop():
                     else:
                         correction_active = False
             
-            #robot.rotate_motor(SPEED_CRUISE)
             robot.set_state_speed(state.name)
 
         elif state == RobotState.TURN_INIT:
@@ -802,8 +779,6 @@ def robot_loop():
                 continue
         
             # keep the wheels centered (or gentle straight correction)
-            #desired_servo_angle = robot.safe_straight_control(robot.d_left, robot.d_right) if turn_count >= 1 else SERVO_CENTER
-            #robot.set_servo(desired_servo_angle)
             if turn_count >= 1:
                  desired_servo_angle = robot.safe_straight_control(robot.d_left, robot.d_right)
             else:
@@ -899,13 +874,9 @@ def robot_loop():
                         # Drive forward a little before stopping
                         robot.set_servo(SERVO_CENTER)
                         robot.set_state_speed(state.name)
-                        #time.sleep(POST_LAP_DURATION)
                         sensor_tick.wait(POST_LAP_DURATION); sensor_tick.clear()
                         robot.stop_motor()
                         stop_reason = "LAPS"
-                        #loop_flag = False
-                        #state = RobotState.STOPPED
-                        #status_text = f"Stopped - Max Laps ({MAX_LAPS}) reached"
                         loop_event.clear()
                         sensor_tick.set()  # wake waits immediately
                         state = RobotState.STOPPED
@@ -926,9 +897,7 @@ def robot_loop():
             else:
                 state = RobotState.CRUISE
                 status_text = "Driving (cruise)"
-
-        #elif state == RobotState.STOPPED:
-            # motors must be stopped; remain stopped until loop_flag cleared by GUI or user
+        
         elif state == RobotState.STOPPED:
             robot.stop_motor()
             robot.set_servo(SERVO_CENTER)
@@ -1275,8 +1244,6 @@ def launch_gui():
 # -------------------------
 
 def start_readings():
-    #global readings_flag, status_text
-    #readings_flag = True
     global status_text
     readings_event.set()
     status_text = "Sensor readings started"
@@ -1286,38 +1253,27 @@ def start_readings():
     # Start background sensor thread once
     if not hasattr(start_readings, "sensor_thread_started"):
         threading.Thread(target=sensor_reader, daemon=True).start()
-        #threading.Thread(target=robot_loop, daemon=True).start()
-        #start_readings.thread_started = True
         start_readings.sensor_thread_started = True
 
     if not hasattr(start_readings, "loop_thread_started"):
         threading.Thread(target=robot_loop, daemon=True).start()
         start_readings.loop_thread_started = True
 
-
 def start_loop():
     """Start the robot driving loop."""
     #global loop_flag, status_text
     global status_text
-    #if not readings_flag:
     if not readings_event.is_set():
         print("Start sensor readings first!")
         return
 
-    #loop_flag = True
     loop_event.set()
     status_text = "🚗 Loop Started"
     btn_start.config(state="disabled")
     btn_stop.config(state="normal")
 
-    #if not hasattr(start_loop, "loop_thread_started"):
-    #  threading.Thread(target=robot_loop, daemon=True).start()
-    #  start_loop.loop_thread_started = True
-
 def stop_loop():
     """Stop the robot loop and motor."""
-    #global loop_flag, status_text, turn_count, lap_count, locked_turn_direction
-    #loop_flag = False
     global status_text, turn_count, lap_count, locked_turn_direction, stop_reason
     loop_event.clear()
     stop_reason = "USER"
