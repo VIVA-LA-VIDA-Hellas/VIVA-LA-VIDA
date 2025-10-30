@@ -591,7 +591,6 @@ def robot_loop():
             robot.stop_motor()
             state = RobotState.IDLE
             status_text = "Idle"
-            #time.sleep(LOOP_DELAY)
             sensor_tick.wait(LOOP_DELAY); sensor_tick.clear()
             continue
 
@@ -655,7 +654,6 @@ def robot_loop():
         state_data.append(state.name)
        
         # If loop_flag is still False, do NOT run FSM/motors yet—just update plots
-        #if not loop_flag:
         if not loop_event.is_set():
             robot.stop_motor()
             state = RobotState.IDLE
