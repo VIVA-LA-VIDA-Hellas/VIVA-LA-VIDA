@@ -1,5 +1,6 @@
 {
   "USE_GUI": 1,
+  "DEBUG": 1,
   "USE_TOF_SIDES": 0,
   "USE_TOF_FRONT": 0,
   "NARROW_SUM_THRESHOLD": 55,
