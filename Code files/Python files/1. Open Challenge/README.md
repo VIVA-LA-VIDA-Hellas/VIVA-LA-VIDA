@@ -153,15 +153,6 @@ All GUI slider changes can be saved and reloaded.
 +----------------------------------------+
 ```
 
-## 🧰 Libraries <a id="libraries"></a>
-```bash
-adafruit_pca9685
-adafruit_mpu6050
-adafruit_vl53l0x
-gpiozero
-......
-```
-
 ---
 
 ## 🏁 Run Modes <a id="run-modes"></a>
