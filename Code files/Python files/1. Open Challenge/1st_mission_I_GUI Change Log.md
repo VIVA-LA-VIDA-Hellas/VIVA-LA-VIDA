@@ -57,6 +57,9 @@ v5.64:
      - load variables from json file
 v5.7:
      - code cleaning
+v5.8:
+     - performance improvements TBD
+
 
 
 
