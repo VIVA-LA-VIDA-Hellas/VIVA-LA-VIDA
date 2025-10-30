@@ -45,6 +45,7 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__)) # Get directory of the run
 
 # ---------- Initialization ----------
 USE_GUI = 1                   # 1 = Debugging mode (run with GUI), 0 = COMPETITION MODE (run headless, no GUI)
+DEBUG = 1                     # 1 = enable prints, 0 = disable all prints
 USE_TOF_SIDES = 0             # Side sensors:  0 = Ultrasonic, 1 = ToF
 USE_TOF_FRONT = 0             # Front sensor:  0 = Ultrasonic, 1 = ToF
 
@@ -114,6 +115,11 @@ SENSOR_DELAY = 0.003          # Delay between sensor reads
 MAX_POINTS = 500               # Maximum number of points to store for plotting
 
 RAD2DEG = 180.0 / 3.141592653589793
+
+def dprint(*args, **kwargs):
+    """Conditional print — only prints when DEBUG == 1."""
+    if DEBUG:
+        print(*args, **kwargs)
 
 # ===============================
 # LOAD VARIABLES FROM JSON (if exists)
@@ -635,7 +641,7 @@ def robot_loop():
         # Optional console feedback
         if robot_loop._narrow_mode != prev_mode:
             mode_txt = "NARROW mode ON" if robot_loop._narrow_mode else "NARROW mode OFF"
-            print(f"[corridor] {mode_txt} (L+R = {sum_lr:.1f} cm)" if sum_lr is not None else f"[corridor] {mode_txt}")
+            dprint(f"[corridor] {mode_txt} (L+R = {sum_lr:.1f} cm)" if sum_lr is not None else f"[corridor] {mode_txt}")
              
         raw_gyro_z = mpu.gyro[2] - bias      # rad/s from MPU6050
         ALPHA = 0.8
@@ -692,7 +698,7 @@ def robot_loop():
                 robot.stop_motor()
                 robot.set_servo(SERVO_CENTER)     
                 status_text = "Stopped! Obstacle ahead"
-                print(status_text)
+                dprint(status_text)
                 state = RobotState.STOPPED
 
                 stop_reason = "OBSTACLE"
@@ -725,7 +731,7 @@ def robot_loop():
                         correction_active = True
                         correction_start_time = current_time  # Record the start time of correction
                         status_text = "Driving (correction)"
-                        print(f"↔️ Correction started. Servo angle: {desired_servo_angle}")
+                        dprint(f"↔️ Correction started. Servo angle: {desired_servo_angle}")
           
                 # If correction is active, apply the correction angle
                 if correction_active:
@@ -734,7 +740,7 @@ def robot_loop():
                         correction_active = False
                         desired_servo_angle = SERVO_CENTER  # Reset to center once correction is done
                         status_text = "Driving (correction ended)"
-                        print(f"↔️ Correction ended. Servo angle: {desired_servo_angle}")
+                        dprint(f"↔️ Correction ended. Servo angle: {desired_servo_angle}")
           
                 robot.set_servo(desired_servo_angle)  # Apply the desired servo angle (corrected or not)
 
@@ -755,7 +761,7 @@ def robot_loop():
                         correction_angle = desired_servo_angle
                         robot.set_servo(correction_angle)
                         status_text = "Driving (renewed correction)"
-                        print(f"↔️ Straight correction renewed. Servo angle: {correction_angle}")
+                        dprint(f"↔️ Straight correction renewed. Servo angle: {correction_angle}")
                     else:
                         correction_active = False
             
@@ -797,7 +803,7 @@ def robot_loop():
             if LOCK_TURN_DIRECTION == 1:
                 if locked_turn_direction is None:
                     locked_turn_direction = proposed_direction
-                    print(f"Turn direction locked to {locked_turn_direction}")
+                    dprint(f"Turn direction locked to {locked_turn_direction}")
                 elif proposed_direction != locked_turn_direction:
                     # keep waiting at TURN_INIT speed for the locked direction to open
                     status_text = f"Ignoring {proposed_direction} (locked to {locked_turn_direction})"
@@ -809,7 +815,7 @@ def robot_loop():
                 direction = proposed_direction
         
             # Commit the turn now that one side is open and lock (if any) allows it
-            print(f"🔄 Turn initiated {direction}. Left: {robot.d_left if robot.d_left is not None else -1:.1f} cm, Right: {robot.d_right if robot.d_right is not None else -1:.1f} cm")
+            dprint(f"🔄 Turn initiated {direction}. Left: {robot.d_left if robot.d_left is not None else -1:.1f} cm, Right: {robot.d_right if robot.d_right is not None else -1:.1f} cm")
             turn_start_yaw = yaw
             turn_start_time = current_time
             angle = TURN_ANGLE_LEFT if direction == "LEFT" else TURN_ANGLE_RIGHT
@@ -833,26 +839,26 @@ def robot_loop():
             #        lower_bound = turn_reference_side_distance * 0.95
             #        upper_bound = turn_reference_side_distance * 1.05
             #        if lower_bound <= side_distance_monitor <= upper_bound:
-            #            print("Stop Turn - Opposite distance")
+            #            dprint("Stop Turn - Opposite distance")
             #            stop_condition = True
 
             # Condition B: front + side safe
             #side_distance = robot.d_left if direction == "LEFT" else robot.d_right
             #if robot.d_front is not None and robot.d_front > FRONT_SAFE_DISTANCE and side_distance is not None and side_distance > SIDE_SAFE_DISTANCE:
-            #    print("Stop Turn - Front distance")
+            #    dprint("Stop Turn - Front distance")
             #    stop_condition = True
 
             # Condition C: reached target angle ± tolerance
             if abs(turn_angle - target_angle) <= TURN_ANGLE_TOLERANCE:
-                print("Stop Turn - Target Angle")
+                dprint("Stop Turn - Target Angle")
                 stop_condition = True
 
             # Condition D: timeout or extreme yaw
             if current_time - turn_start_time > TURN_TIMEOUT:
-                print("Stop Turn - Max turn time")
+                dprint("Stop Turn - Max turn time")
                 stop_condition = True
             if abs(turn_angle) >= MAX_TURN_ANGLE:
-                print("Stop Turn - Max turn angle")
+                dprint("Stop Turn - Max turn angle")
                 stop_condition = True
 
             # If any stop condition met -> finish turn
@@ -867,7 +873,7 @@ def robot_loop():
                 turn_count += 1
                 if turn_count % 4 == 0:
                     lap_count += 1
-                    print(f"✅ Lap completed! Total laps: {lap_count}")
+                    dprint(f"✅ Lap completed! Total laps: {lap_count}")
                     # if reached max laps -> do final drive then stop (as in original logic)
                     if MAX_LAPS > 0 and lap_count >= MAX_LAPS:
                         # Drive forward a little before stopping
@@ -915,7 +921,7 @@ def robot_loop():
         
                     if d_front_now is not None and d_front_now >= eff_stop_threshold():
                         # clear → resume cruise
-                        print("✅ Obstacle cleared — resuming")
+                        dprint("✅ Obstacle cleared — resuming")
                         status_text = "Driving (cruise)"
                         stop_reason = None
                         state = RobotState.CRUISE
@@ -1228,7 +1234,7 @@ def launch_gui():
                 try:
                     sensor.stop_continuous()
                 except Exception as e:
-                    print(f"Warning: could not stop sensor {sensor}: {e}")
+                    dprint(f"Warning: could not stop sensor {sensor}: {e}")
         
         GPIO.cleanup()
         root.destroy()
