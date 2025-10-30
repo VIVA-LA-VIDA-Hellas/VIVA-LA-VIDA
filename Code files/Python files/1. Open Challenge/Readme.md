@@ -1,5 +1,5 @@
 Autonomous drive 1st Challenge - WRO 2025 FE
-- VivaLaVida - 
+VivaLaVida
 ______________________________________________________________________________________________________________________
 🚀 Code Structure:
 
