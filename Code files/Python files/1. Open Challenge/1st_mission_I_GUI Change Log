@@ -1,4 +1,4 @@
------------------------------------------------------------------------------------------------------------------------
+
 Autonomous drive 1st Mission WRO 2025
 - VivaLaVida - 
 
@@ -41,15 +41,4 @@ v5.64:
 v5.7:
      - code cleaning
 
-Notes: 
-- Correction active is only available in cruise and not in turn init
-TO DO - Change variables (speed etc) if wall is narrow
-TO DO - check time.sleep(LOOP_DELAY) if needed in all instances
-TO DO - test end turn only with gyro and not distances
-to do: add buttons & leds & buzzer
-to do: reduce speed if sensors are none or before turning, logic for movements after stop due to obstacle
 
-TIPS:
--adjust max distance for Ultrasonic sensor readings (eg max 1m for side)
--use lower delay time
-----------------------------------------------------------------------------------------------------------------------
