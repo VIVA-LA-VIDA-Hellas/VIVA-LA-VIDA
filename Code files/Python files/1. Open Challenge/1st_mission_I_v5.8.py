@@ -22,6 +22,10 @@ import adafruit_vl53l0x
 
 DEBUG = 0
 
+# Sensor choice
+USE_TOF_SIDES = 0
+USE_TOF_FRONT = 0
+
 # Speeds
 SPEED_IDLE = 0
 SPEED_CRUISE = 45
@@ -76,12 +80,8 @@ US_MAX_DISTANCE_SIDE = 1.2   # meters
 LOOP_DELAY = 0.01
 SENSOR_DELAY = 0.005
 
+
 RAD2DEG = 57.29577951308232
-
-# Sensor choice
-USE_TOF_SIDES = 0
-USE_TOF_FRONT = 0
-
 
 def dprint(*args, **kwargs):
     if DEBUG:
