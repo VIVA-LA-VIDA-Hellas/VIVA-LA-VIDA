@@ -1,8 +1,7 @@
 
 # -------------------------------------------------------------------------------------------------
-# VivaLaVida WRO 2025 - Headless Minimal Controller
-# Keeps only the features you selected (see checklist mapping in comments).
-# Raspberry Pi 5 compatible.
+# VivaLaVida WRO 2025 - Headless Minimal Controller 
+# based on v5.8
 # -------------------------------------------------------------------------------------------------
 
 import time
