@@ -23,26 +23,26 @@ import adafruit_vl53l0x
 # CONFIGURATION
 # ===============================
 
-DEBUG = 1
+DEBUG = 0
 
 # Speeds
 SPEED_IDLE = 0
-SPEED_CRUISE = 25
-SPEED_TURN_INIT = 17
-SPEED_TURN = 20
-SPEED_POST_TURN = 20
+SPEED_CRUISE = 30
+SPEED_TURN_INIT = 18
+SPEED_TURN = 25
+SPEED_POST_TURN = 30
 
-SOFT_MARGIN = 30           
-MAX_CORRECTION = 7         
-CORRECTION_DURATION = 0.25 
+SOFT_MARGIN = 35           
+MAX_CORRECTION = 8         
+CORRECTION_DURATION = 0.2 
 
 STOP_THRESHOLD = 20        
 OBSTACLE_WAIT_TIME = 5.0   
 
-FRONT_TURN_TRIGGER = 90    
+FRONT_TURN_TRIGGER = 85    
 TURN_DECISION_THRESHOLD = 90 
-TURN_ANGLE_LEFT = 60       
-TURN_ANGLE_RIGHT = 120
+TURN_ANGLE_LEFT = 58       
+TURN_ANGLE_RIGHT = 122
 FRONT_SAFE_DISTANCE = 160  
 SIDE_SAFE_DISTANCE = 30    
 TURN_TIMEOUT = 4.5         
@@ -60,24 +60,24 @@ POST_LAP_DURATION = 1.0
 
 # Narrow corridor
 NARROW_SUM_THRESHOLD = 60
-NARROW_HYSTERESIS = 10
-NARROW_FACTOR_SPEED = 1.0
-NARROW_FACTOR_DIST  = 1.0
+NARROW_HYSTERESIS = 5
+NARROW_FACTOR_SPEED = 0.8
+NARROW_FACTOR_DIST  = 0.6
 
 # Filtering 
-N_READINGS = 3
+N_READINGS = 1
 FILTER_ALPHA_US = 0.6
 FILTER_JUMP_US = 60
 FILTER_ALPHA_TOF = 0.6
 FILTER_JUMP_TOF = 60
 
 US_QUEUE_LEN = 5
-US_MAX_DISTANCE_FRONT = 3.43  # meters
-US_MAX_DISTANCE_SIDE = 1.72   # meters
+US_MAX_DISTANCE_FRONT = 3.0  # meters
+US_MAX_DISTANCE_SIDE = 1.2   # meters
 
 # Loop timing
-LOOP_DELAY = 0.003
-SENSOR_DELAY = 0.003
+LOOP_DELAY = 0.002
+SENSOR_DELAY = 0.001
 
 RAD2DEG = 57.29577951308232
 
@@ -479,55 +479,71 @@ def robot_loop():
                 sensor_tick.wait(LOOP_DELAY); sensor_tick.clear()
 
         elif state == State.CRUISE:
-            # Emergency stop 
-            if d_front is not None and d_front < int(STOP_THRESHOLD * DIST_ENV_FACTOR):
-                robot.stop_motor()
-                robot.set_servo(SERVO_CENTER)
-                dprint("Stop: obstacle ahead")
-                state = State.STOPPED
-                global stop_reason
-                stop_reason = "OBSTACLE"
-                obstacle_wait_deadline = now + OBSTACLE_WAIT_TIME
-
-                # inner loop: handle obstacle wait
-                while state == State.STOPPED and stop_reason == "OBSTACLE":
-                    remaining = max(0.0, obstacle_wait_deadline - now)
-                    # re-check on deadline
-                    if now >= obstacle_wait_deadline:
-                        if robot.d_front is not None and robot.d_front >= STOP_THRESHOLD:
-                            dprint("Obstacle cleared — resuming")
-                            stop_reason = None
-                            state = State.CRUISE
-                            robot.rotate_motor(SPEED_CRUISE)
-                            break
-                        else:
-                            obstacle_wait_deadline = now + OBSTACLE_WAIT_TIME
-                    sensor_tick.wait(LOOP_DELAY); sensor_tick.clear()
-                    now = time.monotonic_ns() * 1e-9
-                continue
-
-            # Turn trigger + lockout 
-            trig = (d_front is not None and d_front < int(FRONT_TURN_TRIGGER * DIST_ENV_FACTOR))
-            if trig and (now - last_turn_time >= TURN_LOCKOUT):
-                state = State.TURN_INIT
-                dprint("Approaching turn — waiting for open side")
-                continue
-
-            # Straight control
+        # -------------------------------
+        # Emergency stop
+        # -------------------------------
+        if d_front is not None and d_front < int(STOP_THRESHOLD * DIST_ENV_FACTOR):
+            robot.stop_motor()
+            robot.set_servo(SERVO_CENTER)
+            dprint("Stop: obstacle ahead")
+            state = State.STOPPED
+            stop_reason = "OBSTACLE"
+            obstacle_wait_deadline = now + OBSTACLE_WAIT_TIME
+    
+            # wait / retry window
+            while state == State.STOPPED and stop_reason == "OBSTACLE":
+                if now >= obstacle_wait_deadline:
+                    if robot.d_front is not None and robot.d_front >= STOP_THRESHOLD:
+                        dprint("Obstacle cleared — resuming")
+                        stop_reason = None
+                        state = State.CRUISE
+                        robot.rotate_motor(int(SPEED_CRUISE * SPEED_ENV_FACTOR))
+                        break
+                    else:
+                        obstacle_wait_deadline = now + OBSTACLE_WAIT_TIME
+                sensor_tick.wait(LOOP_DELAY); sensor_tick.clear()
+                now = time.monotonic_ns() * 1e-9
+            continue
+    
+        # -------------------------------
+        # Turn trigger + lockout 
+        # -------------------------------
+        trig = (d_front is not None and d_front < int(FRONT_TURN_TRIGGER * DIST_ENV_FACTOR))
+        if trig and (now - last_turn_time >= TURN_LOCKOUT):
+            state = State.TURN_INIT
+            dprint("Approaching turn — waiting for open side")
+            continue
+    
+        # -------------------------------
+        # Straight driving
+        # Only enable wall-following AFTER first turn
+        # -------------------------------
+        if turn_count < 1:
+            # Pre–first turn: keep centered, no corrections
+            correction_active = False
+            robot.set_servo(SERVO_CENTER)
+            robot.rotate_motor(int(SPEED_CRUISE * SPEED_ENV_FACTOR))
+        else:
+            # Post–first turn: enable safe straight corrections
             desired = robot.safe_straight_control(d_left, d_right)
+    
+            # Start correction window if near a wall
             if (d_left is not None and d_left < robot.eff_soft_margin()) or \
                (d_right is not None and d_right < robot.eff_soft_margin()):
                 if not correction_active:
                     correction_active = True
                     correction_start_time = now
                     dprint(f"Correction start: servo {desired:.1f}")
-            if correction_active:
-                if now - correction_start_time >= CORRECTION_DURATION:
-                    correction_active = False
-                    desired = SERVO_CENTER
-                    dprint("Correction end")
+    
+            # Time-boxed correction window
+            if correction_active and (now - correction_start_time) >= CORRECTION_DURATION:
+                correction_active = False
+                desired = SERVO_CENTER
+                dprint("Correction end")
+    
             robot.set_servo(desired)
             robot.rotate_motor(int(SPEED_CRUISE * SPEED_ENV_FACTOR))
+
 
         elif state == State.TURN_INIT:
             robot.rotate_motor(int(SPEED_TURN_INIT * SPEED_ENV_FACTOR))
