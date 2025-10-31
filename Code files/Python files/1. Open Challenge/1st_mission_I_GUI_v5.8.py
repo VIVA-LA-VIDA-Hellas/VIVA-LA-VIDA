@@ -1,5 +1,3 @@
-
-
 """
 -----------------------------------------------------------------------------------------------------------------------
 Autonomous drive 1st Mission WRO 2025 FE - VivaLaVida
@@ -149,6 +147,14 @@ def load_variables_from_json(path=CONFIG_FILE):
 
 # Call it right after defining defaults so everything below sees the overrides
 load_variables_from_json()
+
+def norm180(a: float) -> float:
+    """Normalize angle to [-180, 180)."""
+    return (a + 180.0) % 360.0 - 180.0
+
+def snap90(a: float) -> float:
+    """Nearest multiple of 90° (…,-180,-90,0,90,180,…)"""
+    return round(a / 90.0) * 90.0
 
 # --- Store immutable base values for scaling ---
 BASE_SPEED_IDLE        = SPEED_IDLE
@@ -582,7 +588,8 @@ def robot_loop():
     correction_start_time = 0.0
     correction_angle = SERVO_CENTER
     current_servo_angle = SERVO_CENTER
-
+    turn_target_delta = 0.0  # relative yaw target for this turn (deg)
+    
     # Ensure robot stopped at start
     robot.stop_motor()
     robot.set_servo(SERVO_CENTER)
@@ -818,6 +825,20 @@ def robot_loop():
             dprint(f"🔄 Turn initiated {direction}. Left: {robot.d_left if robot.d_left is not None else -1:.1f} cm, Right: {robot.d_right if robot.d_right is not None else -1:.1f} cm")
             turn_start_yaw = yaw
             turn_start_time = current_time
+            
+            # how skewed are we vs the nearest corridor axis at entry?
+            entry_skew = norm180(yaw - snap90(yaw))  # + = already rotated to the LEFT
+            
+            # base ±TARGET_TURN_ANGLE, then compensate by entry skew
+            base = TARGET_TURN_ANGLE if direction == "LEFT" else -TARGET_TURN_ANGLE
+            turn_target_delta = base - entry_skew
+            
+            # keep within your safety bounds
+            turn_target_delta = max(-MAX_TURN_ANGLE, min(MAX_TURN_ANGLE, turn_target_delta))
+            if abs(turn_target_delta) < MIN_TURN_ANGLE:
+                turn_target_delta = MIN_TURN_ANGLE if turn_target_delta >= 0 else -MIN_TURN_ANGLE
+            
+            # start turning
             angle = TURN_ANGLE_LEFT if direction == "LEFT" else TURN_ANGLE_RIGHT
             robot.set_servo(angle)
             robot.set_state_speed("TURNING")
@@ -826,8 +847,8 @@ def robot_loop():
         elif state == RobotState.TURNING:
             # active turning: monitor yaw & safety/time conditions to stop
             # compute turn angle relative to start
-            turn_angle = yaw - turn_start_yaw  # positive for LEFT, negative for RIGHT
-            target_angle = TARGET_TURN_ANGLE if direction == "LEFT" else -TARGET_TURN_ANGLE
+            turn_angle = yaw - turn_start_yaw  # +left, -right
+            target_angle = turn_target_delta   # adjusted by entry skew
             robot.set_state_speed("TURNING")
             stop_condition = False
 
@@ -849,10 +870,13 @@ def robot_loop():
             #    stop_condition = True
 
             # Condition C: reached target angle ± tolerance
+            #if abs(turn_angle - target_angle) <= TURN_ANGLE_TOLERANCE:
+            #    dprint("Stop Turn - Target Angle")
+            #    stop_condition = True
             if abs(turn_angle - target_angle) <= TURN_ANGLE_TOLERANCE:
                 dprint("Stop Turn - Target Angle")
                 stop_condition = True
-
+               
             # Condition D: timeout or extreme yaw
             if current_time - turn_start_time > TURN_TIMEOUT:
                 dprint("Stop Turn - Max turn time")
@@ -868,7 +892,8 @@ def robot_loop():
                 current_servo_angle = SERVO_CENTER
                 last_turn_time = current_time
                 # Snap yaw to target for consistency
-                yaw = turn_start_yaw + target_angle
+                #yaw = turn_start_yaw + target_angle
+                yaw = snap90(yaw)
                 # update counters
                 turn_count += 1
                 if turn_count % 4 == 0:
