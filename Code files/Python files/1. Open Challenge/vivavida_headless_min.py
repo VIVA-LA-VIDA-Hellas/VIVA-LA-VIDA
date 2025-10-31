@@ -1,13 +1,15 @@
 #!/usr/bin/env python3
 """
-VivaLaVida WRO2025 - Headless Minimal Controller
-------------------------------------------------
-- Headless-only (no GUI, no plotting, no sliders)
+VivaLaVida WRO2025 - Headless Minimal Controller (with Narrow-Corridor Logic)
+-----------------------------------------------------------------------------
+- Headless-only (no GUI, plotting, sliders)
 - Ultrasonic sensors only (gpiozero.DistanceSensor)
 - PCA9685 for motor & steering servo
 - MPU6050 gyro for yaw-based turning
-- Minimal FSM: CRUISE -> TURN_INIT -> TURNING -> POST_TURN -> (STOPPED/CRUISE)
-- Start with physical START button, long-press (1.5s) START to stop
+- Minimal FSM: CRUISE → TURN_INIT → TURNING → POST_TURN (+ STOPPED)
+- Start with physical START button
+- Long-press START (~1.5s) to stop
+- **Narrow-corridor logic**: scales speeds & distance thresholds when L+R is small
 """
 
 import time
@@ -23,10 +25,10 @@ import adafruit_mpu6050
 # CONFIG
 # ===============================
 
-DEBUG = 1                     # 1 = prints enabled, 0 = silent
-MAX_LAPS = 3                  # 0 = unlimited
-SENSOR_DT = 0.01              # seconds between sensor updates
-LOOP_DT = 0.01                # seconds between control iterations
+DEBUG = 1                       # 1 = prints enabled, 0 = silent
+MAX_LAPS = 3                    # 0 = unlimited
+SENSOR_DT = 0.01                # seconds between sensor updates
+LOOP_DT = 0.01                  # seconds between control iterations
 
 # Speeds (0-100% duty, mapped to PCA9685 16-bit)
 SPEED_CRUISE     = 25
@@ -35,40 +37,40 @@ SPEED_TURN       = 20
 SPEED_POST_TURN  = 20
 
 # Safety / distances (cm)
-SOFT_MARGIN          = 30     # start steering away from wall inside this
-MAX_CORRECTION_DEG   = 7      # max steering correction at SOFT_MARGIN
-STOP_THRESHOLD       = 20     # immediate stop if front < STOP_THRESHOLD
-FRONT_TURN_TRIGGER   = 90     # begin TURN_INIT when front < FRONT_TURN_TRIGGER
-TURN_DECISION_THRESH = 90     # side is "open" if > this value (or invalid)
+SOFT_MARGIN          = 30       # start steering away from wall inside this
+MAX_CORRECTION_DEG   = 7        # max steering correction at SOFT_MARGIN
+STOP_THRESHOLD       = 20       # immediate stop if front < STOP_THRESHOLD
+FRONT_TURN_TRIGGER   = 90       # begin TURN_INIT when front < FRONT_TURN_TRIGGER
+TURN_DECISION_THRESH = 90       # side is "open" if > this value (or invalid)
 
 # Yaw-based turn control
-TARGET_TURN_ANGLE     = 85    # desired nominal corner angle
-TURN_ANGLE_TOLERANCE  = 5     # acceptable error on yaw target
-MIN_TURN_ANGLE        = 65    # clamp target min
-MAX_TURN_ANGLE        = 120   # clamp target max
-TURN_TIMEOUT          = 4.5   # seconds
-POST_TURN_DURATION    = 0.5   # seconds
-TURN_LOCKOUT          = 1.0   # min time between turns (s)
+TARGET_TURN_ANGLE     = 85      # desired nominal corner angle
+TURN_ANGLE_TOLERANCE  = 5       # acceptable error on yaw target
+MIN_TURN_ANGLE        = 65      # clamp target min
+MAX_TURN_ANGLE        = 120     # clamp target max
+TURN_TIMEOUT          = 4.5     # seconds
+POST_TURN_DURATION    = 0.5     # seconds
+TURN_LOCKOUT          = 1.0     # min time between turns (s)
 
 # Ultrasonic ranges (gpiozero expects meters)
-US_MAX_DISTANCE_FRONT = 3.43  # m
-US_MAX_DISTANCE_SIDE  = 1.72  # m
+US_MAX_DISTANCE_FRONT = 3.43    # m
+US_MAX_DISTANCE_SIDE  = 1.72    # m
 US_QUEUE_LEN          = 5
 
 # Low-pass for sensors & gyro
-EMA_ALPHA_SENSOR = 1.0        # 1.0 = no smoothing
-MAX_JUMP_CM      = 999        # spike reject (cm); set low to be stricter
-GYRO_ALPHA       = 0.8        # gyro LPF (0..1), higher = more smoothing
+EMA_ALPHA_SENSOR = 1.0          # 1.0 = no smoothing
+MAX_JUMP_CM      = 999          # spike reject (cm); set low to be stricter
+GYRO_ALPHA       = 0.8          # gyro LPF (0..1), higher = more smoothing
 
 # Servo & motor (PCA9685 @50Hz)
 SERVO_CHANNEL    = 0
 SERVO_CENTER     = 88
 SERVO_MIN_ANGLE  = 50
 SERVO_MAX_ANGLE  = 130
-SERVO_PULSE_MIN  = 1000       # us
-SERVO_PULSE_MAX  = 2000       # us
+SERVO_PULSE_MIN  = 1000         # us
+SERVO_PULSE_MAX  = 2000         # us
 SERVO_PERIOD_US  = 20000
-SERVO_SLEW_DPS   = 0          # 0 = disabled (max slewing), else deg/s
+SERVO_SLEW_DPS   = 0            # 0 = disabled (max slewing), else deg/s
 
 MOTOR_FWD_CH     = 1
 MOTOR_REV_CH     = 2
@@ -81,6 +83,16 @@ RED_LED   = 13
 TRIG_FRONT, ECHO_FRONT = 22, 23  # front
 TRIG_LEFT,  ECHO_LEFT  = 27, 17  # left
 TRIG_RIGHT, ECHO_RIGHT = 5,  6   # right
+
+# ---------- Narrow corridor logic ----------
+NARROW_SUM_THRESHOLD = 60       # cm; left+right distance threshold
+NARROW_HYSTERESIS    = 10       # cm; prevents rapid toggling
+NARROW_FACTOR_SPEED  = 1.0      # scale all state speeds
+NARROW_FACTOR_DIST   = 1.0      # scale distance-based thresholds (soft margin, stops, triggers)
+
+# Global factors (auto-updated by corridor detector)
+SPEED_ENV_FACTOR = 1.0
+DIST_ENV_FACTOR  = 1.0
 
 RAD2DEG = 57.29577951308232
 
@@ -95,6 +107,28 @@ def norm180(a):
 def snap90(a):
     """Nearest multiple of 90° (…,-180,-90,0,90,180,…)"""
     return round(a / 90.0) * 90.0
+
+# Effective (scaled) helpers
+def eff_soft_margin():
+    return int(SOFT_MARGIN * DIST_ENV_FACTOR)
+
+def eff_max_correction():
+    return max(1, int(MAX_CORRECTION_DEG * DIST_ENV_FACTOR))
+
+def eff_front_turn_trigger():
+    return int(FRONT_TURN_TRIGGER * DIST_ENV_FACTOR)
+
+def eff_stop_threshold():
+    return int(STOP_THRESHOLD * DIST_ENV_FACTOR)
+
+def state_speed_value(state_name: str) -> int:
+    base = {
+        "CRUISE":     SPEED_CRUISE,
+        "TURN_INIT":  SPEED_TURN_INIT,
+        "TURNING":    SPEED_TURN,
+        "POST_TURN":  SPEED_POST_TURN,
+    }.get(state_name, SPEED_CRUISE)
+    return int(base * SPEED_ENV_FACTOR)
 
 # ===============================
 # HARDWARE INIT
@@ -168,15 +202,17 @@ class Robot:
 
     # --- behaviors ---
     def cruise_servo(self, d_left, d_right):
-        """Simple wall-following: steer away if within SOFT_MARGIN of either wall."""
+        """Simple wall-following with scaled thresholds: steer away if < eff_soft_margin()."""
         correction = 0.0
-        if d_left  is not None and d_left  < SOFT_MARGIN:
-            correction = (SOFT_MARGIN - d_left) * 2.0
-        elif d_right is not None and d_right < SOFT_MARGIN:
-            correction = -(SOFT_MARGIN - d_right) * 2.0
+        if d_left  is not None and d_left  < eff_soft_margin():
+            correction = (eff_soft_margin() - d_left) * 2.0
+        elif d_right is not None and d_right < eff_soft_margin():
+            correction = -(eff_soft_margin() - d_right) * 2.0
 
-        if correction >  MAX_CORRECTION_DEG: correction =  MAX_CORRECTION_DEG
-        if correction < -MAX_CORRECTION_DEG: correction = -MAX_CORRECTION_DEG
+        # clamp correction using scaled max
+        maxcorr = eff_max_correction()
+        if correction >  maxcorr: correction =  maxcorr
+        if correction < -maxcorr: correction = -maxcorr
         return self.set_servo(SERVO_CENTER + correction)
 
 robot = Robot(pca)
@@ -236,6 +272,8 @@ def turn_decision(d_left, d_right):
     return None  # both open or both closed
 
 def fsm_loop(stop_evt):
+    global SPEED_ENV_FACTOR, DIST_ENV_FACTOR
+
     # Gyro bias
     dprint("Calibrating gyro...")
     N = 500
@@ -256,6 +294,9 @@ def fsm_loop(stop_evt):
     turn_target_delta = 0.0
     turn_start_time = 0.0
     post_turn_start = 0.0
+
+    # Narrow-corridor mode (with hysteresis)
+    narrow_mode = False
 
     btn_down_since = None
 
@@ -288,6 +329,26 @@ def fsm_loop(stop_evt):
             d_left  = sensor["left"]
             d_right = sensor["right"]
 
+        # --- Narrow corridor detector (sum of side distances) ---
+        l = d_left  if d_left  is not None else None
+        r = d_right if d_right is not None else None
+        sum_lr = (l + r) if (l is not None and r is not None) else None
+
+        enter_thresh = NARROW_SUM_THRESHOLD
+        exit_thresh  = NARROW_SUM_THRESHOLD + NARROW_HYSTERESIS
+        prev_mode = narrow_mode
+        if sum_lr is not None:
+            if not narrow_mode and sum_lr < enter_thresh:
+                narrow_mode = True
+            elif narrow_mode and sum_lr > exit_thresh:
+                narrow_mode = False
+
+        SPEED_ENV_FACTOR = NARROW_FACTOR_SPEED if narrow_mode else 1.0
+        DIST_ENV_FACTOR  = NARROW_FACTOR_DIST  if narrow_mode else 1.0
+
+        if narrow_mode != prev_mode:
+            dprint(f"[corridor] {'ON' if narrow_mode else 'OFF'} (L+R={sum_lr:.1f} cm)" if sum_lr is not None else f"[corridor] {'ON' if narrow_mode else 'OFF'}")
+
         # --- yaw integration (filtered gyro) ---
         raw_gz = mpu.gyro[2] - bias  # rad/s
         gz = GYRO_ALPHA * raw_gz + (1.0 - GYRO_ALPHA) * gyro_prev
@@ -297,7 +358,7 @@ def fsm_loop(stop_evt):
         # --- FSM ---
         if state == "CRUISE":
             # emergency stop
-            if d_front is not None and d_front < STOP_THRESHOLD:
+            if d_front is not None and d_front < eff_stop_threshold():
                 robot.stop()
                 state = "STOPPED"
                 obstacle_until = t + 5.0
@@ -306,24 +367,24 @@ def fsm_loop(stop_evt):
                 continue
 
             # turn trigger
-            if (d_front is not None and d_front < FRONT_TURN_TRIGGER and
+            if (d_front is not None and d_front < eff_front_turn_trigger() and
                 (t - last_turn_time) >= TURN_LOCKOUT):
                 state = "TURN_INIT"
-                robot.motor(SPEED_TURN_INIT)
+                robot.motor(state_speed_value("TURN_INIT"))
                 dprint("Turn INIT: waiting for open side")
                 time.sleep(LOOP_DT)
                 continue
 
             # normal cruise
-            robot.motor(SPEED_CRUISE)
+            robot.motor(state_speed_value("CRUISE"))
             robot.cruise_servo(d_left, d_right)
 
         elif state == "TURN_INIT":
-            robot.motor(SPEED_TURN_INIT)
+            robot.motor(state_speed_value("TURN_INIT"))
             robot.cruise_servo(d_left, d_right)  # gentle keep-straight
 
             # if front becomes safe again, abort
-            if d_front is not None and d_front >= FRONT_TURN_TRIGGER:
+            if d_front is not None and d_front >= eff_front_turn_trigger():
                 state = "CRUISE"
                 dprint("Front cleared, back to CRUISE")
                 time.sleep(LOOP_DT)
@@ -347,12 +408,12 @@ def fsm_loop(stop_evt):
             turn_start_yaw  = yaw
             turn_start_time = t
             robot.set_servo(60 if direction == "LEFT" else 120)  # fixed wheel angle
-            robot.motor(SPEED_TURN)
+            robot.motor(state_speed_value("TURNING"))
             state = "TURNING"
             dprint(f"TURNING {direction} | target Δ={turn_target_delta:.1f}° (entry skew {entry_skew:.1f}°)")
 
         elif state == "TURNING":
-            robot.motor(SPEED_TURN)
+            robot.motor(state_speed_value("TURNING"))
             turn_angle = yaw - turn_start_yaw
 
             stop_cond = False
@@ -377,7 +438,7 @@ def fsm_loop(stop_evt):
                     dprint(f"Lap completed: {lap_count}")
                     if MAX_LAPS > 0 and lap_count >= MAX_LAPS:
                         # small roll-out then stop
-                        robot.motor(SPEED_POST_TURN)
+                        robot.motor(state_speed_value("POST_TURN"))
                         robot.set_servo(SERVO_CENTER)
                         time.sleep(0.5)
                         stop_evt.set()
@@ -388,7 +449,7 @@ def fsm_loop(stop_evt):
                 state = "POST_TURN"
 
         elif state == "POST_TURN":
-            robot.motor(SPEED_POST_TURN)
+            robot.motor(state_speed_value("POST_TURN"))
             robot.set_servo(SERVO_CENTER)
             if (t - post_turn_start) >= POST_TURN_DURATION:
                 state = "CRUISE"
@@ -398,7 +459,7 @@ def fsm_loop(stop_evt):
             robot.set_servo(SERVO_CENTER)
             # auto-retry after 5s if front is clear
             if t >= obstacle_until:
-                if d_front is None or d_front >= STOP_THRESHOLD:
+                if d_front is None or d_front >= eff_stop_threshold():
                     dprint("Obstacle cleared. Resuming CRUISE.")
                     state = "CRUISE"
                 else:
