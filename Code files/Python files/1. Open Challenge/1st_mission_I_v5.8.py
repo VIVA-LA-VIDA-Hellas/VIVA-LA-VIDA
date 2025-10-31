@@ -20,51 +20,51 @@ import adafruit_mpu6050
 import adafruit_vl53l0x
 
 # ===============================
-# CONFIGURATION (1.2, 1.3)
+# CONFIGURATION
 # ===============================
 
-DEBUG = 1  # (1.2) global prints toggle
+DEBUG = 1
 
-# Speeds etc. (1.3)
+# Speeds
 SPEED_IDLE = 0
 SPEED_CRUISE = 25
 SPEED_TURN_INIT = 17
 SPEED_TURN = 20
 SPEED_POST_TURN = 20
 
-SOFT_MARGIN = 30           # (8.1)
-MAX_CORRECTION = 7         # (8.1)
-CORRECTION_DURATION = 0.25 # (8.2)
+SOFT_MARGIN = 30           
+MAX_CORRECTION = 7         
+CORRECTION_DURATION = 0.25 
 
-STOP_THRESHOLD = 20        # (11.1)
-OBSTACLE_WAIT_TIME = 5.0   # (11.2)
+STOP_THRESHOLD = 20        
+OBSTACLE_WAIT_TIME = 5.0   
 
-FRONT_TURN_TRIGGER = 90    # (9.1)
-TURN_DECISION_THRESHOLD = 90 # (9.2)
-TURN_ANGLE_LEFT = 60       # (turn command angle)
+FRONT_TURN_TRIGGER = 90    
+TURN_DECISION_THRESHOLD = 90 
+TURN_ANGLE_LEFT = 60       
 TURN_ANGLE_RIGHT = 120
-FRONT_SAFE_DISTANCE = 160  # (10.2 - optional context)
-SIDE_SAFE_DISTANCE = 30    # (10.2 - optional context)
-TURN_TIMEOUT = 4.5         # (10.2)
-TURN_LOCKOUT = 1.0         # (9.4)
-POST_TURN_DURATION = 0.5   # (10.3)
-LOCK_TURN_DIRECTION = 1    # (9.3)
-TARGET_TURN_ANGLE = 85     # (10.1)
-TURN_ANGLE_TOLERANCE = 5   # (10.2)
+FRONT_SAFE_DISTANCE = 160  
+SIDE_SAFE_DISTANCE = 30    
+TURN_TIMEOUT = 4.5         
+TURN_LOCKOUT = 1.0         
+POST_TURN_DURATION = 0.5   
+LOCK_TURN_DIRECTION = 1    
+TARGET_TURN_ANGLE = 85     
+TURN_ANGLE_TOLERANCE = 5   
 
-MIN_TURN_ANGLE = 65        # (10.2 bounds)
-MAX_TURN_ANGLE = 120       # (10.2 bounds)
+MIN_TURN_ANGLE = 65        
+MAX_TURN_ANGLE = 120       
 
-MAX_LAPS = 3               # (12.1)
-POST_LAP_DURATION = 1.0    # (12.1)
+MAX_LAPS = 3               
+POST_LAP_DURATION = 1.0   
 
-# Narrow corridor (7.1)
+# Narrow corridor
 NARROW_SUM_THRESHOLD = 60
 NARROW_HYSTERESIS = 10
 NARROW_FACTOR_SPEED = 1.0
 NARROW_FACTOR_DIST  = 1.0
 
-# Filtering (4.1, 4.2, 4.3)
+# Filtering 
 N_READINGS = 3
 FILTER_ALPHA_US = 0.6
 FILTER_JUMP_US = 60
@@ -75,18 +75,18 @@ US_QUEUE_LEN = 5
 US_MAX_DISTANCE_FRONT = 3.43  # meters
 US_MAX_DISTANCE_SIDE = 1.72   # meters
 
-# Loop timing (13.2)
+# Loop timing
 LOOP_DELAY = 0.003
 SENSOR_DELAY = 0.003
 
 RAD2DEG = 57.29577951308232
 
-# Sensor choice (3.1, 3.2). Set according to your rig.
+# Sensor choice
 USE_TOF_SIDES = 0
 USE_TOF_FRONT = 0
 
 # ===============================
-# GPIO PINS (2.1, 2.2)
+# GPIO PINS 
 # ===============================
 
 GPIO.setmode(GPIO.BCM)
@@ -100,18 +100,18 @@ RED_LED   = 13
 GPIO.setup(GREEN_LED, GPIO.OUT, initial=GPIO.LOW)
 GPIO.setup(RED_LED,   GPIO.OUT, initial=GPIO.LOW)
 
-# Ultrasonic pins (3.1)
+# Ultrasonic pins 
 TRIG_FRONT, ECHO_FRONT = 22, 23
 TRIG_LEFT,  ECHO_LEFT  = 27, 17
 TRIG_RIGHT, ECHO_RIGHT = 5, 6
 
 # ===============================
-# I2C + Devices (2.3, 2.4, 3.2)
+# I2C + Devices
 # ===============================
 
 i2c = busio.I2C(board.SCL, board.SDA)
 
-# PCA9685 (2.3)
+# PCA9685 
 pca = PCA9685(i2c)
 pca.frequency = 50
 
@@ -127,10 +127,10 @@ SERVO_PERIOD   = 20000  # µs
 MOTOR_FWD = 1
 MOTOR_REV = 2
 
-# IMU (2.4)
+# IMU 
 mpu = adafruit_mpu6050.MPU6050(i2c)
 
-# ToF (3.2) — optional; only init those requested
+# ToF 
 vl53_left = vl53_right = vl53_front = vl53_back = None
 
 def init_tof_if_requested():
@@ -172,7 +172,7 @@ def init_tof_if_requested():
         # fall back to ultrasonics only
         vl53_left = vl53_right = vl53_front = vl53_back = None
 
-# Ultrasonic (3.1)
+# Ultrasonic
 us_front = us_left = us_right = None
 def init_ultrasonic():
     global us_front, us_left, us_right
@@ -186,7 +186,7 @@ def init_ultrasonic():
                                   max_distance=US_MAX_DISTANCE_SIDE, queue_len=US_QUEUE_LEN)
 
 # ===============================
-# Helpers (5.3) + Debug
+# Helpers + Debug
 # ===============================
 
 def dprint(*args, **kwargs):
@@ -200,7 +200,7 @@ def snap90(a: float) -> float:
     return round(a / 90.0) * 90.0
 
 # ===============================
-# State / Flags (13.1)
+# State / Flags
 # ===============================
 
 readings_event = Event()
@@ -211,12 +211,12 @@ turn_count = 0
 lap_count = 0
 stop_reason = None
 
-# Env factors (7.1)
+# Env factors 
 SPEED_ENV_FACTOR = 1.0
 DIST_ENV_FACTOR  = 1.0
 
 # ===============================
-# Controller (6.2, 4.x, 8.x, 9.x)
+# Controller 
 # ===============================
 
 class RobotController:
@@ -235,7 +235,7 @@ class RobotController:
         self.d_left  = None
         self.d_right = None
 
-    # --- Actuators (6.2) ---
+    # --- Actuators ---
     def set_servo(self, angle):
         # clamp
         angle = max(SERVO_MIN_ANGLE, min(SERVO_MAX_ANGLE, angle))
@@ -256,7 +256,7 @@ class RobotController:
         self.pca.channels[MOTOR_FWD].duty_cycle = 0
         self.pca.channels[MOTOR_REV].duty_cycle = 0
 
-    # --- Filtering (4.1, 4.2, 4.3) ---
+    # --- Filtering ---
     @staticmethod
     def _ema(prev, new, alpha):
         if prev is None: return new
@@ -300,7 +300,7 @@ class RobotController:
         setattr(self, smooth_attr, smoothed)
         return smoothed
 
-    # --- Wall following (8.1, 8.2) ---
+    # --- Wall following ---
     def eff_soft_margin(self):
         return int(SOFT_MARGIN * DIST_ENV_FACTOR)
 
@@ -317,7 +317,7 @@ class RobotController:
         angle = SERVO_CENTER + correction
         return max(SERVO_MIN_ANGLE, min(SERVO_MAX_ANGLE, angle))
 
-    # --- Turn decision (9.2) ---
+    # --- Turn decision ---
     @staticmethod
     def turn_decision(d_left, d_right):
         left_open  = (d_left  is None) or (d_left  > TURN_DECISION_THRESHOLD)
@@ -329,7 +329,7 @@ class RobotController:
 robot = RobotController(pca)
 
 # ===============================
-# Sensor thread (3.3)
+# Sensor thread
 # ===============================
 
 sensor_data = {"front": None, "left": None, "right": None}
@@ -368,7 +368,7 @@ def sensor_reader():
         sensor_tick.clear()
 
 # ===============================
-# FSM loop (9.x, 10.x, 11.x, 12.1, 13.2)
+# FSM loop 
 # ===============================
 
 class State:
@@ -387,7 +387,7 @@ def robot_loop():
     yaw = 0.0
     last_turn_time = -999.0
 
-    # Gyro bias (5.1)
+    # Gyro bias
     dprint("Calibrating gyro bias...")
     bias = 0.0; N = 500
     for _ in range(N):
@@ -399,20 +399,20 @@ def robot_loop():
     robot.stop_motor()
     robot.set_servo(SERVO_CENTER)
 
-    # Correction timing (8.2)
+    # Correction timing
     correction_active = False
     correction_start_time = 0.0
 
-    # Turn bookkeeping (10.1-10.3)
+    # Turn bookkeeping
     turn_start_yaw = 0.0
     turn_start_time = 0.0
     turn_target_delta = 0.0
     direction = None
 
-    # For timing (13.2)
+    # For timing
     last_ns = time.monotonic_ns()
 
-    # Narrow corridor memory (7.1)
+    # Narrow corridor memory 
     narrow_mode = False
 
     while True:
@@ -434,7 +434,7 @@ def robot_loop():
             d_right = sensor_data["right"]
         robot.d_front, robot.d_left, robot.d_right = d_front, d_left, d_right
 
-        # Narrow corridor update (7.1)
+        # Narrow corridor update 
         l = d_left  if (d_left  is not None) else None
         r = d_right if (d_right is not None) else None
         sum_lr = None if (l is None or r is None) else (l + r)
@@ -453,7 +453,7 @@ def robot_loop():
         if prev_mode != narrow_mode:
             dprint(f"[corridor] {'ON' if narrow_mode else 'OFF'} (L+R={sum_lr:.1f} cm)" if sum_lr is not None else f"[corridor] {'ON' if narrow_mode else 'OFF'}")
 
-        # Gyro integration (5.2)
+        # Gyro integration 
         raw_z = mpu.gyro[2] - bias  # rad/s
         ALPHA = 0.8
         filt_z = ALPHA * raw_z + (1 - ALPHA) * robot.gyro_z_prev
@@ -479,7 +479,7 @@ def robot_loop():
                 sensor_tick.wait(LOOP_DELAY); sensor_tick.clear()
 
         elif state == State.CRUISE:
-            # Emergency stop (11.1)
+            # Emergency stop 
             if d_front is not None and d_front < int(STOP_THRESHOLD * DIST_ENV_FACTOR):
                 robot.stop_motor()
                 robot.set_servo(SERVO_CENTER)
@@ -506,14 +506,14 @@ def robot_loop():
                     now = time.monotonic_ns() * 1e-9
                 continue
 
-            # Turn trigger (9.1) + lockout (9.4)
+            # Turn trigger + lockout 
             trig = (d_front is not None and d_front < int(FRONT_TURN_TRIGGER * DIST_ENV_FACTOR))
             if trig and (now - last_turn_time >= TURN_LOCKOUT):
                 state = State.TURN_INIT
                 dprint("Approaching turn — waiting for open side")
                 continue
 
-            # Straight control (8.1, 8.2)
+            # Straight control
             desired = robot.safe_straight_control(d_left, d_right)
             if (d_left is not None and d_left < robot.eff_soft_margin()) or \
                (d_right is not None and d_right < robot.eff_soft_margin()):
@@ -545,7 +545,7 @@ def robot_loop():
                 sensor_tick.wait(LOOP_DELAY); sensor_tick.clear()
                 continue
 
-            # Direction lock (9.3)
+            # Direction lock 
             global locked_turn_direction
             if LOCK_TURN_DIRECTION == 1:
                 if locked_turn_direction is None:
@@ -559,7 +559,7 @@ def robot_loop():
             else:
                 direction = proposed
 
-            # Commit turn (10.1)
+            # Commit turn 
             dprint(f"Turn INIT -> {direction}")
             turn_start_yaw = yaw
             turn_start_time = now
@@ -622,12 +622,12 @@ def robot_loop():
         sensor_tick.wait(LOOP_DELAY); sensor_tick.clear()
 
 # ===============================
-# MAIN (14.1, 14.2, 14.3)
+# MAIN
 # ===============================
 
 def main():
     try:
-        # LEDs ready (14.1)
+        # LEDs ready
         GPIO.output(RED_LED, GPIO.HIGH)
         GPIO.output(GREEN_LED, GPIO.LOW)
 
@@ -640,7 +640,7 @@ def main():
         t2 = threading.Thread(target=robot_loop, daemon=True)
         t2.start()
 
-        # Wait for start button (14.2)
+        # Wait for start button 
         dprint("Headless: waiting for START button...")
         GPIO.output(RED_LED, GPIO.LOW)
         GPIO.output(GREEN_LED, GPIO.HIGH)
