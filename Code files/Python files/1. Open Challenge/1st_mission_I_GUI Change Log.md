@@ -60,6 +60,9 @@ v5.7:
 v5.8:
      - performance improvements TBD
      - turning improvements (yaw calculation)
+v5.8 Headless:
+     - keep only what is needed for comptetition mode
+
 
 
 
