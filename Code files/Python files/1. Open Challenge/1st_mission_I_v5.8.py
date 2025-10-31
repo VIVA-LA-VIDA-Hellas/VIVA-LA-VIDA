@@ -1,4 +1,3 @@
-
 # -------------------------------------------------------------------------------------------------
 # VivaLaVida WRO 2025 - Headless Minimal Controller 
 # based on v5.8
@@ -8,12 +7,10 @@ import time
 import threading
 from threading import Event
 from collections import deque
-
 import RPi.GPIO as GPIO
 import board
 import busio
 import digitalio
-
 from gpiozero import DistanceSensor
 from adafruit_pca9685 import PCA9685
 import adafruit_mpu6050
