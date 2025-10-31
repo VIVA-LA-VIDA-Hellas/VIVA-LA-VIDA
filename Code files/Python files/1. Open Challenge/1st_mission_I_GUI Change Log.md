@@ -59,6 +59,8 @@ v5.7:
      - code cleaning
 v5.8:
      - performance improvements TBD
+     - turning improvements (yaw calculation)
+
 
 
 
