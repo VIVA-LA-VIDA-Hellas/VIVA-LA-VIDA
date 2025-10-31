@@ -553,7 +553,7 @@ def robot_loop():
             # keep centered (or mild follow); we apply centered here
             robot.set_servo(SERVO_CENTER)
 
-            proposed = RobotController.turn_decision(d_left, d_right)  # (9.2)
+            proposed = RobotController.turn_decision(d_left, d_right) 
             if proposed is None:
                 sensor_tick.wait(LOOP_DELAY); sensor_tick.clear()
                 continue
