@@ -82,6 +82,11 @@ RAD2DEG = 57.29577951308232
 USE_TOF_SIDES = 0
 USE_TOF_FRONT = 0
 
+
+def dprint(*args, **kwargs):
+    if DEBUG:
+        print(*args, **kwargs)
+
 # ===============================
 # GPIO PINS 
 # ===============================
@@ -185,10 +190,6 @@ def init_ultrasonic():
 # ===============================
 # Helpers + Debug
 # ===============================
-
-def dprint(*args, **kwargs):
-    if DEBUG:
-        print(*args, **kwargs)
 
 def norm180(a: float) -> float:
     return (a + 180.0) % 360.0 - 180.0
