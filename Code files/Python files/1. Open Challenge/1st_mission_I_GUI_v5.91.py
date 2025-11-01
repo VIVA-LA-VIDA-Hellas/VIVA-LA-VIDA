@@ -32,8 +32,6 @@ import adafruit_vl53l0x
 from enum import Enum, auto
 import numpy as np
 from gpiozero import DistanceSensor
-#from gpiozero import Device
-#from gpiozero.pins.pigpio import PiGPIOFactory
 from threading import Event
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__)) # Get directory of the running script
@@ -48,22 +46,22 @@ DEBUG = 0                     # 1 = enable prints, 0 = disable all prints
 USE_TOF_SIDES = 0             # Side sensors:  0 = Ultrasonic, 1 = ToF
 USE_TOF_FRONT = 0             # Front sensor:  0 = Ultrasonic, 1 = ToF
 
-NARROW_SUM_THRESHOLD = 40     # cm; left+right distance threshold to decide if in between narrow walls
+NARROW_SUM_THRESHOLD = 60     # cm; left+right distance threshold to decide if in between narrow walls
 NARROW_HYSTERESIS = 10        # cm; prevents rapid toggling
-NARROW_FACTOR_SPEED = 0.9     # multiply state speeds when in narrow corridors
+NARROW_FACTOR_SPEED = 0.7     # multiply state speeds when in narrow corridors
 NARROW_FACTOR_DIST  = 0.6     # multiply distance-based thresholds/corrections when in narrow corridors
 
 # ---------- Speeds ----------
 SPEED_IDLE = 0
 SPEED_STOPPED = 0
-SPEED_CRUISE = 35            # Motor speed for normal straight driving (0-100%)
-SPEED_TURN_INIT = 16          # Motor speed while waiting for open side to turn
-SPEED_TURN = 35               # Motor speed while turning
-SPEED_POST_TURN = 35          # Motor speed following a turn
+SPEED_CRUISE = 30            # Motor speed for normal straight driving (0-100%)
+SPEED_TURN_INIT = 18          # Motor speed while waiting for open side to turn
+SPEED_TURN = 30               # Motor speed while turning
+SPEED_POST_TURN = 30          # Motor speed following a turn
 
 # ---------- Driving ----------
-SOFT_MARGIN = 20              # Distance from wall where small steering corrections start (cm)
-MAX_CORRECTION = 7            # Maximum servo correction applied for wall-following (degrees)
+SOFT_MARGIN = 25              # Distance from wall where small steering corrections start (cm)
+MAX_CORRECTION = 8            # Maximum servo correction applied for wall-following (degrees)
 CORRECTION_DURATION = 0.1    # How long a side-correction is held (seconds)
 STOP_THRESHOLD = 20           # Front distance (cm) at which robot stops immediately
 OBSTACLE_WAIT_TIME = 5.0      # seconds to wait before retrying after a front-stop
@@ -71,15 +69,15 @@ OBSTACLE_WAIT_TIME = 5.0      # seconds to wait before retrying after a front-st
 # ---------- Turn management ----------
 FRONT_TURN_TRIGGER = 85       # Front distance (cm) at which a turn is triggered
 TURN_DECISION_THRESHOLD = 80  # Minimum side distance (cm) to allow turn in that direction
-TURN_ANGLE_LEFT = 60          # Servo angle for left turn
-TURN_ANGLE_RIGHT = 120        # Servo angle for right turn
+TURN_ANGLE_LEFT = 62          # Servo angle for left turn
+TURN_ANGLE_RIGHT = 118        # Servo angle for right turn
 FRONT_SAFE_DISTANCE = 160     # Front distance considered safe to end a turn (cm)
 SIDE_SAFE_DISTANCE = 30       # Side distance considered safe to end a turn (cm)
 TURN_TIMEOUT = 4.5            # Maximum time allowed for a turn (seconds)
 TURN_LOCKOUT = 1.5            # Minimum interval between consecutive turns (seconds)
 POST_TURN_DURATION = 0.5      # Time to drive straight after a turn (seconds)
 LOCK_TURN_DIRECTION = 1       # 1 = enable turn lock direction after 1st turn, 0 = disable
-TARGET_TURN_ANGLE = 85        # Degrees to turn per corner
+TARGET_TURN_ANGLE = 83        # Degrees to turn per corner
 TURN_ANGLE_TOLERANCE = 7      # Acceptable overshoot (degrees)
 
 SERVO_SLEW_DPS = 0        # max degrees/second the servo command may change (0 = no limit)
@@ -96,7 +94,7 @@ POST_LAP_DURATION = 1       # Time to drive forward after final lap before stopp
 
 # ---------- Sensor data filtering ----------
 N_READINGS = 1                # Number of readings stored for median filtering
-US_QUEUE_LEN = 5              # Queue_len for Ultrasonic gpiozero.DistanceSensor
+US_QUEUE_LEN = 3              # Queue_len for Ultrasonic gpiozero.DistanceSensor
 FILTER_ALPHA = 1.0            # Ultrasonic 0.1 = smoother, 0.5 = faster reaction, 1 to ignore filter
 FILTER_JUMP = 999             # Ultrasonic maximum jump (cm) allowed between readings
 FILTER_ALPHA_TOF = 1.0        # ToF 0.1 = smoother, 0.5 = faster reaction, 1 to ignore filter
