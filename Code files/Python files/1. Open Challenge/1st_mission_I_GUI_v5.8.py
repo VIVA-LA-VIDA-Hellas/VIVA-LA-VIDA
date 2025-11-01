@@ -47,39 +47,39 @@ DEBUG = 1                     # 1 = enable prints, 0 = disable all prints
 USE_TOF_SIDES = 0             # Side sensors:  0 = Ultrasonic, 1 = ToF
 USE_TOF_FRONT = 0             # Front sensor:  0 = Ultrasonic, 1 = ToF
 
-NARROW_SUM_THRESHOLD = 60     # cm; left+right distance threshold to decide if in between narrow walls
+NARROW_SUM_THRESHOLD = 40     # cm; left+right distance threshold to decide if in between narrow walls
 NARROW_HYSTERESIS = 10        # cm; prevents rapid toggling
-NARROW_FACTOR_SPEED = 1.0     # multiply state speeds when in narrow corridors
-NARROW_FACTOR_DIST  = 1.0     # multiply distance-based thresholds/corrections when in narrow corridors
+NARROW_FACTOR_SPEED = 0.8     # multiply state speeds when in narrow corridors
+NARROW_FACTOR_DIST  = 0.6     # multiply distance-based thresholds/corrections when in narrow corridors
 
 # ---------- Speeds ----------
 SPEED_IDLE = 0
 SPEED_STOPPED = 0
-SPEED_CRUISE = 25            # Motor speed for normal straight driving (0-100%)
-SPEED_TURN_INIT = 17          # Motor speed while waiting for open side to turn
-SPEED_TURN = 20               # Motor speed while turning
-SPEED_POST_TURN = 20          # Motor speed following a turn
+SPEED_CRUISE = 30            # Motor speed for normal straight driving (0-100%)
+SPEED_TURN_INIT = 18          # Motor speed while waiting for open side to turn
+SPEED_TURN = 25               # Motor speed while turning
+SPEED_POST_TURN = 25          # Motor speed following a turn
 
 # ---------- Driving ----------
-SOFT_MARGIN = 30              # Distance from wall where small steering corrections start (cm)
-MAX_CORRECTION = 7            # Maximum servo correction applied for wall-following (degrees)
-CORRECTION_DURATION = 0.25    # How long a side-correction is held (seconds)
+SOFT_MARGIN = 25              # Distance from wall where small steering corrections start (cm)
+MAX_CORRECTION = 8            # Maximum servo correction applied for wall-following (degrees)
+CORRECTION_DURATION = 0.1    # How long a side-correction is held (seconds)
 STOP_THRESHOLD = 20           # Front distance (cm) at which robot stops immediately
 OBSTACLE_WAIT_TIME = 5.0      # seconds to wait before retrying after a front-stop
 
 # ---------- Turn management ----------
 FRONT_TURN_TRIGGER = 90       # Front distance (cm) at which a turn is triggered
 TURN_DECISION_THRESHOLD = 90  # Minimum side distance (cm) to allow turn in that direction
-TURN_ANGLE_LEFT = 60          # Servo angle for left turn
-TURN_ANGLE_RIGHT = 120        # Servo angle for right turn
+TURN_ANGLE_LEFT = 62          # Servo angle for left turn
+TURN_ANGLE_RIGHT = 118        # Servo angle for right turn
 FRONT_SAFE_DISTANCE = 160     # Front distance considered safe to end a turn (cm)
 SIDE_SAFE_DISTANCE = 30       # Side distance considered safe to end a turn (cm)
 TURN_TIMEOUT = 4.5            # Maximum time allowed for a turn (seconds)
-TURN_LOCKOUT = 1.0            # Minimum interval between consecutive turns (seconds)
+TURN_LOCKOUT = 0.8            # Minimum interval between consecutive turns (seconds)
 POST_TURN_DURATION = 0.5      # Time to drive straight after a turn (seconds)
 LOCK_TURN_DIRECTION = 1       # 1 = enable turn lock direction after 1st turn, 0 = disable
-TARGET_TURN_ANGLE = 85        # Degrees to turn per corner
-TURN_ANGLE_TOLERANCE = 5      # Acceptable overshoot (degrees)
+TARGET_TURN_ANGLE = 84        # Degrees to turn per corner
+TURN_ANGLE_TOLERANCE = 6      # Acceptable overshoot (degrees)
 
 SERVO_SLEW_DPS = 0        # max degrees/second the servo command may change (0 = no limit)
 # Reduce to ~200 for gentler turns, increase to ~450 for sharper response.
@@ -98,14 +98,14 @@ N_READINGS = 1                # Number of readings stored for median filtering
 US_QUEUE_LEN = 5              # Queue_len for Ultrasonic gpiozero.DistanceSensor
 FILTER_ALPHA = 1.0            # Ultrasonic 0.1 = smoother, 0.5 = faster reaction, 1 to ignore filter
 FILTER_JUMP = 999             # Ultrasonic maximum jump (cm) allowed between readings
-FILTER_ALPHA_TOF = 1.0        # ToF 0.1 = smoother, 0.5 = faster reaction, 1 to ignore filter
-FILTER_JUMP_TOF = 999         # ToF maximum jump (cm) allowed between readings
+FILTER_ALPHA_TOF = 0.8        # ToF 0.1 = smoother, 0.5 = faster reaction, 1 to ignore filter
+FILTER_JUMP_TOF = 60         # ToF maximum jump (cm) allowed between readings
 US_MAX_DISTANCE_FRONT = 3.43  # Ultrasonic front max read distance
 US_MAX_DISTANCE_SIDE = 1.72   # Ultrasonic side max read distance
 
 # ---------- Loop timing ----------
-LOOP_DELAY = 0.001            # Delay between main loop iterations (seconds) 0.02
-SENSOR_DELAY = 0.003          # Delay between sensor reads
+LOOP_DELAY = 0.01            # Delay between main loop iterations (seconds) 0.02
+SENSOR_DELAY = 0.01          # Delay between sensor reads
 
 #-----------------------------------------------------------------------------------------
 
@@ -523,25 +523,25 @@ def sensor_reader():
     while True:
         # Left sensor
         if vl53_left:  # ToF
-            left = robot.filtered_distance(vl53_left, robot.left_history, "smooth_left")
+            left = robot.filtered_distance(vl53_left, robot.left_history, "smooth_left", sensor_type='tof')
         elif us_left:  # ultrasonic
-            left = robot.filtered_distance(us_left, robot.left_history, "smooth_left")
+            left = robot.filtered_distance(us_left, robot.left_history, "smooth_left", sensor_type='us')
         else:
             left = None
 
         # Right sensor
         if vl53_right:
-            right = robot.filtered_distance(vl53_right, robot.right_history, "smooth_right")
+            right = robot.filtered_distance(vl53_right, robot.right_history, "smooth_right", sensor_type='tof')
         elif us_right:
-            right = robot.filtered_distance(us_right, robot.right_history, "smooth_right")
+            right = robot.filtered_distance(us_right, robot.right_history, "smooth_right", sensor_type='us')
         else:
             right = None
 
         # Front sensor
         if vl53_front:
-            front = robot.filtered_distance(vl53_front, robot.front_history, "smooth_front")
+            front = robot.filtered_distance(vl53_front, robot.front_history, "smooth_front", sensor_type='tof')
         elif us_front:
-            front = robot.filtered_distance(us_front, robot.front_history, "smooth_front")
+            front = robot.filtered_distance(us_front, robot.front_history, "smooth_front"), sensor_type='us'
         else:
             front = None
 
