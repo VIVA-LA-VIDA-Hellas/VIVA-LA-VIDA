@@ -54,7 +54,7 @@ NARROW_FACTOR_DIST  = 0.6     # multiply distance-based thresholds/corrections w
 # ---------- Speeds ----------
 SPEED_IDLE = 0
 SPEED_STOPPED = 0
-SPEED_CRUISE = 30            # Motor speed for normal straight driving (0-100%)
+SPEED_CRUISE = 30             # Motor speed for normal straight driving (0-100%)
 SPEED_TURN_INIT = 18          # Motor speed while waiting for open side to turn
 SPEED_TURN = 30               # Motor speed while turning
 SPEED_POST_TURN = 30          # Motor speed following a turn
@@ -81,10 +81,6 @@ POST_TURN_DURATION = 0.5      # Time to drive straight after a turn (seconds)
 LOCK_TURN_DIRECTION = 1       # 1 = enable turn lock direction after 1st turn, 0 = disable
 TARGET_TURN_ANGLE = 83        # Degrees to turn per corner
 TURN_ANGLE_TOLERANCE = 7      # Acceptable overshoot (degrees)
-
-SERVO_SLEW_DPS = 0        # max degrees/second the servo command may change (0 = no limit)
-# Reduce to ~200 for gentler turns, increase to ~450 for sharper response.
-# Set to 0 to disable limiting and go back to “as fast as the servo can”.
 
 # ---------- Turn angle constraints ----------
 MIN_TURN_ANGLE = 65           # Minimum yaw change (degrees) before turn can stop
@@ -437,28 +433,18 @@ class RobotController:
     #    self.pca.channels[SERVO_CHANNEL].duty_cycle = int(pulse * 65535 / SERVO_PERIOD)
 
     def set_servo(self, angle):
-        # 1) clamp target
+        # clamp to physical limits
         target = max(SERVO_MIN_ANGLE, min(SERVO_MAX_ANGLE, angle))
-     
-        # 2) simple built-in slew limiter using one knob: SERVO_SLEW_DPS
-        now_ns = time.monotonic_ns()
-        dt = max(0.0, (now_ns - self._servo_last_ns) * 1e-9)
-        if SERVO_SLEW_DPS > 0 and dt > 0:
-            max_step = SERVO_SLEW_DPS * dt
-            diff = target - self._servo_last_angle
-            if abs(diff) > max_step:
-                target = self._servo_last_angle + (max_step if diff > 0 else -max_step)
-    
-        # 3) remember for next call
-        self._servo_last_angle = target
-        self._servo_last_ns = now_ns
-    
-        # 4) convert to pulse & send (unchanged)
-        pulse = int(SERVO_PULSE_MIN + (SERVO_PULSE_MAX - SERVO_PULSE_MIN) *
-                    ((target - SERVO_MIN_ANGLE) / (SERVO_MAX_ANGLE - SERVO_MIN_ANGLE)))
+        # angle → pulse (µs)
+        pulse = int(
+            SERVO_PULSE_MIN
+            + (SERVO_PULSE_MAX - SERVO_PULSE_MIN)
+            * ((target - SERVO_MIN_ANGLE) / (SERVO_MAX_ANGLE - SERVO_MIN_ANGLE))
+        )
+        # write to PCA9685
         with I2C_LOCK:
             self.pca.channels[SERVO_CHANNEL].duty_cycle = int(pulse * 65535 / SERVO_PERIOD)
-        return target  # handy if you want to log the actual command
+        return target
 
     def rotate_motor(self, speed):
         duty_cycle = int(min(max(abs(speed), 0), 100)/100*65535)
