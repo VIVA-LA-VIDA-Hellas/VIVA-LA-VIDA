@@ -155,16 +155,16 @@ def init_tof_if_requested():
         if USE_TOF_SIDES:
             xshut_left.value = True;  time.sleep(0.02)
             vl53_left = adafruit_vl53l0x.VL53L0X(i2c); vl53_left.set_address(0x30)
-            vl53_left.measurement_timing_budget = 20000; vl53_left.start_continuous(20)
+            vl53_left.measurement_timing_budget = 20000; vl53_left.start_continuous()
 
             xshut_right.value = True; time.sleep(0.02)
             vl53_right = adafruit_vl53l0x.VL53L0X(i2c); vl53_right.set_address(0x31)
-            vl53_right.measurement_timing_budget = 20000; vl53_right.start_continuous(20)
+            vl53_right.measurement_timing_budget = 20000; vl53_right.start_continuous()
 
         if USE_TOF_FRONT:
             xshut_front.value = True; time.sleep(0.02)
             vl53_front = adafruit_vl53l0x.VL53L0X(i2c); vl53_front.set_address(0x32)
-            vl53_front.measurement_timing_budget = 20000; vl53_front.start_continuous(20)
+            vl53_front.measurement_timing_budget = 20000; vl53_front.start_continuous()
 
         # Optional: back ToF kept available
         xshut_back.value = True; time.sleep(0.02)
