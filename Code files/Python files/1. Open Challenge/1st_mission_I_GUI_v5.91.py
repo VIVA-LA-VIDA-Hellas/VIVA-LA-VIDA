@@ -519,9 +519,9 @@ class RobotController:
     def safe_straight_control(self, d_left, d_right):
         correction = 0
         if d_left is not None and d_left < eff_soft_margin():
-            correction = (eff_soft_margin() - d_left)*2
+            correction = (eff_soft_margin() - d_left) * CORRECTION_MULTIPLIER
         elif d_right is not None and d_right < eff_soft_margin():
-            correction = -(eff_soft_margin() - d_right)*2
+            correction = -(eff_soft_margin() - d_right) * CORRECTION_MULTIPLIER
         #correction = max(-MAX_CORRECTION, min(MAX_CORRECTION, correction))
         correction = max(-eff_max_correction(), min(eff_max_correction(), correction))
         #return SERVO_CENTER + correction
