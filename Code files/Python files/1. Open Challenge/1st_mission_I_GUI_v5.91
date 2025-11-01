@@ -205,6 +205,26 @@ def state_speed_value(state_name: str) -> int:
     }.get(state_name, SPEED_CRUISE)
     return int(base * SPEED_ENV_FACTOR)
 
+def headless_toggle_pause():
+    """Toggle pause/resume of the driving loop in headless mode."""
+    global paused_by_button, status_text
+    if loop_event.is_set():
+        # PAUSE
+        loop_event.clear()
+        paused_by_button = True
+        robot.stop_motor()
+        robot.set_servo(SERVO_CENTER)
+        GPIO.output(RED_LED, GPIO.LOW)     # paused
+        GPIO.output(GREEN_LED, GPIO.HIGH)
+        status_text = "Paused (button)"
+    else:
+        # RESUME
+        paused_by_button = False
+        loop_event.set()
+        GPIO.output(GREEN_LED, GPIO.LOW)   # running
+        GPIO.output(RED_LED, GPIO.HIGH)
+        status_text = "🚗 Resumed"
+
 # ===============================
 # HARDWARE SETUP
 # ===============================
@@ -360,6 +380,11 @@ lap_count = 0
 # Reason-aware stopping (USER / OBSTACLE / LAPS)
 stop_reason = None
 obstacle_wait_deadline = 0.0
+# --- Headless START button toggle / debounce ---
+BTN_DEBOUNCE_S = 0.30   # seconds
+_btn_prev = 1           # pull-up idle state (button not pressed)
+_btn_last_ts = 0.0
+paused_by_button = False
 
 # ---------- SENSOR DATA STORAGE ----------
 time_data = deque(maxlen=MAX_POINTS)
@@ -582,6 +607,7 @@ locked_turn_direction = None
 
 def robot_loop():   
     global status_text, turn_count, lap_count, locked_turn_direction, stop_reason, obstacle_wait_deadline
+    global _btn_prev, _btn_last_ts, paused_by_button
     state = RobotState.IDLE
     direction = None
     yaw = 0.0
@@ -610,6 +636,14 @@ def robot_loop():
         dt = (current_ns - last_ns) * 1e-9   # seconds
         last_ns = current_ns
         current_time = current_ns * 1e-9     # float seconds, used by UI/timers
+
+        # --- Headless START button edge detection (press to PAUSE/RESUME) ---
+        if not USE_GUI:
+            cur = GPIO.input(START_BTN)
+            if _btn_prev == 1 and cur == 0 and (current_time - _btn_last_ts) > BTN_DEBOUNCE_S:
+                _btn_last_ts = current_time
+                headless_toggle_pause()
+            _btn_prev = cur
 
         if not readings_event.is_set():
             # if readings not started, keep motors stopped and idle
@@ -683,7 +717,7 @@ def robot_loop():
         if not loop_event.is_set():
             robot.stop_motor()
             state = RobotState.IDLE
-            status_text = "Sensor readings started"
+            status_text = "Paused" if paused_by_button else "Sensor readings started"
             #time.sleep(LOOP_DELAY)
             sensor_tick.wait(LOOP_DELAY); sensor_tick.clear()
             continue
@@ -1432,6 +1466,8 @@ if __name__ == "__main__":
             time.sleep(2)  # wait 2 seconds before starting loop
             #loop_flag = True
             loop_event.set()
+            GPIO.output(GREEN_LED, GPIO.LOW)  # running
+            GPIO.output(RED_LED, GPIO.HIGH)   # active
             print("Starting main robot loop...")
             # Start robot loop in this thread (blocking)
             robot_loop()
