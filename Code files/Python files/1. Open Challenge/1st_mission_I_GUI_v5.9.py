@@ -125,6 +125,9 @@ def dprint(*args, **kwargs):
 
 CONFIG_FILE = os.path.join(BASE_DIR, "1st_mission_variables.json")
 
+# --- I2C concurrency guard ---
+I2C_LOCK = threading.Lock()
+
 def load_variables_from_json(path=CONFIG_FILE):
     """
     Override defaults with values from JSON if the file exists.
@@ -327,7 +330,8 @@ print("Calibrating gyro...")
 N = 500
 bias = 0
 for _ in range(N):
-    bias += mpu.gyro[2]
+    with I2C_LOCK:
+        bias += mpu.gyro[2]
     time.sleep(0.005)
 bias /= N
 #print(f"Gyro bias: {bias}")
@@ -426,22 +430,24 @@ class RobotController:
         # 4) convert to pulse & send (unchanged)
         pulse = int(SERVO_PULSE_MIN + (SERVO_PULSE_MAX - SERVO_PULSE_MIN) *
                     ((target - SERVO_MIN_ANGLE) / (SERVO_MAX_ANGLE - SERVO_MIN_ANGLE)))
-        self.pca.channels[SERVO_CHANNEL].duty_cycle = int(pulse * 65535 / SERVO_PERIOD)
-    
+        with I2C_LOCK:
+            self.pca.channels[SERVO_CHANNEL].duty_cycle = int(pulse * 65535 / SERVO_PERIOD)
         return target  # handy if you want to log the actual command
 
     def rotate_motor(self, speed):
         duty_cycle = int(min(max(abs(speed), 0), 100)/100*65535)
-        if speed >= 0:
-            self.pca.channels[MOTOR_FWD].duty_cycle = duty_cycle
-            self.pca.channels[MOTOR_REV].duty_cycle = 0
-        else:
-            self.pca.channels[MOTOR_FWD].duty_cycle = 0
-            self.pca.channels[MOTOR_REV].duty_cycle = duty_cycle
+        with I2C_LOCK:
+            if speed >= 0:
+                self.pca.channels[MOTOR_FWD].duty_cycle = duty_cycle
+                self.pca.channels[MOTOR_REV].duty_cycle = 0
+            else:
+                self.pca.channels[MOTOR_FWD].duty_cycle = 0
+                self.pca.channels[MOTOR_REV].duty_cycle = duty_cycle
 
     def stop_motor(self):
-        self.pca.channels[MOTOR_FWD].duty_cycle = 0
-        self.pca.channels[MOTOR_REV].duty_cycle = 0
+        with I2C_LOCK:
+            self.pca.channels[MOTOR_FWD].duty_cycle = 0
+            self.pca.channels[MOTOR_REV].duty_cycle = 0
 
     def set_state_speed(self, state):
         # Set motor speed based on FSM state.
@@ -470,11 +476,15 @@ class RobotController:
         return alpha * new_val + (1 - alpha) * prev_val    
 
     def filtered_distance(self, sensor_obj, history, smooth_attr, sensor_type='us'):
-         try:
-             d = sensor_obj.range / 10.0 if sensor_type == 'tof' else sensor_obj.distance * 100.0
-         except:
-             d = None
-     
+        try:
+            if sensor_type == 'tof':
+                with I2C_LOCK:
+                    d = sensor_obj.range / 10.0   # mm -> cm
+            else:
+                d = sensor_obj.distance * 100.0   # meters -> cm
+        except:
+            d = None
+
          history.append(d)
          valid = [x for x in history if x is not None]
          if not valid:
@@ -541,7 +551,7 @@ def sensor_reader():
         if vl53_front:
             front = robot.filtered_distance(vl53_front, robot.front_history, "smooth_front", sensor_type='tof')
         elif us_front:
-            front = robot.filtered_distance(us_front, robot.front_history, "smooth_front"), sensor_type='us'
+            front = robot.filtered_distance(us_front, robot.front_history, "smooth_front"), sensor_type='us')
         else:
             front = None
 
@@ -650,11 +660,12 @@ def robot_loop():
             mode_txt = "NARROW mode ON" if robot_loop._narrow_mode else "NARROW mode OFF"
             dprint(f"[corridor] {mode_txt} (L+R = {sum_lr:.1f} cm)" if sum_lr is not None else f"[corridor] {mode_txt}")
              
-        raw_gyro_z = mpu.gyro[2] - bias      # rad/s from MPU6050
-        ALPHA = 0.8
-        gyro_z_filtered = ALPHA * raw_gyro_z + (1 - ALPHA) * getattr(robot, 'gyro_z_prev', 0.0)
-        robot.gyro_z_prev = gyro_z_filtered
-        yaw += (gyro_z_filtered * RAD2DEG) * dt
+        with I2C_LOCK:
+            raw_gyro_z = mpu.gyro[2] - bias      # rad/s from MPU6050
+            ALPHA = 0.8
+            gyro_z_filtered = ALPHA * raw_gyro_z + (1 - ALPHA) * getattr(robot, 'gyro_z_prev', 0.0)
+            robot.gyro_z_prev = gyro_z_filtered
+            yaw += (gyro_z_filtered * RAD2DEG) * dt
 
 
         # Append to deques for plotting/logging
@@ -1257,7 +1268,8 @@ def launch_gui():
         for sensor in [vl53_left, vl53_right, vl53_front, vl53_back]:
             if sensor is not None:
                 try:
-                    sensor.stop_continuous()
+                    with I2C_LOCK:
+                        sensor.stop_continuous()
                 except Exception as e:
                     dprint(f"Warning: could not stop sensor {sensor}: {e}")
         
