@@ -62,7 +62,9 @@ SPEED_POST_TURN = 30          # Motor speed following a turn
 # ---------- Driving ----------
 SOFT_MARGIN = 25              # Distance from wall where small steering corrections start (cm)
 MAX_CORRECTION = 8            # Maximum servo correction applied for wall-following (degrees)
-CORRECTION_DURATION = 0.1    # How long a side-correction is held (seconds)
+CORRECTION_DURATION = 0.1     # How long a side-correction is held (seconds)
+CORRECTION_MULTIPLIER = 1.8   # Proportional gain (servo degrees per cm of error 0 default: 2). Higher = snappier; lower = smoother&slower. 
+
 STOP_THRESHOLD = 20           # Front distance (cm) at which robot stops immediately
 OBSTACLE_WAIT_TIME = 5.0      # seconds to wait before retrying after a front-stop
 
