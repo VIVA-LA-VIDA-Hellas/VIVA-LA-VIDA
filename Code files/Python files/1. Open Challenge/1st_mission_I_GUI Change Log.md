@@ -62,7 +62,12 @@ v5.8:
      - turning improvements (yaw calculation)
 v5.9:
      - fix tof readings
+v5.91:
+     - minor improvements
+v5.92:
+     - change safe straight control logic
      
+
 
 
 
