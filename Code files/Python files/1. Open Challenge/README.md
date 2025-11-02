@@ -158,7 +158,7 @@ All GUI slider changes can be saved and reloaded.
 ## 🏁 Run Modes <a id="run-modes"></a>
 - **Debugging (GUI) Mode:**
   Set `USE_GUI = 1` and press Start Readings & Start Loop button.
-- **Headless Mode:**
+- **Competition (Headless) Mode:**
   Set `USE_GUI = 0` and press the hardware start button.
 
 ---
