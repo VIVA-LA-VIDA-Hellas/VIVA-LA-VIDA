@@ -1412,12 +1412,12 @@ if __name__ == "__main__":
         launch_gui()
     else:
         # Start the sensor reading thread
-        GPIO.output(RED_LED, GPIO.HIGH)
+        GPIO.output(RED_LED, GPIO.LOW)
         GPIO.output(GREEN_LED, GPIO.LOW)
         sensor_thread = threading.Thread(target=sensor_reader, daemon=True)
         sensor_thread.start()
         print("Headless mode: waiting for START button...")
-        GPIO.output(RED_LED, GPIO.LOW)     # turn off red when ready
+        GPIO.output(RED_LED, GPIO.HIGH)     # turn off red when ready
         GPIO.output(GREEN_LED, GPIO.HIGH)  # green = ready to press the button
         try:
             # Wait for button press (GPIO input goes LOW when pressed)
