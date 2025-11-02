@@ -1,7 +1,7 @@
 Autonomous drive 1st Mission WRO 2025
 - VivaLaVida - 
 
-v4.1 - remove camera, add logging </a>
+v4.1 - remove camera, add logging
 v4.2 - improved turn logic and timeout slider
 v4.3 - graph and turn improvements
 v4.5 - rewrite
@@ -68,6 +68,7 @@ v5.92:
      - change safe straight control logic
      - code cleaning
      
+
 
 
 
