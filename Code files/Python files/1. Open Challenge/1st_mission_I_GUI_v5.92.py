@@ -111,6 +111,9 @@ MAX_POINTS = 500               # Maximum number of points to store for plotting
 
 RAD2DEG = 180.0 / 3.141592653589793
 
+# --- I2C concurrency guard ---
+I2C_LOCK = threading.Lock()
+
 def dprint(*args, **kwargs):
     """Conditional print — only prints when DEBUG == 1."""
     if DEBUG:
@@ -121,9 +124,6 @@ def dprint(*args, **kwargs):
 # ===============================
 
 CONFIG_FILE = os.path.join(BASE_DIR, "1st_mission_variables.json")
-
-# --- I2C concurrency guard ---
-I2C_LOCK = threading.Lock()
 
 def load_variables_from_json(path=CONFIG_FILE):
     """
@@ -173,20 +173,16 @@ SPEED_ENV_FACTOR = 1.0
 DIST_ENV_FACTOR  = 1.0  # for distance-related thresholds
 
 # --- Helper functions to get "effective" (scaled) values ---
-def eff_soft_margin():
-    """Return scaled soft margin distance (cm) for gentle steering corrections."""
+def eff_soft_margin(): #Return scaled soft margin distance (cm) for gentle steering corrections
     return int(SOFT_MARGIN * DIST_ENV_FACTOR)
 
-def eff_max_correction():
-    """Return scaled maximum steering correction (degrees)."""
+def eff_max_correction(): #Return scaled maximum steering correction (degrees)
     return max(1, int(MAX_CORRECTION * DIST_ENV_FACTOR))
 
-def eff_front_turn_trigger():
-    """Return scaled front distance threshold (cm) for initiating a turn."""
+def eff_front_turn_trigger(): #Return scaled front distance threshold (cm) for initiating a turn
     return int(FRONT_TURN_TRIGGER * DIST_ENV_FACTOR)
 
-def eff_stop_threshold():
-    """Return scaled front distance threshold (cm) for immediate stop."""
+def eff_stop_threshold(): #Return scaled front distance threshold (cm) for immediate stop
     return int(STOP_THRESHOLD * DIST_ENV_FACTOR)
 
 # --- Scaled state speeds ---
@@ -201,11 +197,9 @@ def state_speed_value(state_name: str) -> int:
     }.get(state_name, SPEED_CRUISE)
     return int(base * SPEED_ENV_FACTOR)
 
-def headless_toggle_pause():
-    """Toggle pause/resume of the driving loop in headless mode."""
+def headless_toggle_pause(): #Toggle pause/resume of the driving loop in headless mode
     global paused_by_button, status_text
-    if loop_event.is_set():
-        # PAUSE
+    if loop_event.is_set(): #Pause
         loop_event.clear()
         paused_by_button = True
         robot.stop_motor()
@@ -213,8 +207,7 @@ def headless_toggle_pause():
         GPIO.output(RED_LED, GPIO.LOW)     # paused
         GPIO.output(GREEN_LED, GPIO.HIGH)
         status_text = "Paused (button)"
-    else:
-        # RESUME
+    else:  # RESUME
         paused_by_button = False
         loop_event.set()
         GPIO.output(GREEN_LED, GPIO.LOW)   # running
@@ -333,17 +326,17 @@ if not USE_TOF_SIDES:
     us_left  = DistanceSensor(echo=ECHO_LEFT,  trigger=TRIG_LEFT,  max_distance=US_MAX_DISTANCE_SIDE, queue_len=US_QUEUE_LEN)
     us_right = DistanceSensor(echo=ECHO_RIGHT, trigger=TRIG_RIGHT, max_distance=US_MAX_DISTANCE_SIDE, queue_len=US_QUEUE_LEN)
 
-print("Sensors initialized:")
-print(f"  Front: {'ToF' if USE_TOF_FRONT else 'Ultrasonic'}")
-print(f"  Left : {'ToF' if USE_TOF_SIDES else 'Ultrasonic'}")
-print(f"  Right: {'ToF' if USE_TOF_SIDES else 'Ultrasonic'}")
+dprint("Sensors initialized:")
+dprint(f"  Front: {'ToF' if USE_TOF_FRONT else 'Ultrasonic'}")
+dprint(f"  Left : {'ToF' if USE_TOF_SIDES else 'Ultrasonic'}")
+dprint(f"  Right: {'ToF' if USE_TOF_SIDES else 'Ultrasonic'}")
 
 pca = PCA9685(i2c)
 pca.frequency = 50
 mpu = adafruit_mpu6050.MPU6050(i2c)
 
 # ---------- Calibrate gyro bias at startup ----------
-print("Calibrating gyro...")
+dprint("Calibrating gyro...")
 N = 500
 bias = 0
 for _ in range(N):
@@ -351,7 +344,7 @@ for _ in range(N):
         bias += mpu.gyro[2]
     time.sleep(0.005)
 bias /= N
-#print(f"Gyro bias: {bias}")
+dprint(f"Gyro bias: {bias}")
 
 # ===============================
 # CONTROL FLAGS & STORAGE
@@ -432,13 +425,7 @@ class RobotController:
         self.front_history = deque(list(self.front_history)[-n:], maxlen=n)
         self.left_history = deque(list(self.left_history)[-n:], maxlen=n)
         self.right_history = deque(list(self.right_history)[-n:], maxlen=n)
-
-    #def set_servo(self, angle):
-    #    angle = max(SERVO_MIN_ANGLE, min(SERVO_MAX_ANGLE, angle))
-    #    pulse = int(SERVO_PULSE_MIN + (SERVO_PULSE_MAX - SERVO_PULSE_MIN) *
-    #                ((angle - SERVO_MIN_ANGLE) / (SERVO_MAX_ANGLE - SERVO_MIN_ANGLE)))
-    #    self.pca.channels[SERVO_CHANNEL].duty_cycle = int(pulse * 65535 / SERVO_PERIOD)
-
+   
     def set_servo(self, angle):
         # clamp to physical limits
         target = max(SERVO_MIN_ANGLE, min(SERVO_MAX_ANGLE, angle))
@@ -609,8 +596,7 @@ class RobotState(Enum):
     POST_TURN = auto()
     STOPPED = auto()
 
-# Keep a global locked_turn_direction variable to persist across runs (reset in stop_loop)
-locked_turn_direction = None
+locked_turn_direction = None # Keep a global locked_turn_direction variable to persist across runs (reset in stop_loop)
 
 def robot_loop():   
     global status_text, turn_count, lap_count, locked_turn_direction, stop_reason, obstacle_wait_deadline
@@ -628,9 +614,9 @@ def robot_loop():
     post_turn_ref_diff = None
     turn_target_delta = 0.0  # relative yaw target for this turn (deg)
     
-    # Ensure robot stopped at start
-    robot.stop_motor()
-    robot.set_servo(SERVO_CENTER)
+    
+    robot.stop_motor()                 # Ensure robot stopped at start
+    robot.set_servo(SERVO_CENTER)      # Ensure robot stopped at start
 
     while True:
         current_ns = time.monotonic_ns()
@@ -705,7 +691,6 @@ def robot_loop():
 
 
         # Append to deques for plotting/logging
-        #elapsed_time = current_time - start_time
         elapsed_time = (current_ns - start_ns) * 1e-9
         time_data.append(elapsed_time)
         front_data.append(robot.d_front if robot.d_front is not None else 0)
@@ -719,7 +704,6 @@ def robot_loop():
             robot.stop_motor()
             state = RobotState.IDLE
             status_text = "Paused" if paused_by_button else "Sensor readings started"
-            #time.sleep(LOOP_DELAY)
             sensor_tick.wait(LOOP_DELAY); sensor_tick.clear()
             continue
 
@@ -861,35 +845,15 @@ def robot_loop():
             stop_condition = False
             robot.ss_reset()
 
-            # Condition A: side distance convergence (monitor opposite wall)
-            #side_distance_monitor = robot.d_left if direction == "RIGHT" else robot.d_right
-            #MIN_SIDE_CHANGE = 5  # cm
-            #if side_distance_monitor is not None and turn_reference_side_distance is not None:
-            #    if abs(side_distance_monitor - turn_reference_side_distance) > MIN_SIDE_CHANGE:
-            #        lower_bound = turn_reference_side_distance * 0.95
-            #        upper_bound = turn_reference_side_distance * 1.05
-            #        if lower_bound <= side_distance_monitor <= upper_bound:
-            #            dprint("Stop Turn - Opposite distance")
-            #            stop_condition = True
-
-            # Condition B: front + side safe
-            #side_distance = robot.d_left if direction == "LEFT" else robot.d_right
-            #if robot.d_front is not None and robot.d_front > FRONT_SAFE_DISTANCE and side_distance is not None and side_distance > SIDE_SAFE_DISTANCE:
-            #    dprint("Stop Turn - Front distance")
-            #    stop_condition = True
-
-            # Condition C: reached target angle ± tolerance
-            #if abs(turn_angle - target_angle) <= TURN_ANGLE_TOLERANCE:
-            #    dprint("Stop Turn - Target Angle")
-            #    stop_condition = True
+            # Condition A: Turn angle
             if abs(turn_angle - target_angle) <= TURN_ANGLE_TOLERANCE:
                 dprint("Stop Turn - Target Angle")
                 stop_condition = True
-               
-            # Condition D: timeout or extreme yaw
+            # Condition B: timeout
             if current_time - turn_start_time > TURN_TIMEOUT:
                 dprint("Stop Turn - Max turn time")
                 stop_condition = True
+            # Condition C: Max turn angle
             if abs(turn_angle) >= MAX_TURN_ANGLE:
                 dprint("Stop Turn - Max turn angle")
                 stop_condition = True
@@ -899,8 +863,6 @@ def robot_loop():
                 robot.stop_motor()
                 robot.set_servo(SERVO_CENTER)
                 last_turn_time = current_time
-                # Snap yaw to target for consistency
-                #yaw = turn_start_yaw + target_angle
                 yaw = snap90(yaw)
                 # update counters
                 turn_count += 1
@@ -1171,7 +1133,6 @@ def launch_gui():
 
     _prev_label_pos = {"front": None, "left": None, "right": None, "angle": None}
     def update_plot():
-        #global _prev_label_pos
 
         if time_data:
             # Update lines
@@ -1299,9 +1260,7 @@ def start_readings():
         threading.Thread(target=robot_loop, daemon=True).start()
         start_readings.loop_thread_started = True
 
-def start_loop():
-    """Start the robot driving loop."""
-    #global loop_flag, status_text
+def start_loop(): #Start the robot driving loop
     global status_text
     if not readings_event.is_set():
         print("Start sensor readings first!")
@@ -1312,8 +1271,7 @@ def start_loop():
     btn_start.config(state="disabled")
     btn_stop.config(state="normal")
 
-def stop_loop():
-    """Stop the robot loop and motor."""
+def stop_loop(): #Stop the robot loop and motor
     global status_text, turn_count, lap_count, locked_turn_direction, stop_reason
     loop_event.clear()
     stop_reason = "USER"
@@ -1328,9 +1286,8 @@ def stop_loop():
     lap_count = 0
     lbl_turns.config(text=f"Turns: {turn_count}")
     lbl_laps.config(text=f"Laps: {lap_count}")
-
-    # Reset direction lock so a new session can re-choose
-    locked_turn_direction = None
+    
+    locked_turn_direction = None # Reset direction lock so a new session can re-choose
 
 # -------------------------
 # Export to CSV
@@ -1410,33 +1367,29 @@ if __name__ == "__main__":
     
     if USE_GUI:
         launch_gui()
-    else:
-        # Start the sensor reading thread
+    else: # Start the sensor reading thread
         GPIO.output(RED_LED, GPIO.LOW)
         GPIO.output(GREEN_LED, GPIO.LOW)
         sensor_thread = threading.Thread(target=sensor_reader, daemon=True)
         sensor_thread.start()
         print("Headless mode: waiting for START button...")
-        GPIO.output(RED_LED, GPIO.HIGH)     # turn off red when ready
+        GPIO.output(RED_LED, GPIO.HIGH)     # turn on red when ready
         GPIO.output(GREEN_LED, GPIO.HIGH)  # green = ready to press the button
-        try:
-            # Wait for button press (GPIO input goes LOW when pressed)
+        try: # Wait for button press (GPIO input goes LOW when pressed)
             while GPIO.input(START_BTN) == 1:
                 time.sleep(0.05)
             print("✅ START button pressed! Beginning autonomous loop...")
-            #readings_flag = True
-            readings_event.set()
+            readings_event.set() #readings_flag = True
             time.sleep(2)  # wait 2 seconds before starting loop
-            #loop_flag = True
-            loop_event.set()
+            loop_event.set() #loop_flag = True
             GPIO.output(GREEN_LED, GPIO.LOW)  # running
             GPIO.output(RED_LED, GPIO.HIGH)   # active
             print("Starting main robot loop...")
-            # Start robot loop in this thread (blocking)
-            robot_loop()
+            robot_loop() # Start robot loop in this thread (blocking)
         except KeyboardInterrupt:
             print("\n❌ Keyboard interrupt received. Stopping robot loop.")
-            #loop_flag = False
             loop_event.clear()
             sensor_tick.set()
             GPIO.cleanup()
+
+# End
