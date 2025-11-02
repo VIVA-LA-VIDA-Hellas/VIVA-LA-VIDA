@@ -7,7 +7,7 @@ v5.92
 """
 
 # ===============================
-# IMPORTS
+# IMPORTS                       
 # ===============================
 
 import threading
@@ -35,6 +35,7 @@ from gpiozero import DistanceSensor
 from threading import Event
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__)) # Get directory of the running script
+CONFIG_FILE = os.path.join(BASE_DIR, "1st_mission_variables.json")
 
 # ===============================
 # CONFIGURATION VARIABLES
@@ -123,13 +124,7 @@ def dprint(*args, **kwargs):
 # LOAD VARIABLES FROM JSON (if exists)
 # ===============================
 
-CONFIG_FILE = os.path.join(BASE_DIR, "1st_mission_variables.json")
-
-def load_variables_from_json(path=CONFIG_FILE):
-    """
-    Override defaults with values from JSON if the file exists.
-    If missing or invalid, keep the built-in defaults from the code.
-    """
+def load_variables_from_json(path=CONFIG_FILE): # Override defaults with values from JSON if the file exists.
     if not os.path.exists(path):
         print("⚙️ No external config found — using built-in defaults.")
         return
@@ -145,15 +140,12 @@ def load_variables_from_json(path=CONFIG_FILE):
     except Exception as e:
          print(f"[ERROR] Config load failed: {e} — using built-in defaults.")
 
-# Call it right after defining defaults so everything below sees the overrides
-load_variables_from_json()
+load_variables_from_json() # Call it right after defining defaults so everything below sees the overrides
 
-def norm180(a: float) -> float:
-    """Normalize angle to [-180, 180)."""
+def norm180(a: float) -> float: # Normalize angle to [-180, 180)
     return (a + 180.0) % 360.0 - 180.0
 
-def snap90(a: float) -> float:
-    """Nearest multiple of 90° (…,-180,-90,0,90,180,…)"""
+def snap90(a: float) -> float: # Nearest multiple of 90° (…,-180,-90,0,90,180,…)
     return round(a / 90.0) * 90.0
 
 # --- Store immutable base values for scaling ---
