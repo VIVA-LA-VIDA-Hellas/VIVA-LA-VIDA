@@ -333,7 +333,9 @@ except Exception as e:
     # fallback to ultrasonic if ToF fails
     USE_TOF_SIDES = 0
     USE_TOF_FRONT = 0
+    USE_TOF_FRONT_CORNERS = 0
     vl53_left = vl53_right = vl53_front = vl53_back = None
+    vl53_left_front = vl53_right_front = None
 
 time.sleep(0.2)
 
@@ -756,8 +758,11 @@ def robot_loop():
         front_data.append(robot.d_front if robot.d_front is not None else 0)
         left_data.append(robot.d_left if robot.d_left is not None else 0)
         right_data.append(robot.d_right if robot.d_right is not None else 0)
+        left_front_data.append(robot.d_left_front if robot.d_left_front is not None else 0)    # NEW
+        right_front_data.append(robot.d_right_front if robot.d_right_front is not None else 0)  # NEW
         angle_data.append(yaw)
         state_data.append(state.name)
+
        
         # If loop_flag is still False, do NOT run FSM/motors yet—just update plots
         if not loop_event.is_set():
@@ -1199,7 +1204,8 @@ def launch_gui():
         lbl_laps.config(text=f"Laps: {lap_count}" if slider_vars["MAX_LAPS"].get() > 0 else f"Laps: {lap_count}/∞")
         root.after(200, update_status)
 
-    _prev_label_pos = {"front": None, "left": None, "right": None, "angle": None}
+    _prev_label_pos = {"front": None, "left": None, "right": None, "left_front": None, "right_front": None, "angle": None}
+
     def update_plot():
 
         if time_data:
@@ -1208,7 +1214,7 @@ def launch_gui():
             left_line.set_data(range(len(left_data)), left_data)
             right_line.set_data(range(len(right_data)), [-v for v in right_data])
             left_front_line.set_data(range(len(left_front_data)), left_front_data)  # NEW
-            right_front_line.set_data(range(len(right_front_data)), [-v for v in right_front_data)  # NEW
+            right_front_line.set_data(range(len(right_front_data)), [-v for v in right_front_data])  # NEW
             angle_line.set_data(range(len(angle_data)), angle_data)
     
             # Set axis limits
@@ -1266,26 +1272,28 @@ def launch_gui():
             # ----------------------------
             # RIGHT SENSOR
             # ----------------------------
+            # RIGHT SENSOR
             if len(right_data) > 0:
                 x = len(right_data) - 1
-                y_target = right_data[-1]
+                y_target = -right_data[-1]  # NEGATE to plot on -Y
                 y_prev = _prev_label_pos["right"]
                 y_smooth = smooth_move(y_prev, y_target)
                 _prev_label_pos["right"] = y_smooth
-                ax_side.text(x, y_smooth, f"R: {y_target:.1f} cm", color="orange",
+                ax_side.text(x, y_smooth, f"R: {right_data[-1]:.1f} cm", color="orange",
                              fontsize=9, fontweight="bold", va="bottom", ha="left")
-            
+
             # ----------------------------
             # RIGHT FRONT SENSOR
             # ----------------------------
             if len(right_front_data) > 0:
                 x = len(right_front_data) - 1
-                y_target = right_front_data[-1]
+                y_target = -right_front_data[-1]  # NEGATE to plot on -Y
                 y_prev = _prev_label_pos["right_front"]
                 y_smooth = smooth_move(y_prev, y_target)
                 _prev_label_pos["right_front"] = y_smooth
-                ax_side.text(x, y_smooth, f"RF: {y_target:.1f} cm", color="red",
+                ax_side.text(x, y_smooth, f"RF: {right_front_data[-1]:.1f} cm", color="red",
                              fontsize=9, fontweight="bold", va="bottom", ha="left")
+
 
     
             # ----------------------------
