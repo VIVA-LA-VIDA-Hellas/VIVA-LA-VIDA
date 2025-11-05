@@ -11,6 +11,8 @@ v5.95
 # IMPORTS                       
 # ===============================
 
+import os
+os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")  # <— add this line at the top
 import threading
 import time
 import tkinter as tk
@@ -25,7 +27,6 @@ from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import csv
 from datetime import datetime
 import json
-import os
 import tkinter.filedialog as fd
 import board
 import digitalio
@@ -682,92 +683,100 @@ class RobotState(Enum):
 
 locked_turn_direction = None # Keep a global locked_turn_direction variable to persist across runs (reset in stop_loop)
 
-class VisionState:
-    def __init__(self):
-        self.has_target = False
-        self.color = None          # 'RED' or 'GREEN'
-        self.last_ts = 0.0
-        self.x_offset = 0.0        # -1 (left edge) .. +1 (right edge)
-        self.bias_sign = 0         # +1 steer RIGHT of pillar (red), -1 steer LEFT of pillar (green)
-
 class VisionProcessor:
     def __init__(self):
         self.cam = None
         self.state = VisionState()
         self._stop = False
+        self._thr = None
 
     def start(self):
+        if self._thr and self._thr.is_alive():
+            return
+        self._stop = False
+        self._thr = threading.Thread(target=self._loop, daemon=True)
+        self._thr.start()
+
+    def stop(self):
+        # Only signal; the thread will shut down the camera itself.
+        self._stop = True
+        if self._thr:
+            self._thr.join(timeout=1.0)
+
+    def _loop(self):
+        # Create & own the camera in this thread
         try:
+            from picamera2 import Picamera2
             self.cam = Picamera2()
             cfg = self.cam.create_video_configuration(main={"size": (CAM_W, CAM_H), "format": "RGB888"})
             self.cam.configure(cfg)
             self.cam.start()
-            time.sleep(0.2)  # warm-up helps the first frames
-            t = threading.Thread(target=self._loop, daemon=True)
-            t.start()
+            time.sleep(0.2)  # warm-up
         except Exception as e:
             print(f"[Vision] init failed: {e}. Disabling vision.")
-            global OBSTACLE_CHALLENGE
-            OBSTACLE_CHALLENGE = 0
+            self.cam = None
+            # Switch off the obstacle challenge safely
+            globals()['OBSTACLE_CHALLENGE'] = 0
+            return
 
-    def stop(self):
-        self._stop = True
-        try:
-            if self.cam:
-                self.cam.stop()
-        except:
-            pass
-
-    def _loop(self):
         roi_y0, roi_y1 = VISION_ROI_Y
         ts = time.monotonic
         red1_lo, red1_hi = (0, 120, 80), (10, 255, 255)
         red2_lo, red2_hi = (170, 120, 80), (180, 255, 255)
         green_lo, green_hi = (35, 80, 60), (85, 255, 255)
 
-        while not self._stop:
-            frame = self.cam.capture_array()
-            if frame is None or getattr(frame, "size", 0) == 0:
+        try:
+            while not self._stop:
+                frame = self.cam.capture_array()
+                if frame is None or getattr(frame, "size", 0) == 0:
+                    time.sleep(1.0 / VISION_FPS)
+                    continue
+
+                roi = frame[roi_y0:roi_y1, :, :]
+                hsv = cv2.cvtColor(roi, cv2.COLOR_RGB2HSV)
+
+                mask_r1 = cv2.inRange(hsv, np.array(red1_lo), np.array(red1_hi))
+                mask_r2 = cv2.inRange(hsv, np.array(red2_lo), np.array(red2_hi))
+                mask_red = cv2.bitwise_or(mask_r1, mask_r2)
+                mask_green = cv2.inRange(hsv, np.array(green_lo), np.array(green_hi))
+
+                target = None
+                for color, mask in (('RED', mask_red), ('GREEN', mask_green)):
+                    mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, np.ones((5,5),np.uint8))
+                    cnts, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+                    if not cnts:
+                        continue
+                    c = max(cnts, key=cv2.contourArea)
+                    area = cv2.contourArea(c)
+                    if area < VISION_MIN_AREA:
+                        continue
+                    x,y,w,h = cv2.boundingRect(c)
+                    if h < w:
+                        continue
+                    cx = x + w/2
+                    cx_norm = (cx / CAM_W) * 2.0 - 1.0
+                    if target is None or (y+h) > target[3]:
+                        target = (color, cx_norm, float(area), y+h)
+
+                if target:
+                    color, cx_norm, area, _ = target
+                    self.state.has_target = True
+                    self.state.color = color
+                    self.state.last_ts = ts()
+                    self.state.x_offset = float(np.clip(cx_norm, -1.0, 1.0))
+                    self.state.bias_sign = +1 if color == 'RED' else -1
+                else:
+                    if ts() - self.state.last_ts > VISION_LOSS_TIMEOUT:
+                        self.state.has_target = False
+
                 time.sleep(1.0 / VISION_FPS)
-                continue
-
-            roi = frame[roi_y0:roi_y1, :, :]
-            hsv = cv2.cvtColor(roi, cv2.COLOR_RGB2HSV)
-
-            mask_r1 = cv2.inRange(hsv, np.array(red1_lo), np.array(red1_hi))
-            mask_r2 = cv2.inRange(hsv, np.array(red2_lo), np.array(red2_hi))
-            mask_red = cv2.bitwise_or(mask_r1, mask_r2)
-            mask_green = cv2.inRange(hsv, np.array(green_lo), np.array(green_hi))
-
-            target = None
-            for color, mask in (('RED', mask_red), ('GREEN', mask_green)):
-                mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, np.ones((5,5),np.uint8))
-                cnts, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-                if not cnts:
-                    continue
-                c = max(cnts, key=cv2.contourArea)
-                area = cv2.contourArea(c)
-                if area < VISION_MIN_AREA:
-                    continue
-                x,y,w,h = cv2.boundingRect(c)
-                if h < w:
-                    continue
-                cx = x + w/2
-                cx_norm = (cx / CAM_W) * 2.0 - 1.0
-                if target is None or (y+h) > target[3]:
-                    target = (color, cx_norm, float(area), y+h)
-
-            if target:
-                color, cx_norm, area, _ = target
-                self.state.has_target = True
-                self.state.color = color
-                self.state.last_ts = ts()
-                self.state.x_offset = float(np.clip(cx_norm, -1.0, 1.0))
-                self.state.bias_sign = +1 if color == 'RED' else -1
-            else:
-                if ts() - self.state.last_ts > VISION_LOSS_TIMEOUT:
-                    self.state.has_target = False
-            time.sleep(1.0 / VISION_FPS)
+        finally:
+            try:
+                if self.cam:
+                    self.cam.stop()  # stop in the same thread it was created
+            except:
+                pass
+            self.cam = None
 
     def steering_bias_deg(self):
         if not OBSTACLE_CHALLENGE:
@@ -778,6 +787,7 @@ class VisionProcessor:
             return 0.0
         raw = self.state.bias_sign * self.state.x_offset * VISION_BIAS_K
         return float(np.clip(raw, -VISION_MAX_BIAS, VISION_MAX_BIAS))
+
 
 
 vision = VisionProcessor()
