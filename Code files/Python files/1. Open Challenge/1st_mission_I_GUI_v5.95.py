@@ -683,6 +683,15 @@ class RobotState(Enum):
 
 locked_turn_direction = None # Keep a global locked_turn_direction variable to persist across runs (reset in stop_loop)
 
+class VisionState:
+    __slots__ = ("has_target", "color", "last_ts", "x_offset", "bias_sign")
+    def __init__(self):
+        self.has_target = False
+        self.color = None          # 'RED' or 'GREEN'
+        self.last_ts = 0.0
+        self.x_offset = 0.0        # -1..+1
+        self.bias_sign = 0         # +1 steer RIGHT of pillar (red), -1 steer LEFT (green)
+
 class VisionProcessor:
     def __init__(self):
         self.cam = None
@@ -787,8 +796,6 @@ class VisionProcessor:
             return 0.0
         raw = self.state.bias_sign * self.state.x_offset * VISION_BIAS_K
         return float(np.clip(raw, -VISION_MAX_BIAS, VISION_MAX_BIAS))
-
-
 
 vision = VisionProcessor()
 if OBSTACLE_CHALLENGE:
