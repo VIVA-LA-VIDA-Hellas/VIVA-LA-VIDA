@@ -320,13 +320,17 @@ try:
             print("✅ Right-Front ToF sensor set to address 0x35")
 
         # Initialize back ToF (optional, if you want to use it)
-        xshut_back.value = True
-        time.sleep(0.05)
-        vl53_back = adafruit_vl53l0x.VL53L0X(i2c)
-        vl53_back.set_address(0x33)
-        vl53_back.measurement_timing_budget = 20000
-        vl53_back.start_continuous()
-        print("✅ Back ToF sensor set to address 0x33")
+        try:
+            xshut_back.value = True
+            time.sleep(0.05)
+            vl53_back = adafruit_vl53l0x.VL53L0X(i2c)
+            vl53_back.set_address(0x33)
+            vl53_back.measurement_timing_budget = 20000
+            vl53_back.start_continuous()
+            print("✅ Back ToF sensor set to address 0x33")
+        except Exception as e:
+            print(f"[WARN] No back ToF detected (skipping): {e}")
+            vl53_back = None
 
 except Exception as e:
     print(f"[ERROR] VL53L0X initialization failed: {e}")
