@@ -402,6 +402,8 @@ time_data = deque(maxlen=MAX_POINTS)
 front_data = deque(maxlen=MAX_POINTS)
 left_data = deque(maxlen=MAX_POINTS)
 right_data = deque(maxlen=MAX_POINTS)
+left_front_data = deque(maxlen=MAX_POINTS)    # Store front-left ToF readings
+right_front_data = deque(maxlen=MAX_POINTS)   # Store front-right ToF readings
 angle_data = deque(maxlen=MAX_POINTS)
 state_data = deque(maxlen=MAX_POINTS)
 
@@ -1030,6 +1032,10 @@ def launch_gui():
     ax_side.axhline(0, color="black")
     left_line, = ax_side.plot([], [], color="green")
     right_line, = ax_side.plot([], [], color="orange")
+    # Plot for left and right sensors including front sensors
+    left_front_line, = ax_side.plot([], [], color="blue", label="Left Front")  # NEW line for left-front ToF
+    right_front_line, = ax_side.plot([], [], color="red", label="Right Front")  # NEW line for right-front ToF
+
 
     ax_angle.set_ylim(-180, 180)
     ax_angle.set_title("Yaw Angle")
@@ -1201,6 +1207,8 @@ def launch_gui():
             front_line.set_data(range(len(front_data)), front_data)
             left_line.set_data(range(len(left_data)), left_data)
             right_line.set_data(range(len(right_data)), [-v for v in right_data])
+            left_front_line.set_data(range(len(left_front_data)), left_front_data)  # NEW
+            right_front_line.set_data(range(len(right_front_data)), [-v for v in right_front_data)  # NEW
             angle_line.set_data(range(len(angle_data)), angle_data)
     
             # Set axis limits
@@ -1242,18 +1250,43 @@ def launch_gui():
                 _prev_label_pos["left"] = y_smooth
                 ax_side.text(x, y_smooth, f"L: {y_target:.1f} cm", color="green",
                              fontsize=9, fontweight="bold", va="bottom", ha="left")
-    
+            
+            # ----------------------------
+            # LEFT FRONT SENSOR
+            # ----------------------------
+            if len(left_front_data) > 0:
+                x = len(left_front_data) - 1
+                y_target = left_front_data[-1]
+                y_prev = _prev_label_pos["left_front"]
+                y_smooth = smooth_move(y_prev, y_target)
+                _prev_label_pos["left_front"] = y_smooth
+                ax_side.text(x, y_smooth, f"LF: {y_target:.1f} cm", color="blue",
+                             fontsize=9, fontweight="bold", va="bottom", ha="left")
+            
             # ----------------------------
             # RIGHT SENSOR
             # ----------------------------
             if len(right_data) > 0:
                 x = len(right_data) - 1
-                y_target = -right_data[-1]
+                y_target = right_data[-1]
                 y_prev = _prev_label_pos["right"]
                 y_smooth = smooth_move(y_prev, y_target)
                 _prev_label_pos["right"] = y_smooth
-                ax_side.text(x, y_smooth, f"R: {right_data[-1]:.1f} cm", color="orange",
+                ax_side.text(x, y_smooth, f"R: {y_target:.1f} cm", color="orange",
                              fontsize=9, fontweight="bold", va="bottom", ha="left")
+            
+            # ----------------------------
+            # RIGHT FRONT SENSOR
+            # ----------------------------
+            if len(right_front_data) > 0:
+                x = len(right_front_data) - 1
+                y_target = right_front_data[-1]
+                y_prev = _prev_label_pos["right_front"]
+                y_smooth = smooth_move(y_prev, y_target)
+                _prev_label_pos["right_front"] = y_smooth
+                ax_side.text(x, y_smooth, f"RF: {y_target:.1f} cm", color="red",
+                             fontsize=9, fontweight="bold", va="bottom", ha="left")
+
     
             # ----------------------------
             # YAW ANGLE
