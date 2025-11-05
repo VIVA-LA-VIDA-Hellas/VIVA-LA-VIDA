@@ -35,6 +35,9 @@ import numpy as np
 from gpiozero import DistanceSensor
 from threading import Event
 
+import cv2
+from picamera2 import Picamera2
+
 BASE_DIR = os.path.dirname(os.path.abspath(__file__)) # Get directory of the running script
 CONFIG_FILE = os.path.join(BASE_DIR, "1st_mission_variables.json")
 
@@ -43,11 +46,13 @@ CONFIG_FILE = os.path.join(BASE_DIR, "1st_mission_variables.json")
 # ===============================
 
 # ---------- Initialization ----------
-USE_GUI = 0                   # 1 = Debugging mode (run with GUI), 0 = COMPETITION MODE (run headless, no GUI)
-DEBUG = 0                     # 1 = enable prints, 0 = disable all prints
+USE_GUI = 1                   # 1 = Debugging mode (run with GUI), 0 = COMPETITION MODE (run headless, no GUI)
+DEBUG = 1                     # 1 = enable prints, 0 = disable all prints
 USE_TOF_SIDES = 0             # Side sensors:  0 = Ultrasonic, 1 = ToF
 USE_TOF_FRONT = 0             # Front sensor:  0 = Ultrasonic, 1 = ToF
 USE_TOF_FRONT_CORNERS = 0     # 1 = use extra ToFs at left-front & right-front
+
+OBSTACLE_CHALLENGE = 1   # 1=enable red/green handling, 0=disable
 
 
 NARROW_SUM_THRESHOLD = 60     # cm; left+right distance threshold to decide if in between narrow walls
@@ -58,13 +63,13 @@ NARROW_FACTOR_DIST  = 0.6     # multiply distance-based thresholds/corrections w
 # ---------- Speeds ----------
 SPEED_IDLE = 0
 SPEED_STOPPED = 0
-SPEED_CRUISE = 30             # Motor speed for normal straight driving (0-100%)
-SPEED_TURN_INIT = 18          # Motor speed while waiting for open side to turn
-SPEED_TURN = 30               # Motor speed while turning
-SPEED_POST_TURN = 30          # Motor speed following a turn
+SPEED_CRUISE = 20             # Motor speed for normal straight driving (0-100%)
+SPEED_TURN_INIT = 15          # Motor speed while waiting for open side to turn
+SPEED_TURN = 15               # Motor speed while turning
+SPEED_POST_TURN = 15          # Motor speed following a turn
 
 # ---------- Driving ----------
-SOFT_MARGIN = 25              # Distance from wall where small steering corrections start (cm)
+SOFT_MARGIN = 15              # Distance from wall where small steering corrections start (cm)
 MAX_CORRECTION = 8            # Maximum servo correction applied for wall-following (degrees)
 CORR_EPS = 1.5                # cm: treat the side as "steady" if within ±1.5 cm of trigger value
 CORRECTION_MULTIPLIER = 1.8   # Proportional gain (servo degrees per cm of error 0 default: 2). Higher = snappier; lower = smoother&slower. 
@@ -105,6 +110,18 @@ US_MAX_DISTANCE_SIDE = 1.2   # Ultrasonic side max read distance
 # ---------- Loop timing ----------
 LOOP_DELAY = 0.01            # Delay between main loop iterations (seconds) 0.02
 SENSOR_DELAY = 0.01          # Delay between sensor reads
+
+# --- Vision parameters (tune on the actual field lighting) ---
+CAM_W, CAM_H = 640, 480
+VISION_FPS = 30
+VISION_MIN_AREA = 900        # min contour area to consider a pillar
+VISION_ROI_Y = (int(0.35*CAM_H), int(0.95*CAM_H))  # scan lower 60% of the image
+VISION_BIAS_K = 12.0         # deg @ full lateral error (-1..+1); tune 8..18
+VISION_MAX_BIAS = 18.0
+VISION_ACTIVE_WINDOW_S = 1.2 # keep bias this long after detection
+VISION_LOSS_TIMEOUT = 0.25   # seconds since last good detect -> drop bias
+SIDE_BIAS_DEG = 3.0          # gentle “hug” bias toward the required side
+SLOWDOWN_NEAR_PILLAR = 0.8   # scale speed when vision active (0.6..0.9)
 
 #-----------------------------------------------------------------------------------------
 
@@ -454,6 +471,11 @@ class RobotController:
         # -- Simple safe-straight latch --
         self.ss = 0          # 0 = inactive, +1 = left triggered, -1 = right triggered
         self.ss_base = None  # distance at trigger
+
+    def combined_steer(self, base_angle, side_bias_deg=0.0, vision_bias_deg=0.0):
+        angle = base_angle + side_bias_deg + vision_bias_deg
+        angle = max(SERVO_MIN_ANGLE, min(SERVO_MAX_ANGLE, angle))
+        return angle
     
     def ss_reset(self):
         self.ss = 0
@@ -660,6 +682,108 @@ class RobotState(Enum):
 
 locked_turn_direction = None # Keep a global locked_turn_direction variable to persist across runs (reset in stop_loop)
 
+class VisionState:
+    def __init__(self):
+        self.has_target = False
+        self.color = None          # 'RED' or 'GREEN'
+        self.last_ts = 0.0
+        self.x_offset = 0.0        # -1 (left edge) .. +1 (right edge)
+        self.bias_sign = 0         # +1 steer RIGHT of pillar (red), -1 steer LEFT of pillar (green)
+
+class VisionProcessor:
+    def __init__(self):
+        self.cam = None
+        self.state = VisionState()
+        self._stop = False
+
+    def start(self):
+        try:
+            self.cam = Picamera2()
+            cfg = self.cam.create_video_configuration(main={"size": (CAM_W, CAM_H), "format": "RGB888"})
+            self.cam.configure(cfg)
+            self.cam.start()
+            time.sleep(0.2)  # warm-up helps the first frames
+            t = threading.Thread(target=self._loop, daemon=True)
+            t.start()
+        except Exception as e:
+            print(f"[Vision] init failed: {e}. Disabling vision.")
+            global OBSTACLE_CHALLENGE
+            OBSTACLE_CHALLENGE = 0
+
+    def stop(self):
+        self._stop = True
+        try:
+            if self.cam:
+                self.cam.stop()
+        except:
+            pass
+
+    def _loop(self):
+        roi_y0, roi_y1 = VISION_ROI_Y
+        ts = time.monotonic
+        red1_lo, red1_hi = (0, 120, 80), (10, 255, 255)
+        red2_lo, red2_hi = (170, 120, 80), (180, 255, 255)
+        green_lo, green_hi = (35, 80, 60), (85, 255, 255)
+
+        while not self._stop:
+            frame = self.cam.capture_array()
+            if frame is None or getattr(frame, "size", 0) == 0:
+                time.sleep(1.0 / VISION_FPS)
+                continue
+
+            roi = frame[roi_y0:roi_y1, :, :]
+            hsv = cv2.cvtColor(roi, cv2.COLOR_RGB2HSV)
+
+            mask_r1 = cv2.inRange(hsv, np.array(red1_lo), np.array(red1_hi))
+            mask_r2 = cv2.inRange(hsv, np.array(red2_lo), np.array(red2_hi))
+            mask_red = cv2.bitwise_or(mask_r1, mask_r2)
+            mask_green = cv2.inRange(hsv, np.array(green_lo), np.array(green_hi))
+
+            target = None
+            for color, mask in (('RED', mask_red), ('GREEN', mask_green)):
+                mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, np.ones((5,5),np.uint8))
+                cnts, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+                if not cnts:
+                    continue
+                c = max(cnts, key=cv2.contourArea)
+                area = cv2.contourArea(c)
+                if area < VISION_MIN_AREA:
+                    continue
+                x,y,w,h = cv2.boundingRect(c)
+                if h < w:
+                    continue
+                cx = x + w/2
+                cx_norm = (cx / CAM_W) * 2.0 - 1.0
+                if target is None or (y+h) > target[3]:
+                    target = (color, cx_norm, float(area), y+h)
+
+            if target:
+                color, cx_norm, area, _ = target
+                self.state.has_target = True
+                self.state.color = color
+                self.state.last_ts = ts()
+                self.state.x_offset = float(np.clip(cx_norm, -1.0, 1.0))
+                self.state.bias_sign = +1 if color == 'RED' else -1
+            else:
+                if ts() - self.state.last_ts > VISION_LOSS_TIMEOUT:
+                    self.state.has_target = False
+            time.sleep(1.0 / VISION_FPS)
+
+    def steering_bias_deg(self):
+        if not OBSTACLE_CHALLENGE:
+            return 0.0
+        now = time.monotonic()
+        active = self.state.has_target or (now - self.state.last_ts) < VISION_ACTIVE_WINDOW_S
+        if not active:
+            return 0.0
+        raw = self.state.bias_sign * self.state.x_offset * VISION_BIAS_K
+        return float(np.clip(raw, -VISION_MAX_BIAS, VISION_MAX_BIAS))
+
+
+vision = VisionProcessor()
+if OBSTACLE_CHALLENGE:
+    vision.start()
+
 def robot_loop():   
     global status_text, turn_count, lap_count, locked_turn_direction, stop_reason, obstacle_wait_deadline
     global _btn_prev, _btn_last_ts, paused_by_button
@@ -675,7 +799,8 @@ def robot_loop():
     use_post_turn_ref = False
     post_turn_ref_diff = None
     turn_target_delta = 0.0  # relative yaw target for this turn (deg)
-    
+    PREFERRED_SIDE = None   # None/'LEFT'/'RIGHT'
+
     
     robot.stop_motor()                 # Ensure robot stopped at start
     robot.set_servo(SERVO_CENTER)      # Ensure robot stopped at start
@@ -796,44 +921,67 @@ def robot_loop():
 
         elif state == RobotState.CRUISE:
             status_text = "Driving (cruise)"
-        
-            # -------------------------------
-            # Emergency stop: immediate
-            # -------------------------------
-            if robot.d_front is not None and robot.d_front < eff_stop_threshold():
-                robot.stop_motor()
-                robot.set_servo(SERVO_CENTER)     
-                status_text = "Stopped! Obstacle ahead"
-                dprint(status_text)
-                state = RobotState.STOPPED
 
-                stop_reason = "OBSTACLE"
-                obstacle_wait_deadline = current_time + OBSTACLE_WAIT_TIME
-                continue
-        
-            # -------------------------------
-            # Check if we can trigger a turn
-            # -------------------------------
-            front_triggered = (robot.d_front is not None and robot.d_front < eff_front_turn_trigger())
-            lockout_ok = (current_time - last_turn_time >= TURN_LOCKOUT)
-
-            if front_triggered and lockout_ok and loop_event.is_set():
-                # immediately enter TURN_INIT and drop speed
+            # Front-based turn trigger with lockout
+            if (robot.d_front is not None 
+                and robot.d_front < eff_front_turn_trigger()
+                and (current_time - last_turn_time) >= TURN_LOCKOUT):
                 state = RobotState.TURN_INIT
-                status_text = "Approaching turn – waiting for side to open"
+                status_text = "Turn init – approaching corner"
+                robot.set_state_speed("TURN_INIT")
+                robot.set_servo(SERVO_CENTER)
+                sensor_tick.wait(LOOP_DELAY); sensor_tick.clear()
                 continue
-                  
-            # -------------------------------
-            # Normal cruise servo control
-            # Safe straight control active only after the 1st turn
-            # -------------------------------
+
+            # Emergency stop: keep, but don't stop purely for a pillar we plan to bypass.
+            if robot.d_front is not None and robot.d_front < eff_stop_threshold():
+                # If we have an active visual maneuver, tolerate a closer front reading briefly
+                v_bias = vision.steering_bias_deg() if OBSTACLE_CHALLENGE else 0.0
+                if abs(v_bias) < 1.0:  # no visual bypass -> real obstacle
+                    robot.stop_motor()
+                    robot.set_servo(SERVO_CENTER)
+                    status_text = "Stopped! Obstacle ahead"
+                    dprint(status_text)
+                    state = RobotState.STOPPED
+                    stop_reason = "OBSTACLE"
+                    obstacle_wait_deadline = current_time + OBSTACLE_WAIT_TIME
+                    continue
+        
+            # --- Wall following baseline (your existing straight keeper) ---
             if turn_count >= 1:
-                desired_servo_angle = robot.safe_straight_control(robot.d_left, robot.d_right)
+                base = robot.safe_straight_control(robot.d_left, robot.d_right)
             else:
-                desired_servo_angle = SERVO_CENTER
-            
+                base = SERVO_CENTER
+        
+            # --- Vision: set preferred side + bias ---
+            side_bias = 0.0
+            v_bias = 0.0
+            if OBSTACLE_CHALLENGE:
+                v_bias = vision.steering_bias_deg()
+                # set PREFERRED_SIDE based on current target, keep it briefly to "hug" that side
+                if vision.state.has_target:
+                    if vision.state.color == 'RED':
+                        PREFERRED_SIDE = 'RIGHT'
+                    elif vision.state.color == 'GREEN':
+                        PREFERRED_SIDE = 'LEFT'
+                # gentle hug even if target fades for a moment
+                if PREFERRED_SIDE == 'RIGHT':
+                    side_bias = +SIDE_BIAS_DEG
+                elif PREFERRED_SIDE == 'LEFT':
+                    side_bias = -SIDE_BIAS_DEG
+        
+            desired_servo_angle = robot.combined_steer(base, side_bias_deg=side_bias, vision_bias_deg=v_bias)
             robot.set_servo(desired_servo_angle)
-            robot.set_state_speed(state.name)        
+        
+            # Speed: slow down slightly when maneuvering around a pillar
+            spd_state = state.name
+            if OBSTACLE_CHALLENGE and (abs(v_bias) > 1.0):
+                # temporarily scale speed
+                speed = int(state_speed_value(spd_state) * SLOWDOWN_NEAR_PILLAR)
+                robot.rotate_motor(speed)
+            else:
+                robot.set_state_speed(spd_state)
+        
 
         elif state == RobotState.TURN_INIT:
             # Stay slow and keep wheels mostly straight while we wait for a side to open.
@@ -841,6 +989,7 @@ def robot_loop():
             status_text = "Turn init – waiting for open side"
             robot.set_state_speed(state.name)
             robot.ss_reset()
+            PREFERRED_SIDE = None
         
             # fail-safe: if front becomes safe again, return to cruise
             if robot.d_front is not None and robot.d_front >= eff_front_turn_trigger():
@@ -917,6 +1066,7 @@ def robot_loop():
             robot.set_state_speed("TURNING")
             stop_condition = False
             robot.ss_reset()
+            PREFERRED_SIDE = None
 
             # Condition A: Turn angle
             if abs(turn_angle - target_angle) <= TURN_ANGLE_TOLERANCE:
@@ -962,6 +1112,7 @@ def robot_loop():
                 status_text = "Driving (post-turn)"
 
         elif state == RobotState.POST_TURN:
+            PREFERRED_SIDE = None
             # drive straight for short duration then return to CRUISE
             if current_time - post_turn_start < POST_TURN_DURATION:
                 robot.set_servo(SERVO_CENTER)
@@ -1275,8 +1426,6 @@ def launch_gui():
             
             # ----------------------------
             # RIGHT SENSOR
-            # ----------------------------
-            # RIGHT SENSOR
             if len(right_data) > 0:
                 x = len(right_data) - 1
                 y_target = -right_data[-1]  # NEGATE to plot on -Y
@@ -1340,6 +1489,7 @@ def launch_gui():
                     dprint(f"Warning: could not stop sensor {sensor}: {e}")
         
         GPIO.cleanup()
+        vision.stop()
         root.destroy()
 
     root.protocol("WM_DELETE_WINDOW", on_closing)
@@ -1497,6 +1647,11 @@ if __name__ == "__main__":
             print("\n❌ Keyboard interrupt received. Stopping robot loop.")
             loop_event.clear()
             sensor_tick.set()
+            try:
+                if OBSTACLE_CHALLENGE:
+                    vision.stop()
+            except:
+                pass
             GPIO.cleanup()
 
 # End
