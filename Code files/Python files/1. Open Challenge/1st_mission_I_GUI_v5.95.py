@@ -47,6 +47,8 @@ USE_GUI = 0                   # 1 = Debugging mode (run with GUI), 0 = COMPETITI
 DEBUG = 0                     # 1 = enable prints, 0 = disable all prints
 USE_TOF_SIDES = 0             # Side sensors:  0 = Ultrasonic, 1 = ToF
 USE_TOF_FRONT = 0             # Front sensor:  0 = Ultrasonic, 1 = ToF
+USE_TOF_FRONT_CORNERS = 0     # 1 = use extra ToFs at left-front & right-front
+
 
 NARROW_SUM_THRESHOLD = 60     # cm; left+right distance threshold to decide if in between narrow walls
 NARROW_HYSTERESIS = 10        # cm; prevents rapid toggling
@@ -245,18 +247,24 @@ SERVO_PERIOD = 20000          # Servo PWM period (microseconds)
 # ===============================
 
 vl53_left = vl53_right = vl53_front = vl53_back = None
+vl53_left_front = vl53_right_front = None
 us_left = us_right = us_front = None
 
 try:
     # --------- ToF sensors ----------
-    if USE_TOF_SIDES or USE_TOF_FRONT:
+    if USE_TOF_SIDES or USE_TOF_FRONT or USE_TOF_FRONT_CORNERS:
         print("Initializing VL53L0X ToF sensors...")
         # XSHUT pins setup (for powering sensors individually)
-        xshut_left  = digitalio.DigitalInOut(board.D16)
-        xshut_right = digitalio.DigitalInOut(board.D25)
-        xshut_front = digitalio.DigitalInOut(board.D26)
-        xshut_back  = digitalio.DigitalInOut(board.D24)
-        for xshut in [xshut_left, xshut_right, xshut_front, xshut_back]:
+        # XSHUT pins setup (for powering sensors individually)
+        xshut_left       = digitalio.DigitalInOut(board.D16)
+        xshut_right      = digitalio.DigitalInOut(board.D25)
+        xshut_front      = digitalio.DigitalInOut(board.D26)
+        xshut_back       = digitalio.DigitalInOut(board.D24)
+        # NEW corner sensors — choose any two spare pins if D12/D18 are taken
+        xshut_left_front  = digitalio.DigitalInOut(board.D12)
+        xshut_right_front = digitalio.DigitalInOut(board.D18)
+        
+        for xshut in [xshut_left, xshut_right, xshut_front, xshut_back, xshut_left_front, xshut_right_front]:
             xshut.direction = digitalio.Direction.OUTPUT
             xshut.value = False  # power down
         time.sleep(0.1)
@@ -291,6 +299,26 @@ try:
             vl53_front.start_continuous()
             print("✅ Front ToF sensor set to address 0x32")
 
+        # Initialize LEFT-FRONT ToF (optional)
+        if USE_TOF_FRONT_CORNERS:
+            xshut_left_front.value = True
+            time.sleep(0.05)
+            vl53_left_front = adafruit_vl53l0x.VL53L0X(i2c)
+            vl53_left_front.set_address(0x34)
+            vl53_left_front.measurement_timing_budget = 20000
+            vl53_left_front.start_continuous()
+            print("✅ Left-Front ToF sensor set to address 0x34")
+        
+        # Initialize RIGHT-FRONT ToF (optional)
+        if USE_TOF_FRONT_CORNERS:
+            xshut_right_front.value = True
+            time.sleep(0.05)
+            vl53_right_front = adafruit_vl53l0x.VL53L0X(i2c)
+            vl53_right_front.set_address(0x35)
+            vl53_right_front.measurement_timing_budget = 20000
+            vl53_right_front.start_continuous()
+            print("✅ Right-Front ToF sensor set to address 0x35")
+
         # Initialize back ToF (optional, if you want to use it)
         xshut_back.value = True
         time.sleep(0.05)
@@ -321,6 +349,9 @@ dprint("Sensors initialized:")
 dprint(f"  Front: {'ToF' if USE_TOF_FRONT else 'Ultrasonic'}")
 dprint(f"  Left : {'ToF' if USE_TOF_SIDES else 'Ultrasonic'}")
 dprint(f"  Right: {'ToF' if USE_TOF_SIDES else 'Ultrasonic'}")
+dprint(f"  Left-Front:  {'ToF ON' if (USE_TOF_FRONT_CORNERS and vl53_left_front)  else '—'}")
+dprint(f"  Right-Front: {'ToF ON' if (USE_TOF_FRONT_CORNERS and vl53_right_front) else '—'}")
+
 
 pca = PCA9685(i2c)
 pca.frequency = 50
@@ -380,7 +411,9 @@ state_data = deque(maxlen=MAX_POINTS)
 sensor_data = {
     "front": None,
     "left": None,
-    "right": None
+    "right": None,
+    "left_front": None,   # NEW
+    "right_front": None   # NEW
 }
 sensor_lock = threading.Lock()
 
@@ -400,6 +433,12 @@ class RobotController:
         self.d_front = None
         self.d_left = None
         self.d_right = None
+        self.left_front_history  = deque(maxlen=N_READINGS)   
+        self.right_front_history = deque(maxlen=N_READINGS)   
+        self.smooth_left_front   = None                       
+        self.smooth_right_front  = None                       
+        self.d_left_front        = None                       
+        self.d_right_front       = None   
         self.sensor_index = 0
         self.gyro_z_prev = 0
         self._servo_last_angle = SERVO_CENTER
@@ -407,7 +446,7 @@ class RobotController:
         # -- Simple safe-straight latch --
         self.ss = 0          # 0 = inactive, +1 = left triggered, -1 = right triggered
         self.ss_base = None  # distance at trigger
-
+    
     def ss_reset(self):
         self.ss = 0
         self.ss_base = None
@@ -416,7 +455,9 @@ class RobotController:
         self.front_history = deque(list(self.front_history)[-n:], maxlen=n)
         self.left_history = deque(list(self.left_history)[-n:], maxlen=n)
         self.right_history = deque(list(self.right_history)[-n:], maxlen=n)
-   
+        self.left_front_history  = deque(list(self.left_front_history)[-n:],  maxlen=n)
+        self.right_front_history = deque(list(self.right_front_history)[-n:], maxlen=n)
+
     def set_servo(self, angle):
         # clamp to physical limits
         target = max(SERVO_MIN_ANGLE, min(SERVO_MAX_ANGLE, angle))
@@ -528,14 +569,21 @@ class RobotController:
         return max(SERVO_MIN_ANGLE, min(SERVO_MAX_ANGLE, angle))
 
 
-    def turn_decision(self, d_left, d_right):
-        left_open  = (d_left  is None) or (d_left  == 999) or (d_left  > TURN_DECISION_THRESHOLD)
-        right_open = (d_right is None) or (d_right == 999) or (d_right > TURN_DECISION_THRESHOLD)
+    def turn_decision(self, d_left, d_right, d_left_front=None, d_right_front=None):
+        """
+        Decide LEFT/RIGHT using side sensors (+ optional corner ToFs) against TURN_DECISION_THRESHOLD.
+        Uses OR logic per side: if either the mid-side OR the front-corner sees > threshold, that side is 'open'.
+        Only used during TURN_INIT.
+        """
+        def is_open(v):
+            return (v is None) or (v == 999) or (v > TURN_DECISION_THRESHOLD)
     
-        # Decide only when exactly one side is open; otherwise keep trying.
-        if left_open ^ right_open:               #XOR: exactly one is True
+        left_open  = is_open(d_left)  or is_open(d_left_front)
+        right_open = is_open(d_right) or is_open(d_right_front)
+    
+        if left_open ^ right_open:  # exactly one side open
             return "LEFT" if left_open else "RIGHT"
-        return None # both open or both closed → keep trying
+        return None  # both open or both closed → keep waiting
 
 robot = RobotController(pca)
 
@@ -566,11 +614,26 @@ def sensor_reader():
         else:
             front = None
 
+        # Left-Front corner sensor (ToF only)
+        if vl53_left_front:
+            left_front = robot.filtered_distance(vl53_left_front, robot.left_front_history, "smooth_left_front", sensor_type='tof')
+        else:
+            left_front = None
+        
+        # Right-Front corner sensor (ToF only)
+        if vl53_right_front:
+            right_front = robot.filtered_distance(vl53_right_front, robot.right_front_history, "smooth_right_front", sensor_type='tof')
+        else:
+            right_front = None
+
         # Save readings in global dictionary
         with sensor_lock:
             sensor_data["front"] = front
             sensor_data["left"] = left
             sensor_data["right"] = right
+            sensor_data["left_front"] = left_front      
+            sensor_data["right_front"] = right_front    
+
 
         #time.sleep(SENSOR_DELAY)
         sensor_tick.wait(SENSOR_DELAY)
@@ -638,11 +701,15 @@ def robot_loop():
             d_front = sensor_data["front"]
             d_left = sensor_data["left"]
             d_right = sensor_data["right"]
+            d_left_front = sensor_data.get("left_front")       
+            d_right_front = sensor_data.get("right_front")     
 
         # Update robot attributes for plotting/logging and decision making
         robot.d_front = d_front
         robot.d_left = d_left
         robot.d_right = d_right
+        robot.d_left_front = d_left_front          
+        robot.d_right_front = d_right_front        
 
         # ---- Narrow corridor detector (sum of side distances) ----
         if not hasattr(robot_loop, "_narrow_mode"):
@@ -782,7 +849,11 @@ def robot_loop():
             robot.set_servo(desired_servo_angle)
 
             # Decide direction only when exactly one side is open
-            proposed_direction = robot.turn_decision(robot.d_left, robot.d_right)
+            proposed_direction = robot.turn_decision(
+                robot.d_left, robot.d_right,
+                robot.d_left_front, robot.d_right_front
+            )
+
         
             # If neither or both are open, keep waiting at TURN_INIT speed
             if proposed_direction is None:
@@ -1215,7 +1286,7 @@ def launch_gui():
     def on_closing():
         stop_loop()
         # Stop all ToF sensors cleanly
-        for sensor in [vl53_left, vl53_right, vl53_front, vl53_back]:
+        for sensor in [vl53_left, vl53_right, vl53_front, vl53_back, vl53_left_front, vl53_right_front]:
             if sensor is not None:
                 try:
                     with I2C_LOCK:
