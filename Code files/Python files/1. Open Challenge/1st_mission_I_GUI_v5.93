@@ -115,8 +115,7 @@ RAD2DEG = 180.0 / 3.141592653589793
 # --- I2C concurrency guard ---
 I2C_LOCK = threading.Lock()
 
-def dprint(*args, **kwargs):
-    """Conditional print — only prints when DEBUG == 1."""
+def dprint(*args, **kwargs): #Conditional print — only prints when DEBUG == 1.
     if DEBUG:
         print(*args, **kwargs)
 
@@ -566,11 +565,7 @@ class RobotController:
         angle = SERVO_CENTER + corr
         return max(SERVO_MIN_ANGLE, min(SERVO_MAX_ANGLE, angle))
 
-    def turn_decision(self, d_left, d_right, d_fl=None, d_fr=None):
-        """
-        Prefer corner/front sensors for turn decision; fallback to sides if absent.
-        """
-        # choose source
+    def turn_decision(self, d_left, d_right, d_fl=None, d_fr=None): #Prefer corner/front sensors for turn decision; fallback to sides if absent.
         l_val = d_fl if d_fl is not None and d_fl != 999 else d_left
         r_val = d_fr if d_fr is not None and d_fr != 999 else d_right
         left_open  = (l_val is None) or (l_val == 999) or (l_val > TURN_DECISION_THRESHOLD)
@@ -1001,8 +996,7 @@ def robot_loop():
 # ===============================
 # GUI SECTION
 # ===============================
-def launch_gui():
-    """Initialize Tkinter GUI, matplotlib plots, sliders, and status indicators."""
+def launch_gui(): #Initialize Tkinter GUI, matplotlib plots, sliders, and status indicators.
     global btn_readings, btn_start, btn_stop, root, canvas
     global ax_front, ax_side, ax_angle
     global front_line, left_line, right_line, angle_line
