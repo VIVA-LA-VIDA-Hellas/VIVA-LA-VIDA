@@ -1,5 +1,3 @@
-
-
 """
 -----------------------------------------------------------------------------------------------------------------------
 Autonomous drive 1st Mission WRO 2025 FE - VivaLaVida
@@ -1482,9 +1480,41 @@ if __name__ == "__main__":
             print("Starting main robot loop...")
             robot_loop() # Start robot loop in this thread (blocking)
         except KeyboardInterrupt:
-            print("\n❌ Keyboard interrupt received. Stopping robot loop.")
-            loop_event.clear()
-            sensor_tick.set()
-            GPIO.cleanup()
+            print("\n❌ Keyboard interrupt received. Stopping robot loop.")     
+            try: loop_event.clear() # Stop loops/threads
+            except: pass
+            try: readings_event.clear()
+            except: pass
+            try: sensor_tick.set()
+            except: pass
+            try: robot.stop_motor() # Motors & servo to safe state
+            except: pass
+            try: robot.set_servo(SERVO_CENTER)
+            except: pass  
+            try: # Stop any ToF sensors cleanly (if enabled)
+                for s in [vl53_left, vl53_right, vl53_front, vl53_back, vl53_front_left, vl53_front_right]:
+                    if s is not None:
+                        try:
+                            with I2C_LOCK:
+                                s.stop_continuous()
+                        except Exception as e:
+                            dprint(f"[KeyboardInterrupt] ToF stop warning: {e}")
+            except: 
+                pass   
+            try: # Zero PCA9685 outputs
+                with I2C_LOCK:
+                    for ch in [MOTOR_FWD, MOTOR_REV, SERVO_CHANNEL]:
+                        pca.channels[ch].duty_cycle = 0
+            except:
+                pass
+            try: # LEDs off
+                GPIO.output(GREEN_LED, GPIO.LOW)
+                GPIO.output(RED_LED, GPIO.LOW)
+            except:
+                pass
+            try: # GPIO cleanup last
+                GPIO.cleanup()
+            except:
+                pass
 
 # End
