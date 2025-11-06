@@ -47,7 +47,7 @@ USE_GUI = 0                   # 1 = Debugging mode (run with GUI), 0 = COMPETITI
 DEBUG = 0                     # 1 = enable prints, 0 = disable all prints
 USE_TOF_SIDES = 0             # Side sensors:  0 = Ultrasonic, 1 = ToF
 USE_TOF_FRONT = 0             # Front sensor:  0 = Ultrasonic, 1 = ToF
-USE_TOF_CORNERS = 0           # 1 = enable front_left/front_right, 0 = disable
+USE_TOF_CORNERS = 0           # Front side sensor: 0 = disable, 1 = enable
 
 NARROW_SUM_THRESHOLD = 60     # cm; left+right distance threshold to decide if in between narrow walls
 NARROW_HYSTERESIS = 10        # cm; prevents rapid toggling
