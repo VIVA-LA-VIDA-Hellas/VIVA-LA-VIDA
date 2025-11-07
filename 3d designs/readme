@@ -38,7 +38,7 @@ iterations made to enhance efficiency, performance, and overall assembly compati
 This continuous cycle of testing and improvement ensured that every printed element met
 the project’s functional requirements while maintaining structural accuracy and aesthetic quality.
 
-In the following photo we can see the whole progress of making a certain part of the car (motorbase) while also the differnce between each stage of the progress
+In the following photo you can see the whole progress of making a certain part of the car (motorbase) while also the differnce between each stage of the progress
 
 
 
@@ -107,6 +107,80 @@ providing flexibility and resilience that complemented the precision of the prin
 [photo 9,10]
 
 
+
+
+------------------------------------------------------------------------------
+
+
+
+
+INSTRUCTIONS
+
+
+
+
+------------------------------------------------------------------------------
+
+
+You’re about to assemble your own 3D printed model car - a sleek, precision-designed miniature vehicle that’s ready for you to bring to life.
+All the design and printing work has already been completed, so your task is focused on the fun part: putting the pieces together.
+With a few basic tools and some careful attention, you’ll be able to assemble the car step by step without any complex measuring or modifications.
+Each part has been engineered to fit precisely, making the build process simple, enjoyable, and rewarding.
+
+
+Step 1: Prepare Your 3D Printing Software
+
+Download PrusaSlicer or another 3D printer software of your choice, then upload each model file individually.
+
+
+Before assembly begins, you’ll need to prepare your parts for printing
+PrusaSlicer is a reliable and easy-to-use program that allows you to view, adjust, and slice your 3D files for printing.
+Simply open the software, import each part file one at a time, and make sure all components are correctly oriented and ready for your specific printer setup.
+Once uploaded, you can check print settings such as scale, infill, and support structures if necessary.
+This step ensures that all your car parts will print accurately and fit together perfectly during assembly.
+
+
+
+
+[photo 11,12]
+
+
+
+
+Step 2: Locate and Prepare the Model Files for Printing
+
+Open the provided folder and upload each part file into your slicer software. Some parts need to be printed multiple times.
+
+
+You will recieve a folder containing the 3d files for the car.
+Inside the folder you received, you’ll find all the 3D model files required to build your car.
+Each file has been carefully designed and tested for compatibility, so you won’t need to make any modifications.
+Simply open your slicer program (such as PrusaSlicer) and load the files one by one.
+Make sure to print the correct quantities for each component as listed below:
+
+1× Chassis
+1× Camera Base
+1× Servo Base
+3× Distance Sensor Bases
+1× Motor Gear
+3× Time of Flight (ToF) Sensor Bases
+
+
+[photo 13]
+
+
+Double-check that all parts are correctly oriented and fit within your printer’s build volume.
+Once everything looks ready, you can proceed to slicing and printing each part according to your printer’s material and settings.
+
+
+
+
+
+Step 3: Construct the Differential System
+
+Assemble the differential system using the motor base, DC motor, motor gear, and several LEGO parts, along with tie-ups and screws to secure everything in place.
+
+.....need info.....
 
 
 
