@@ -1499,22 +1499,24 @@ if __name__ == "__main__":
     if USE_GUI:
         launch_gui()
     else: # Start the sensor reading thread
-        RED_LED.off()
-        GREEN_LED.off()
+        #RED_LED.on()
+        #GREEN_LED.off()
         sensor_thread = threading.Thread(target=sensor_reader, daemon=True)
         sensor_thread.start()
         print("Headless mode: waiting for START button...")
         RED_LED.on()     # turn on red when ready
-        GREEN_LED.on()  # green = ready to press the button
+        GREEN_LED.blink(on_time=0.5, off_time=0.5, background=True)
+        #GREEN_LED.on()  # green = ready to press the button
         try: # Wait for button press (GPIO input goes LOW when pressed)
             while not START_BTN.is_pressed:
                 time.sleep(0.05)
             print("✅ START button pressed! Beginning autonomous loop...")
             readings_event.set() #readings_flag = True
+            GREEN_LED.blink(on_time=0.2, off_time=0.2, background=True)
+            RED_LED.off() 
             time.sleep(2)  # wait 2 seconds before starting loop
             loop_event.set() #loop_flag = True
-            GREEN_LED.off()  # running
-            RED_LED.on()   # active
+            GREEN_LED.on()  # running
             print("Starting main robot loop...")
             robot_loop() # Start robot loop in this thread (blocking)
         except KeyboardInterrupt:
