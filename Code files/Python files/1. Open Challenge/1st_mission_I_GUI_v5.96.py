@@ -1,9 +1,7 @@
-"""
------------------------------------------------------------------------------------------------------------------------
-Autonomous drive 1st Mission WRO 2025 FE - VivaLaVida
-v5.96
------------------------------------------------------------------------------------------------------------------------
-"""
+#-----------------------------------------------------------------------------------------------------------------------
+# 1st Mission WRO 2025 FE - VivaLaVida
+# v5.96
+#-----------------------------------------------------------------------------------------------------------------------
 
 # ===============================
 # IMPORTS                       
@@ -144,8 +142,7 @@ def load_variables_from_json(path=CONFIG_FILE): # Override defaults with values 
 
 load_variables_from_json() # Call it right after defining defaults so everything below sees the overrides
 
-# If there is no X server, force headless regardless of config
-if os.environ.get("DISPLAY", "") == "":
+if os.environ.get("DISPLAY", "") == "": # If there is no X server, force headless regardless of config
     USE_GUI = 0
 
 def norm180(a: float) -> float: # Normalize angle to [-180, 180)
@@ -242,7 +239,7 @@ SERVO_PULSE_MAX = 2000        # Maximum PWM pulse width (microseconds)
 SERVO_PERIOD = 20000          # Servo PWM period (microseconds)
 
 # ===============================
-# SENSOR INITIALIZATION (ToF + Ultrasonic, flexible for mixed scenarios)
+# SENSOR INITIALIZATION (ToF + Ultrasonic)
 # ===============================
 
 vl53_left = vl53_right = vl53_front = vl53_back = None
@@ -295,7 +292,8 @@ try:
             vl53_front.measurement_timing_budget = 20000
             vl53_front.start_continuous()
             print("✅ Front ToF sensor set to address 0x32")
-
+            
+        # Initialize corner/front-left ToF (optional)
         if USE_TOF_CORNERS:
             xshut_front_left.value = True
             time.sleep(0.05)
@@ -304,6 +302,7 @@ try:
             vl53_front_left.measurement_timing_budget = 20000
             vl53_front_left.start_continuous()
             print("✅ Front-Left ToF sensor set to address 0x34")
+            
         # Initialize corner/front-right ToF (optional)
         if USE_TOF_CORNERS:
             xshut_front_right.value = True
@@ -385,8 +384,7 @@ shutdown_event = Event()
 status_text = "Idle"
 turn_count = 0
 lap_count = 0
-# Reason-aware stopping (USER / OBSTACLE / LAPS)
-stop_reason = None
+stop_reason = None # Reason-aware stopping (USER / OBSTACLE / LAPS)
 obstacle_wait_deadline = 0.0
 # --- Headless START button toggle / debounce ---
 BTN_DEBOUNCE_S = 0.30   # seconds
@@ -488,7 +486,6 @@ class RobotController:
 
     def set_state_speed(self, state):
         # Set motor speed based on FSM state.
-        #speed = STATE_SPEED.get(state, SPEED_CRUISE)  # default to cruise if unknown
         speed = state_speed_value(state)
         self.rotate_motor(speed)
 
@@ -540,7 +537,6 @@ class RobotController:
         setattr(self, smooth_attr, smoothed_val)
         return smoothed_val
 
-    
     def safe_straight_control(self, d_left, d_right):
         # Treat 999/None as no data
         d_left  = None if (d_left  is None or d_left  >= 900) else d_left
@@ -574,7 +570,6 @@ class RobotController:
         corr = self.ss * min(max_corr, CORRECTION_MULTIPLIER * err)
         angle = SERVO_CENTER + corr
         return max(SERVO_MIN_ANGLE, min(SERVO_MAX_ANGLE, angle))
-
 
     def turn_decision(self, d_left, d_right, d_fl=None, d_fr=None): #Prefer corner/front sensors for turn decision; fallback to sides if absent.
         l_val = d_fl if d_fl is not None and d_fl != 999 else d_left
@@ -627,7 +622,6 @@ def sensor_reader():
         else:
             front_right = None
 
-
         # Save readings in global dictionary
         with sensor_lock:
             sensor_data["front"] = front
@@ -643,6 +637,7 @@ def sensor_reader():
 # ===============================
 # FINITE STATE MACHINE: robot_loop
 # ===============================
+
 class RobotState(Enum):
     IDLE = auto()
     CRUISE = auto()
@@ -666,8 +661,6 @@ def robot_loop():
     last_ns = time.monotonic_ns()
     start_ns = last_ns
     turn_target_delta = 0.0  # relative yaw target for this turn (deg)
-    
-    
     robot.stop_motor()                 # Ensure robot stopped at start
     robot.set_servo(SERVO_CENTER)      # Ensure robot stopped at start
 
@@ -745,7 +738,6 @@ def robot_loop():
             gyro_z_filtered = ALPHA * raw_gyro_z + (1 - ALPHA) * getattr(robot, 'gyro_z_prev', 0.0)
             robot.gyro_z_prev = gyro_z_filtered
             yaw += (gyro_z_filtered * RAD2DEG) * dt
-
 
         # Append to deques for plotting/logging
         elapsed_time = (current_ns - start_ns) * 1e-9
@@ -852,8 +844,6 @@ def robot_loop():
             robot.set_servo(desired_servo_angle)
 
             # Decide direction only when exactly one side is open
-            #proposed_direction = robot.turn_decision(robot.d_left, robot.d_right)
-            # Decide direction only when exactly one side is open (prefer front corners)
             proposed_direction = robot.turn_decision(
               robot.d_left, robot.d_right,
               d_fl=robot.d_front_left, d_fr=robot.d_front_right
@@ -1024,6 +1014,86 @@ def launch_gui(): #Initialize Tkinter GUI, matplotlib plots, sliders, and status
 
     GUI_CLOSING = False
     after_ids = {"status": None, "plot": None}
+
+    # -------------------------
+    # Export to CSV
+    # -------------------------
+    def export_data_csv():
+        if not USE_GUI:
+            dprint("Headless: CSV export disabled.")
+            return
+        filename = f"viva_data_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv"
+        slider_values = {name: var.get() for name, var in slider_vars.items()}
+    
+        with open(filename, mode='w', newline='') as file:
+            writer = csv.writer(file)
+            header = [
+                "Time (s)", "Front (cm)", "Left (cm)", "Right (cm)", "Yaw (deg)",
+                "State", "Turns", "Laps", "Servo Angle", "Speed", "Turning", "Direction"
+            ]
+            header += [name for name in slider_values.keys()]
+            writer.writerow(header)
+    
+            for i in range(len(time_data)):
+                row = [
+                    round(time_data[i], 2),
+                    round(front_data[i], 2),
+                    round(left_data[i], 2),
+                    round(right_data[i], 2),
+                    round(angle_data[i], 2),
+                    state_data[i],
+                    turn_count,
+                    lap_count,
+                    globals().get("servo_angle", 0),  # latest steering
+                    globals().get("SPEED_CRUISE", 0),
+                    "YES" if "Turning" in state_data[i] else "NO",
+                    globals().get("locked_turn_direction", "")
+                ]
+                row += [slider_values[name] for name in slider_values.keys()]
+                writer.writerow(row)
+    
+        print(f"✅ Data exported to {filename}")
+    
+    # -------------------------
+    # Save/Load Slider Config
+    # -------------------------
+    def save_sliders_json():
+        if not USE_GUI:
+            print("Headless: save_sliders_json disabled.")
+            return
+        import tkinter.filedialog as fd
+        default_filename = f"sliders_config_{datetime.now().strftime('%Y%m%d')}.json"
+        file_path = fd.asksaveasfilename(initialdir=BASE_DIR,
+                                         initialfile=default_filename,
+                                         defaultextension=".json",
+                                         filetypes=[("JSON files", "*.json")],
+                                         title="Save Slider Configuration")
+        if file_path:
+            data = {name: var.get() for name, var in slider_vars.items()}
+            with open(file_path, "w") as f:
+                json.dump(data, f, indent=4)
+            print(f"Slider values saved to {file_path}")
+    
+    def load_sliders_json():
+        if not USE_GUI:
+            print("Headless: load_sliders_json disabled.")
+            return
+        import tkinter.filedialog as fd
+        file_path = fd.askopenfilename(initialdir=BASE_DIR,
+                                       defaultextension=".json",
+                                       filetypes=[("JSON files", "*.json")],
+                                       title="Load Slider Configuration")
+        if file_path:
+            try:
+                with open(file_path, "r") as f:
+                    data = json.load(f)
+                for name, value in data.items():
+                    if name in slider_vars:
+                        slider_vars[name].set(value)
+                        globals()[name] = value
+                print(f"Sliders restored from {file_path}")
+            except Exception as e:
+                print(f"Failed to load sliders: {e}")
 
     def gui_alive():
         try:
@@ -1254,7 +1324,6 @@ def launch_gui(): #Initialize Tkinter GUI, matplotlib plots, sliders, and status
         "angle": None
     }
 
-
     def update_plot():
         if not gui_alive():
             return
@@ -1373,7 +1442,6 @@ def launch_gui(): #Initialize Tkinter GUI, matplotlib plots, sliders, and status
         except TclError:
             return
 
-        
     def on_closing():
         nonlocal GUI_CLOSING
         GUI_CLOSING = True
@@ -1497,86 +1565,6 @@ def stop_loop(): #Stop the robot loop and motor
         lbl_laps.config(text=f"Laps: {lap_count}")
 
     locked_turn_direction = None # Reset direction lock so a new session can re-choose
-
-# -------------------------
-# Export to CSV
-# -------------------------
-def export_data_csv():
-    if not USE_GUI:
-        dprint("Headless: CSV export disabled.")
-        return
-    filename = f"viva_data_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv"
-    slider_values = {name: var.get() for name, var in slider_vars.items()}
-
-    with open(filename, mode='w', newline='') as file:
-        writer = csv.writer(file)
-        header = [
-            "Time (s)", "Front (cm)", "Left (cm)", "Right (cm)", "Yaw (deg)",
-            "State", "Turns", "Laps", "Servo Angle", "Speed", "Turning", "Direction"
-        ]
-        header += [name for name in slider_values.keys()]
-        writer.writerow(header)
-
-        for i in range(len(time_data)):
-            row = [
-                round(time_data[i], 2),
-                round(front_data[i], 2),
-                round(left_data[i], 2),
-                round(right_data[i], 2),
-                round(angle_data[i], 2),
-                state_data[i],
-                turn_count,
-                lap_count,
-                globals().get("servo_angle", 0),  # latest steering
-                globals().get("SPEED_CRUISE", 0),
-                "YES" if "Turning" in state_data[i] else "NO",
-                globals().get("locked_turn_direction", "")
-            ]
-            row += [slider_values[name] for name in slider_values.keys()]
-            writer.writerow(row)
-
-    print(f"✅ Data exported to {filename}")
-
-# -------------------------
-# Save/Load Slider Config
-# -------------------------
-def save_sliders_json():
-    if not USE_GUI:
-        print("Headless: save_sliders_json disabled.")
-        return
-    import tkinter.filedialog as fd
-    default_filename = f"sliders_config_{datetime.now().strftime('%Y%m%d')}.json"
-    file_path = fd.asksaveasfilename(initialdir=BASE_DIR,
-                                     initialfile=default_filename,
-                                     defaultextension=".json",
-                                     filetypes=[("JSON files", "*.json")],
-                                     title="Save Slider Configuration")
-    if file_path:
-        data = {name: var.get() for name, var in slider_vars.items()}
-        with open(file_path, "w") as f:
-            json.dump(data, f, indent=4)
-        print(f"Slider values saved to {file_path}")
-
-def load_sliders_json():
-    if not USE_GUI:
-        print("Headless: load_sliders_json disabled.")
-        return
-    import tkinter.filedialog as fd
-    file_path = fd.askopenfilename(initialdir=BASE_DIR,
-                                   defaultextension=".json",
-                                   filetypes=[("JSON files", "*.json")],
-                                   title="Load Slider Configuration")
-    if file_path:
-        try:
-            with open(file_path, "r") as f:
-                data = json.load(f)
-            for name, value in data.items():
-                if name in slider_vars:
-                    slider_vars[name].set(value)
-                    globals()[name] = value
-            print(f"Sliders restored from {file_path}")
-        except Exception as e:
-            print(f"Failed to load sliders: {e}")
 
 # ===============================
 # MAIN
