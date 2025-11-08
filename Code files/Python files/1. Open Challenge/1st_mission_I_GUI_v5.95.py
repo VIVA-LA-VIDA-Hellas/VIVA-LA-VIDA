@@ -1,7 +1,7 @@
 """
 -----------------------------------------------------------------------------------------------------------------------
 Autonomous drive 1st Mission WRO 2025 FE - VivaLaVida
-v5.94
+v5.95
 -----------------------------------------------------------------------------------------------------------------------
 """
 
@@ -11,20 +11,14 @@ v5.94
 
 import threading
 import time
-import tkinter as tk
 from collections import deque
-#import RPi.GPIO as GPIO
-#from board import SCL, SDA
 import busio
 from adafruit_pca9685 import PCA9685
 import adafruit_mpu6050
-import matplotlib.pyplot as plt
-from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import csv
 from datetime import datetime
 import json
 import os
-import tkinter.filedialog as fd
 import board
 import digitalio
 import adafruit_vl53l0x
@@ -121,6 +115,12 @@ def dprint(*args, **kwargs): #Conditional print — only prints when DEBUG == 1.
     if DEBUG:
         print(*args, **kwargs)
 
+# --- Headless-safe placeholders for GUI symbols ---
+slider_vars = {}
+btn_readings = btn_start = btn_stop = None
+lbl_turns = lbl_laps = None
+root = canvas = None
+
 # ===============================
 # LOAD VARIABLES FROM JSON (if exists)
 # ===============================
@@ -142,6 +142,10 @@ def load_variables_from_json(path=CONFIG_FILE): # Override defaults with values 
          print(f"[ERROR] Config load failed: {e} — using built-in defaults.")
 
 load_variables_from_json() # Call it right after defining defaults so everything below sees the overrides
+
+# If there is no X server, force headless regardless of config
+if os.environ.get("DISPLAY", "") == "":
+    USE_GUI = 0
 
 def norm180(a: float) -> float: # Normalize angle to [-180, 180)
     return (a + 180.0) % 360.0 - 180.0
@@ -650,8 +654,6 @@ def robot_loop():
     last_turn_time = -999
     last_ns = time.monotonic_ns()
     start_ns = last_ns
-    use_post_turn_ref = False
-    post_turn_ref_diff = None
     turn_target_delta = 0.0  # relative yaw target for this turn (deg)
     
     
@@ -993,6 +995,12 @@ def robot_loop():
 # GUI SECTION
 # ===============================
 def launch_gui(): #Initialize Tkinter GUI, matplotlib plots, sliders, and status indicators.
+    import tkinter as tk
+    from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+    import matplotlib
+    matplotlib.use("TkAgg")  # explicit backend for GUI mode
+    import matplotlib.pyplot as plt
+    import tkinter.filedialog as fd
     global btn_readings, btn_start, btn_stop, root, canvas
     global ax_front, ax_side, ax_angle
     global front_line, left_line, right_line, angle_line
@@ -1356,8 +1364,9 @@ def start_readings():
     global status_text
     readings_event.set()
     status_text = "Sensor readings started"
-    btn_readings.config(state="disabled")
-    btn_start.config(state="normal")
+    if USE_GUI:
+        btn_readings.config(state="disabled")
+        btn_start.config(state="normal")
 
     # Start background sensor thread once
     if not hasattr(start_readings, "sensor_thread_started"):
@@ -1378,8 +1387,9 @@ def start_loop(): #Start the robot driving loop
 
     loop_event.set()
     status_text = "🚗 Loop Started"
-    btn_start.config(state="disabled")
-    btn_stop.config(state="normal")
+    if USE_GUI:
+        btn_start.config(state="disabled")
+        btn_stop.config(state="normal")
 
 def stop_loop(): #Stop the robot loop and motor
     global status_text, turn_count, lap_count, locked_turn_direction, stop_reason
@@ -1388,21 +1398,24 @@ def stop_loop(): #Stop the robot loop and motor
     sensor_tick.set()  # wake any waits immediately
     robot.stop_motor()
     status_text = "Stopped"
-    btn_start.config(state="normal")
-    btn_stop.config(state="disabled")
-
-    # Reset counters
     turn_count = 0
     lap_count = 0
-    lbl_turns.config(text=f"Turns: {turn_count}")
-    lbl_laps.config(text=f"Laps: {lap_count}")
-    
+
+    if USE_GUI:
+        btn_start.config(state="normal")
+        btn_stop.config(state="disabled")
+        lbl_turns.config(text=f"Turns: {turn_count}")
+        lbl_laps.config(text=f"Laps: {lap_count}")
+
     locked_turn_direction = None # Reset direction lock so a new session can re-choose
 
 # -------------------------
 # Export to CSV
 # -------------------------
 def export_data_csv():
+    if not USE_GUI:
+        dprint("Headless: CSV export disabled.")
+        return
     filename = f"viva_data_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv"
     slider_values = {name: var.get() for name, var in slider_vars.items()}
 
@@ -1439,6 +1452,10 @@ def export_data_csv():
 # Save/Load Slider Config
 # -------------------------
 def save_sliders_json():
+    if not USE_GUI:
+        print("Headless: save_sliders_json disabled.")
+        return
+    import tkinter.filedialog as fd
     default_filename = f"sliders_config_{datetime.now().strftime('%Y%m%d')}.json"
     file_path = fd.asksaveasfilename(initialdir=BASE_DIR,
                                      initialfile=default_filename,
@@ -1452,6 +1469,10 @@ def save_sliders_json():
         print(f"Slider values saved to {file_path}")
 
 def load_sliders_json():
+    if not USE_GUI:
+        print("Headless: load_sliders_json disabled.")
+        return
+    import tkinter.filedialog as fd
     file_path = fd.askopenfilename(initialdir=BASE_DIR,
                                    defaultextension=".json",
                                    filetypes=[("JSON files", "*.json")],
