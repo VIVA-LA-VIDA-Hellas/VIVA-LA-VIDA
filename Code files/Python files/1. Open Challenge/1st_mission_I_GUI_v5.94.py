@@ -1368,6 +1368,8 @@ def start_readings():
         threading.Thread(target=robot_loop, daemon=True).start()
         start_readings.loop_thread_started = True
 
+    sensor_tick.set()
+
 def start_loop(): #Start the robot driving loop
     global status_text
     if not readings_event.is_set():
