@@ -1512,7 +1512,7 @@ if __name__ == "__main__":
                 time.sleep(0.05)
             print("✅ START button pressed! Beginning autonomous loop...")
             readings_event.set() #readings_flag = True
-            GREEN_LED.blink(on_time=0.2, off_time=0.2, background=True)
+            GREEN_LED.blink(on_time=0.1, off_time=0.1, background=True)
             RED_LED.off() 
             time.sleep(2)  # wait 2 seconds before starting loop
             loop_event.set() #loop_flag = True
