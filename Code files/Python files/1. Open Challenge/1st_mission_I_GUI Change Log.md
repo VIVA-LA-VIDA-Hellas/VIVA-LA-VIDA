@@ -68,8 +68,16 @@ v5.92:
      - change safe straight control logic
      - code cleaning
 v5.93:
-     - add front side ToF sensors
+     - add front side ToF sensors, turning logic
+v5.94:
+     - remove RiGPIO
+v5.95:
+     - corrections on exit
+v5.96:
+     - corrections on safe straight control
+     - code cleaning
      
+
 
 
 
