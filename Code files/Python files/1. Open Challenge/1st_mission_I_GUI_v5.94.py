@@ -253,8 +253,8 @@ try:
         xshut_right = digitalio.DigitalInOut(board.D25)
         xshut_front = digitalio.DigitalInOut(board.D26)
         xshut_back  = digitalio.DigitalInOut(board.D24)
-        xshut_front_left  = digitalio.DigitalInOut(board.D9)
-        xshut_front_right = digitalio.DigitalInOut(board.D10)
+        xshut_front_left  = digitalio.DigitalInOut(board.D7)
+        xshut_front_right = digitalio.DigitalInOut(board.D8)
         for xshut in [xshut_left, xshut_right, xshut_front, xshut_back,
                       xshut_front_left, xshut_front_right]:
             xshut.direction = digitalio.Direction.OUTPUT
