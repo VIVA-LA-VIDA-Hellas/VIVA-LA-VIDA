@@ -45,8 +45,8 @@ CONFIG_FILE = os.path.join(BASE_DIR, "1st_mission_variables.json")
 # ===============================
 
 # ---------- Initialization ----------
-USE_GUI = 0                   # 1 = Debugging mode (run with GUI), 0 = COMPETITION MODE (run headless, no GUI)
-DEBUG = 0                     # 1 = enable prints, 0 = disable all prints
+USE_GUI = 1                   # 1 = Debugging mode (run with GUI), 0 = COMPETITION MODE (run headless, no GUI)
+DEBUG = 1                     # 1 = enable prints, 0 = disable all prints
 USE_TOF_SIDES = 0             # Side sensors:  0 = Ultrasonic, 1 = ToF
 USE_TOF_FRONT = 0             # Front sensor:  0 = Ultrasonic, 1 = ToF
 USE_TOF_CORNERS = 0           # Front side sensor: 0 = disable, 1 = enable
@@ -59,13 +59,13 @@ NARROW_FACTOR_DIST  = 0.6     # multiply distance-based thresholds/corrections w
 # ---------- Speeds ----------
 SPEED_IDLE = 0
 SPEED_STOPPED = 0
-SPEED_CRUISE = 30             # Motor speed for normal straight driving (0-100%)
+SPEED_CRUISE = 25             # Motor speed for normal straight driving (0-100%)
 SPEED_TURN_INIT = 18          # Motor speed while waiting for open side to turn
-SPEED_TURN = 30               # Motor speed while turning
-SPEED_POST_TURN = 30          # Motor speed following a turn
+SPEED_TURN = 25               # Motor speed while turning
+SPEED_POST_TURN = 25          # Motor speed following a turn
 
 # ---------- Driving ----------
-SOFT_MARGIN = 25              # Distance from wall where small steering corrections start (cm)
+SOFT_MARGIN = 30              # Distance from wall where small steering corrections start (cm)
 MAX_CORRECTION = 8            # Maximum servo correction applied for wall-following (degrees)
 CORR_EPS = 1.5                # cm: treat the side as "steady" if within ±1.5 cm of trigger value
 CORRECTION_MULTIPLIER = 1.8   # Proportional gain (servo degrees per cm of error 0 default: 2). Higher = snappier; lower = smoother&slower. 
@@ -253,7 +253,7 @@ try:
         xshut_right = digitalio.DigitalInOut(board.D25)
         xshut_front = digitalio.DigitalInOut(board.D26)
         xshut_back  = digitalio.DigitalInOut(board.D24)
-        xshut_front_left  = digitalio.DigitalInOut(board.D09)
+        xshut_front_left  = digitalio.DigitalInOut(board.D9)
         xshut_front_right = digitalio.DigitalInOut(board.D10)
         for xshut in [xshut_left, xshut_right, xshut_front, xshut_back,
                       xshut_front_left, xshut_front_right]:
