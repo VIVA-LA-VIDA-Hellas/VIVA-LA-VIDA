@@ -73,10 +73,12 @@ v5.94:
      - remove RiGPIO
 v5.95:
      - corrections on exit
+     - move GUI imports to launch GUI section (remove from headless)
 v5.96:
      - corrections on safe straight control
      - code cleaning
      
+
 
 
 
