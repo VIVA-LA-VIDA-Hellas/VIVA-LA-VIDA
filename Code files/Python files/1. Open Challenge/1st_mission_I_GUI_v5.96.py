@@ -40,7 +40,7 @@ CONFIG_FILE = os.path.join(BASE_DIR, "1st_mission_variables.json")
 USE_GUI = 1                   # 1 = Debugging mode (run with GUI), 0 = COMPETITION MODE (run headless, no GUI)
 DEBUG = 1                     # 1 = enable prints, 0 = disable all prints
 USE_TOF_SIDES = 0             # Side sensors:  0 = Ultrasonic, 1 = ToF
-USE_TOF_FRONT = 1             # Front sensor:  0 = Ultrasonic, 1 = ToF
+USE_TOF_FRONT = 0             # Front sensor:  0 = Ultrasonic, 1 = ToF
 USE_TOF_CORNERS = 1           # Front side sensor: 0 = disable, 1 = enable
 
 NARROW_SUM_THRESHOLD = 60     # cm; left+right distance threshold to decide if in between narrow walls
