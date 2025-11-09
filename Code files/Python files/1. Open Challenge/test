@@ -1,3 +1,4 @@
+
 #-----------------------------------------------------------------------------------------------------------------------
 # 1st Mission WRO 2025 FE - VivaLaVida
 # Final Version
@@ -33,15 +34,15 @@ from picamera2 import Picamera2
 
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__)) # Get directory of the running script
-CONFIG_FILE = os.path.join(BASE_DIR, "1st_mission_variables.json")
+CONFIG_FILE = os.path.join(BASE_DIR, "mission_variables.json")
 
 # ===============================
 # CONFIGURATION VARIABLES
 # ===============================
 
 # ---------- Initialization ----------
-USE_GUI = 0                   # 1 = Debugging mode (run with GUI), 0 = COMPETITION MODE (run headless, no GUI)
-DEBUG = 0                     # 1 = enable prints, 0 = disable all prints
+USE_GUI = 1                   # 1 = Debugging mode (run with GUI), 0 = COMPETITION MODE (run headless, no GUI)
+DEBUG = 1                     # 1 = enable prints, 0 = disable all prints
 USE_TOF_SIDES = 0             # Side sensors:  0 = Ultrasonic, 1 = ToF
 USE_TOF_FRONT = 0             # Front sensor:  0 = Ultrasonic, 1 = ToF
 USE_TOF_CORNERS = 0           # Front side sensor: 0 = disable, 1 = enable
@@ -54,10 +55,10 @@ NARROW_FACTOR_DIST  = 0.5     # multiply distance-based thresholds/corrections w
 # ---------- Speeds ----------
 SPEED_IDLE = 0
 SPEED_STOPPED = 0
-SPEED_CRUISE = 24             # Motor speed for normal straight driving (0-100%)
-SPEED_TURN_INIT = 16          # Motor speed while waiting for open side to turn
-SPEED_TURN = 24               # Motor speed while turning
-SPEED_POST_TURN = 24          # Motor speed following a turn
+SPEED_CRUISE = 10             # Motor speed for normal straight driving (0-100%)
+SPEED_TURN_INIT = 10          # Motor speed while waiting for open side to turn
+SPEED_TURN = 10               # Motor speed while turning
+SPEED_POST_TURN = 10          # Motor speed following a turn
 
 # ---------- Driving ----------
 SOFT_MARGIN = 26              # Distance from wall where small steering corrections start (cm)
@@ -98,6 +99,20 @@ FILTER_JUMP_TOF = 9999        # ToF maximum jump (cm) allowed between readings
 
 US_MAX_DISTANCE_FRONT = 2.0  # Ultrasonic front max read distance
 US_MAX_DISTANCE_SIDE = 1.2   # Ultrasonic side max read distance
+
+# --- Simple S-bypass (time-only) ---
+BY_T1 = 0.50          # first arc duration (s)
+BY_T2 = 0.55          # second arc duration (s)
+BY_T3 = 0.30          # recenter forward (s)
+BY_SPEED = SPEED_CRUISE
+BY_MIN_AREA = 800     # px^2: ignore tiny blobs
+BY_COOLDOWN_S = 0.7   # ignore new triggers briefly after finishing
+# --- S-bypass steering (relative to center) ---
+BY_ANGLE_AWAY = 24   # deg from SERVO_CENTER for the 1st arc (away from obstacle)
+BY_ANGLE_BACK = 18   # deg from SERVO_CENTER for the 2nd arc (back toward lane)
+
+
+
 
 # ---------- Loop timing ----------
 LOOP_DELAY = 0.005            # Delay between main loop iterations (seconds) 0.02
@@ -394,6 +409,39 @@ def boxes_intersect(a, b):
     bx1, by1, bx2, by2 = b
     return not (ax2 < bx1 or ax1 > bx2 or ay2 < by1 or ay1 > by2)
 
+def compute_servo_angle(avoid_color: str, box_area: int) -> int:
+    """
+    Decide a steering angle to avoid the colored obstacle.
+    Green -> steer right, Red (or anything else) -> steer left.
+    """
+    return TURN_ANGLE_RIGHT if avoid_color == "Green" else TURN_ANGLE_LEFT
+
+def bbox_of(contour_data):
+    """
+    Convert get_largest_contour(...) result to a (x1,y1,x2,y2) box.
+    contour_data = (contour, (x1,y1), (x2,y2), area)
+    """
+    if contour_data is None:
+        return None
+    (x1, y1) = contour_data[1]
+    (x2, y2) = contour_data[2]
+    return (x1, y1, x2, y2)
+
+def make_car_box(frame_w: int, frame_h: int):
+    """
+    Approximate the robot's footprint in the image near the bottom center.
+    Adjust percentages if needed.
+    """
+    x1 = int(frame_w * 0.35); y1 = int(frame_h * 0.65)
+    x2 = int(frame_w * 0.65); y2 = int(frame_h * 0.98)
+    return (x1, y1, x2, y2)
+
+def mirror_angle(a):
+    return max(SERVO_MIN_ANGLE, min(SERVO_MAX_ANGLE, 2*SERVO_CENTER - a))
+
+def servo_from_offset(offset_deg: int) -> int:
+    """Absolute servo angle from center + offset, clamped to limits."""
+    return max(SERVO_MIN_ANGLE, min(SERVO_MAX_ANGLE, SERVO_CENTER + offset_deg))
 
 
 # ===============================
@@ -716,6 +764,16 @@ def robot_loop():
     avoid_color = None
     avoid_direction = None
     avoid_start_time = 0.0
+    prev_red_seen = False
+    prev_green_seen = False
+    bypass_active = False
+    bypass_phase = 0         # 1,2,3
+    bypass_t0 = 0.0
+    bypass_steer_away = SERVO_CENTER
+    bypass_steer_back = SERVO_CENTER
+    bypass_cooldown_until = 0.0
+
+
 
     while True:
         current_ns = time.monotonic_ns()
@@ -770,6 +828,21 @@ def robot_loop():
         # Determine if red or green box is detected
         red_seen = red_data is not None
         green_seen = green_data is not None
+
+        if red_seen and not prev_red_seen:
+            area = red_data[3] if red_data else 0
+            dprint(f"🟥 Red obstacle DETECTED (area={area}) → steer left")
+        elif not red_seen and prev_red_seen:
+            dprint("🟥 Red obstacle LOST")
+
+        if green_seen and not prev_green_seen:
+            area = green_data[3] if green_data else 0
+            dprint(f"🟩 Green obstacle DETECTED (area={area}) → steer right")
+        elif not green_seen and prev_green_seen:
+            dprint("🟩 Green obstacle LOST")
+
+        prev_red_seen = red_seen
+        prev_green_seen = green_seen
 
         # ---- Narrow corridor detector (sum of side distances) ----
         if not hasattr(robot_loop, "_narrow_mode"):
@@ -848,39 +921,8 @@ def robot_loop():
                     sensor_tick.wait(LOOP_DELAY); sensor_tick.clear()
 
         elif state == RobotState.CRUISE:
-            status_text = "Driving (cruise)"
+            status_text = "Driving (cruise)"         
 
-            # Check for obstacle detection (red/green box)
-            if red_seen or green_seen:
-                # If obstacle detected, switch to avoidance behavior
-                avoid_color = "Red" if red_seen else "Green"
-                avoid_direction = "right" if avoid_color == "Green" else "left"
-                avoid_start_time = current_time
-                status_text = f"Avoiding {avoid_color} obstacle"
-        
-                # Perform avoidance maneuver
-                elapsed = current_time - avoid_start_time
-                if elapsed < 1.0:
-                    # Reverse and steer away from obstacle (only if valid data is available)
-                    if red_seen and red_data is not None:
-                        steer = compute_servo_angle(avoid_color, red_data[3])  # area of the red box
-                    elif green_seen and green_data is not None:
-                        steer = compute_servo_angle(avoid_color, green_data[3])  # area of the green box
-                    else:
-                        steer = SERVO_CENTER  # Default to center if no valid obstacle detected
-        
-                    robot.set_servo(steer)
-                    robot.rotate_motor(-SPEED_CRUISE)
-                else:
-                    # Move forward and center after avoidance
-                    robot.rotate_motor(SPEED_CRUISE)
-                    robot.set_servo(SERVO_CENTER)  # Center servo
-        
-                # Once the obstacle is cleared, return to cruise
-                if not any(boxes_intersect(car_box, b[2]) for b in [(red_data if red_seen else green_data)]):
-                    status_text = "Obstacle avoided, resuming cruise"
-                    continue  # Skip the rest of the loop and return to cruise
-        
             # Normal cruising logic if no obstacle is detected
             robot.set_state_speed(state.name)
             robot.set_servo(SERVO_CENTER)  # Keep the servo centered
@@ -898,7 +940,68 @@ def robot_loop():
                 stop_reason = "OBSTACLE"
                 obstacle_wait_deadline = current_time + OBSTACLE_WAIT_TIME
                 continue
-        
+            
+
+            # ------- S-bypass trigger (choose one color, larger area wins) -------
+            # --- Simple S-bypass trigger (one color; larger area wins) ---
+            if (not bypass_active) and (current_time >= bypass_cooldown_until):
+                chosen = None  # ("Red"/"Green", area)
+                if red_data and red_data[3] >= BY_MIN_AREA:
+                    chosen = ("Red", red_data[3])
+                if green_data and green_data[3] >= BY_MIN_AREA and (chosen is None or green_data[3] > chosen[1]):
+                    chosen = ("Green", green_data[3])
+
+                if chosen:
+                    color, _ = chosen
+                    # Green -> first arc RIGHT, Red -> first arc LEFT
+                    if color == "Green":
+                        # first arc RIGHT, second arc LEFT
+                        bypass_steer_away = servo_from_offset(+BY_ANGLE_AWAY)
+                        bypass_steer_back =  servo_from_offset(-BY_ANGLE_BACK)
+                    else:  # "Red"
+                        # first arc LEFT, second arc RIGHT
+                        bypass_steer_away = servo_from_offset(-BY_ANGLE_AWAY)
+                        bypass_steer_back =  servo_from_offset(+BY_ANGLE_BACK)
+
+                    bypass_active = True
+                    bypass_phase = 1
+                    bypass_t0 = current_time
+
+                    dprint(f"[BYPASS] {color} – start S")
+
+            # --- Simple S-bypass runner (arc1 -> arc2 -> recenter) ---
+            if bypass_active:
+                t = current_time - bypass_t0
+
+                if bypass_phase == 1:
+                    # ARC1: steer away from obstacle
+                    robot.set_servo(bypass_steer_away)
+                    robot.rotate_motor(BY_SPEED)
+                    if t >= BY_T1:
+                        bypass_phase = 2
+                        bypass_t0 = current_time
+
+                elif bypass_phase == 2:
+                    # ARC2: steer back toward the lane
+                    robot.set_servo(bypass_steer_back)
+                    robot.rotate_motor(BY_SPEED)
+                    if t >= BY_T2:
+                        bypass_phase = 3
+                        bypass_t0 = current_time
+
+                else:
+                    # RECENTER: wheels straight, still moving forward
+                    robot.set_servo(SERVO_CENTER)
+                    robot.rotate_motor(BY_SPEED)
+                    if t >= BY_T3:
+                        bypass_active = False
+                        bypass_cooldown_until = current_time + BY_COOLDOWN_S
+                        dprint("[BYPASS] done")
+
+                # While bypassing, skip normal cruise logic
+                sensor_tick.wait(LOOP_DELAY); sensor_tick.clear()
+                continue
+
             # -------------------------------
             # Check if we can trigger a turn
             # -------------------------------
