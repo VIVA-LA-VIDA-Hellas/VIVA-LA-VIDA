@@ -104,15 +104,13 @@ US_MAX_DISTANCE_SIDE = 1.2   # Ultrasonic side max read distance
 BY_T1 = 0.50          # first arc duration (s)
 BY_T2 = 0.55          # second arc duration (s)
 BY_T3 = 0.30          # recenter forward (s)
-BY_SPEED = SPEED_CRUISE
+BY_T4 = 0.75          # continue straight after bypass (s)
+BY_SPEED = 15
 BY_MIN_AREA = 800     # px^2: ignore tiny blobs
 BY_COOLDOWN_S = 0.7   # ignore new triggers briefly after finishing
 # --- S-bypass steering (relative to center) ---
 BY_ANGLE_AWAY = 24   # deg from SERVO_CENTER for the 1st arc (away from obstacle)
 BY_ANGLE_BACK = 18   # deg from SERVO_CENTER for the 2nd arc (back toward lane)
-
-
-
 
 # ---------- Loop timing ----------
 LOOP_DELAY = 0.005            # Delay between main loop iterations (seconds) 0.02
@@ -410,11 +408,7 @@ def boxes_intersect(a, b):
     return not (ax2 < bx1 or ax1 > bx2 or ay2 < by1 or ay1 > by2)
 
 def compute_servo_angle(avoid_color: str, box_area: int) -> int:
-    """
-    Decide a steering angle to avoid the colored obstacle.
-    Green -> steer right, Red (or anything else) -> steer left.
-    """
-    return TURN_ANGLE_RIGHT if avoid_color == "Green" else TURN_ANGLE_LEFT
+    return TURN_ANGLE_RIGHT if avoid_color == "Red" else TURN_ANGLE_LEFT
 
 def bbox_of(contour_data):
     """
@@ -831,13 +825,13 @@ def robot_loop():
 
         if red_seen and not prev_red_seen:
             area = red_data[3] if red_data else 0
-            dprint(f"🟥 Red obstacle DETECTED (area={area}) → steer left")
+            dprint(f"🟥 Red obstacle DETECTED (area={area}) → steer right")
         elif not red_seen and prev_red_seen:
             dprint("🟥 Red obstacle LOST")
 
         if green_seen and not prev_green_seen:
             area = green_data[3] if green_data else 0
-            dprint(f"🟩 Green obstacle DETECTED (area={area}) → steer right")
+            dprint(f"🟩 Green obstacle DETECTED (area={area}) → steer left")
         elif not green_seen and prev_green_seen:
             dprint("🟩 Green obstacle LOST")
 
@@ -954,11 +948,11 @@ def robot_loop():
                 if chosen:
                     color, _ = chosen
                     # Green -> first arc RIGHT, Red -> first arc LEFT
-                    if color == "Green":
+                    if color == "Red":
                         # first arc RIGHT, second arc LEFT
                         bypass_steer_away = servo_from_offset(+BY_ANGLE_AWAY)
                         bypass_steer_back =  servo_from_offset(-BY_ANGLE_BACK)
-                    else:  # "Red"
+                    else:  # "Green"
                         # first arc LEFT, second arc RIGHT
                         bypass_steer_away = servo_from_offset(-BY_ANGLE_AWAY)
                         bypass_steer_back =  servo_from_offset(+BY_ANGLE_BACK)
@@ -972,35 +966,44 @@ def robot_loop():
             # --- Simple S-bypass runner (arc1 -> arc2 -> recenter) ---
             if bypass_active:
                 t = current_time - bypass_t0
-
+            
                 if bypass_phase == 1:
-                    # ARC1: steer away from obstacle
+                    # ARC1: steer away from obstacle (right or left based on color)
                     robot.set_servo(bypass_steer_away)
                     robot.rotate_motor(BY_SPEED)
                     if t >= BY_T1:
+                        # After the first arc, drive straight for a short time before turning back
                         bypass_phase = 2
-                        bypass_t0 = current_time
-
+                        bypass_t0 = current_time  # Reset time for straight drive
+                        dprint(f"[BYPASS] ARC1 done, driving straight briefly")
+            
                 elif bypass_phase == 2:
-                    # ARC2: steer back toward the lane
-                    robot.set_servo(bypass_steer_back)
+                    # ARC2: drive straight for a short time
+                    robot.set_servo(SERVO_CENTER)  # Move straight
                     robot.rotate_motor(BY_SPEED)
                     if t >= BY_T2:
                         bypass_phase = 3
                         bypass_t0 = current_time
-
-                else:
-                    # RECENTER: wheels straight, still moving forward
-                    robot.set_servo(SERVO_CENTER)
+                        dprint(f"[BYPASS] Driving straight done, starting ARC2")
+            
+                elif bypass_phase == 3:
+                    # ARC3: steer back toward the lane
+                    robot.set_servo(bypass_steer_back)
                     robot.rotate_motor(BY_SPEED)
                     if t >= BY_T3:
-                        bypass_active = False
+                        bypass_phase = 4  # Move to the next phase (continue straight)
+                        bypass_t0 = current_time  # Reset time for straight driving
+                        dprint("[BYPASS] ARC2 done, continuing straight")
+            
+                elif bypass_phase == 4:
+                    # Continue straight after bypass
+                    robot.set_servo(SERVO_CENTER)  # Keep servo centered to drive straight
+                    robot.rotate_motor(BY_SPEED)   # Continue driving forward
+                    if t >= BY_T4:  # You can define BY_T4 as the desired time to continue straight after the bypass
+                        bypass_active = False  # End the bypass process
                         bypass_cooldown_until = current_time + BY_COOLDOWN_S
-                        dprint("[BYPASS] done")
-
-                # While bypassing, skip normal cruise logic
-                sensor_tick.wait(LOOP_DELAY); sensor_tick.clear()
-                continue
+                        dprint("[BYPASS] Bypass complete, continuing straight")
+                
 
             # -------------------------------
             # Check if we can trigger a turn
