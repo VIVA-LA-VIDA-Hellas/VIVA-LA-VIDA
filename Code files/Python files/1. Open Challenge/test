@@ -441,14 +441,17 @@ def servo_from_offset(offset_deg: int) -> int:
 # New distance threshold to trigger arc behavior
 ARC_TRIGGER_DISTANCE = 30  # cm: Distance to trigger the arc logic
 
-def process_obstacle_position(red_data, green_data, img_width):
+def process_obstacle_position(red_data, green_data, img_width, d_front, d_left, d_right):
     """
     Determines the relative position of red and green obstacles and returns the action.
     - red_data: Data about the red obstacle (x, y, width, height)
     - green_data: Data about the green obstacle (x, y, width, height)
     - img_width: Width of the camera image
+    - d_front: Distance to the front obstacle
+    - d_left: Distance to the left side obstacle
+    - d_right: Distance to the right side obstacle
     Returns:
-        action (str): "drive_towards", "arc_left", or "arc_right"
+        action (str): "drive_towards", "arc_left", "arc_right", or "back_up"
         avoid_color (str): "red" or "green"
     """
     action = None
@@ -458,25 +461,46 @@ def process_obstacle_position(red_data, green_data, img_width):
     if red_data is not None:
         avoid_color = "red"
         red_x_center = (red_data[1][0] + red_data[2][0]) // 2  # calculate center x of red obstacle
-        # Drive towards the red obstacle, regardless of its position (left or right)
-        action = "drive_towards"
+        if d_front < STOP_THRESHOLD:
+            # Too close to the red obstacle, back up
+            action = "back_up"
+        elif red_x_center < img_width // 3:
+            # Red obstacle too far to the left, need to back up and retry
+            action = "back_up"
+        else:
+            action = "drive_towards"  # Continue towards red obstacle
 
     # If green obstacle detected
     elif green_data is not None:
         avoid_color = "green"
         green_x_center = (green_data[1][0] + green_data[2][0]) // 2  # calculate center x of green obstacle
-        # Drive towards the green obstacle, regardless of its position (left or right)
-        action = "drive_towards"
+        if d_front < STOP_THRESHOLD:
+            # Too close to the green obstacle, back up
+            action = "back_up"
+        elif green_x_center > 2 * img_width // 3:
+            # Green obstacle too far to the right, need to back up and retry
+            action = "back_up"
+        else:
+            action = "drive_towards"  # Continue towards green obstacle
 
     return action, avoid_color
 
-def control_steering(action, avoid_color, d_front):
+def control_steering(action, avoid_color, d_front, d_left, d_right):
     """
     Controls the robot's steering based on the desired action.
-    - action: "drive_towards", "arc_left", or "arc_right"
+    - action: "drive_towards", "arc_left", "arc_right", or "back_up"
     - avoid_color: the color of the detected obstacle ("red", "green")
     - d_front: current distance to the obstacle in front
+    - d_left: current distance to the left side
+    - d_right: current distance to the right side
     """
+    if action == "back_up":
+        # If the action is to back up, drive backward for a short time (e.g., 0.5 seconds)
+        robot.rotate_motor(-SPEED_CRUISE)  # Reverse the robot at cruising speed
+        time.sleep(0.5)  # Move backward for 0.5 seconds
+        robot.rotate_motor(0)  # Stop the motors after moving backward
+        return SERVO_CENTER  # Keep the steering centered during backup
+
     # Arc logic triggered when the robot gets close to the obstacle (distance threshold)
     if d_front is not None and d_front < ARC_TRIGGER_DISTANCE:
         if action == "drive_towards":
@@ -1281,12 +1305,66 @@ def launch_gui(): #Initialize Tkinter GUI, matplotlib plots, sliders, and status
     global status_circle, status_canvas, status_text_id, lbl_status
     global lbl_turns, lbl_laps
     global sliders_frame, slider_vars, btn_export
+    import threading
+    import cv2
+    import numpy as np
+    from PIL import Image, ImageTk
 
     from tkinter import TclError 
     import sys, os, signal  # add
 
+    # Additional variables for the camera
+    camera_frame = None
+    camera_label = None
+
     GUI_CLOSING = False
     after_ids = {"status": None, "plot": None}
+
+    def update_camera_feed():
+        """
+        Function to update the camera feed in the Tkinter window.
+        Captures frames from the camera, processes them for obstacles, and updates the GUI.
+        """
+        global camera_label, picam2
+    
+        # Capture a frame from the camera
+        img = picam2.capture_array()
+    
+        # Convert the image to HSV for obstacle detection
+        imgHSV = cv2.cvtColor(img, cv2.COLOR_RGB2HSV)
+    
+        # Create masks for red and green obstacles
+        mask_red = cv2.bitwise_or(cv2.inRange(imgHSV, RED1_LO, RED1_HI), cv2.inRange(imgHSV, RED2_LO, RED2_HI))
+        mask_green = cv2.inRange(imgHSV, GREEN_LO, GREEN_HI)
+    
+        # Get the largest contour (obstacle) for red and green
+        red_data = get_largest_contour(mask_red)
+        green_data = get_largest_contour(mask_green)
+    
+        # Draw bounding boxes around obstacles if detected
+        if red_data is not None and red_data[3] >= BY_MIN_AREA:
+            cv2.rectangle(img, red_data[1], red_data[2], (0, 0, 255), 2)  # Red box
+        if green_data is not None and green_data[3] >= BY_MIN_AREA:
+            cv2.rectangle(img, green_data[1], green_data[2], (0, 255, 0), 2)  # Green box
+    
+        # Convert the image to RGB format (from BGR) for Tkinter compatibility
+        img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+    
+        # Convert the image into a format that Tkinter can display
+        photo = ImageTk.PhotoImage(image=Image.fromarray(img_rgb))
+    
+        # If the camera_label is already created, just update the image
+        if camera_label is not None:
+            camera_label.config(image=photo)
+            camera_label.image = photo  # Keep a reference to avoid garbage collection
+        else:
+            # Create the label to display the image
+            camera_label = tk.Label(root, image=photo)
+            camera_label.grid(row=7, column=1, padx=5, pady=5)  # Place the camera feed in the right column
+    
+        # Continue updating the camera feed every 100 ms
+        root.after(100, update_camera_feed)
+
 
     # -------------------------
     # Export to CSV
@@ -1397,6 +1475,9 @@ def launch_gui(): #Initialize Tkinter GUI, matplotlib plots, sliders, and status
 
     root = tk.Tk()
     root.title("VivaLaVida Robot Control")
+
+    # Start the camera feed update
+    update_camera_feed()
 
     slider_vars = {}
 
