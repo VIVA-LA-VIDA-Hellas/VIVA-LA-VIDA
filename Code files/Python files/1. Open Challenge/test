@@ -874,7 +874,7 @@ def robot_loop():
                 else:
                     # Move forward and center after avoidance
                     robot.rotate_motor(SPEED_CRUISE)
-                    robot.set_servo(90)  # Center servo
+                    robot.set_servo(SERVO_CENTER)  # Center servo
         
                 # Once the obstacle is cleared, return to cruise
                 if not any(boxes_intersect(car_box, b[2]) for b in [(red_data if red_seen else green_data)]):
