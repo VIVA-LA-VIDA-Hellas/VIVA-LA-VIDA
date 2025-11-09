@@ -1,6 +1,6 @@
 {
   "USE_GUI": 0,
-  "DEBUG": 1,
+  "DEBUG": 0,
   "USE_TOF_SIDES": 0,
   "USE_TOF_FRONT": 0,
   "USE_TOF_CORNERS": 0,
