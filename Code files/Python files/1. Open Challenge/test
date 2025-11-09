@@ -55,18 +55,18 @@ NARROW_FACTOR_DIST  = 0.5     # multiply distance-based thresholds/corrections w
 # ---------- Speeds ----------
 SPEED_IDLE = 0
 SPEED_STOPPED = 0
-SPEED_CRUISE = 10             # Motor speed for normal straight driving (0-100%)
-SPEED_TURN_INIT = 10          # Motor speed while waiting for open side to turn
-SPEED_TURN = 10               # Motor speed while turning
-SPEED_POST_TURN = 10          # Motor speed following a turn
+SPEED_CRUISE = 15             # Motor speed for normal straight driving (0-100%)
+SPEED_TURN_INIT = 15          # Motor speed while waiting for open side to turn
+SPEED_TURN = 15               # Motor speed while turning
+SPEED_POST_TURN = 15          # Motor speed following a turn
 
 # ---------- Driving ----------
-SOFT_MARGIN = 26              # Distance from wall where small steering corrections start (cm)
+SOFT_MARGIN = 20              # Distance from wall where small steering corrections start (cm)
 MAX_CORRECTION = 7            # Maximum servo correction applied for wall-following (degrees)
 CORR_EPS = 1.5                # cm: treat the side as "steady" if within ±1.5 cm of trigger value
 CORRECTION_MULTIPLIER = 1.4   # Proportional gain (servo degrees per cm of error 0 default: 2). Higher = snappier; lower = smoother&slower. 
 
-STOP_THRESHOLD = 20           # Front distance (cm) at which robot stops immediately
+STOP_THRESHOLD = 15          # Front distance (cm) at which robot stops immediately
 OBSTACLE_WAIT_TIME = 5.0      # seconds to wait before retrying after a front-stop
 
 # ---------- Turn management ----------
@@ -105,13 +105,13 @@ BY_T1 = 0.50          # first arc duration (s)
 BY_T2 = 0.55          # second arc duration (s)
 BY_T3 = 0.30          # recenter forward (s)
 BY_T4 = 0.75          # continue straight after bypass (s)
-BY_SPEED = 15
+BY_SPEED = 14
 BY_MIN_AREA = 800     # px^2: ignore tiny blobs
 BY_COOLDOWN_S = 0.7   # ignore new triggers briefly after finishing
 # --- S-bypass steering (relative to center) ---
 BY_ANGLE_AWAY = 24   # deg from SERVO_CENTER for the 1st arc (away from obstacle)
 BY_ANGLE_BACK = 18   # deg from SERVO_CENTER for the 2nd arc (back toward lane)
-ARC_TRIGGER_DISTANCE = 30  # cm: Distance to trigger the arc logic
+ARC_TRIGGER_DISTANCE = 20  # cm: Distance to trigger the arc logic
 
 # ---------- Loop timing ----------
 LOOP_DELAY = 0.005            # Delay between main loop iterations (seconds) 0.02
