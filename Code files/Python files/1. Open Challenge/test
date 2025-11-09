@@ -1,7 +1,7 @@
 
 #-----------------------------------------------------------------------------------------------------------------------
-# 1st Mission WRO 2025 FE - VivaLaVida
-# Final Version
+# 1st&2nd Mission WRO 2025 FE - VivaLaVida
+# test
 #-----------------------------------------------------------------------------------------------------------------------
 
 # ===============================
@@ -111,6 +111,7 @@ BY_COOLDOWN_S = 0.7   # ignore new triggers briefly after finishing
 # --- S-bypass steering (relative to center) ---
 BY_ANGLE_AWAY = 24   # deg from SERVO_CENTER for the 1st arc (away from obstacle)
 BY_ANGLE_BACK = 18   # deg from SERVO_CENTER for the 2nd arc (back toward lane)
+ARC_TRIGGER_DISTANCE = 30  # cm: Distance to trigger the arc logic
 
 # ---------- Loop timing ----------
 LOOP_DELAY = 0.005            # Delay between main loop iterations (seconds) 0.02
@@ -437,6 +438,59 @@ def servo_from_offset(offset_deg: int) -> int:
     """Absolute servo angle from center + offset, clamped to limits."""
     return max(SERVO_MIN_ANGLE, min(SERVO_MAX_ANGLE, SERVO_CENTER + offset_deg))
 
+# New distance threshold to trigger arc behavior
+ARC_TRIGGER_DISTANCE = 30  # cm: Distance to trigger the arc logic
+
+def process_obstacle_position(red_data, green_data, img_width):
+    """
+    Determines the relative position of red and green obstacles and returns the action.
+    - red_data: Data about the red obstacle (x, y, width, height)
+    - green_data: Data about the green obstacle (x, y, width, height)
+    - img_width: Width of the camera image
+    Returns:
+        action (str): "drive_towards", "arc_left", or "arc_right"
+        avoid_color (str): "red" or "green"
+    """
+    action = None
+    avoid_color = None
+
+    # If red obstacle detected
+    if red_data is not None:
+        avoid_color = "red"
+        red_x_center = (red_data[1][0] + red_data[2][0]) // 2  # calculate center x of red obstacle
+        # Drive towards the red obstacle, regardless of its position (left or right)
+        action = "drive_towards"
+
+    # If green obstacle detected
+    elif green_data is not None:
+        avoid_color = "green"
+        green_x_center = (green_data[1][0] + green_data[2][0]) // 2  # calculate center x of green obstacle
+        # Drive towards the green obstacle, regardless of its position (left or right)
+        action = "drive_towards"
+
+    return action, avoid_color
+
+def control_steering(action, avoid_color, d_front):
+    """
+    Controls the robot's steering based on the desired action.
+    - action: "drive_towards", "arc_left", or "arc_right"
+    - avoid_color: the color of the detected obstacle ("red", "green")
+    - d_front: current distance to the obstacle in front
+    """
+    # Arc logic triggered when the robot gets close to the obstacle (distance threshold)
+    if d_front is not None and d_front < ARC_TRIGGER_DISTANCE:
+        if action == "drive_towards":
+            if avoid_color == "green":
+                # Green obstacle: perform arc to the left (turn left)
+                steer_angle = TURN_ANGLE_LEFT
+            elif avoid_color == "red":
+                # Red obstacle: perform arc to the right (turn right)
+                steer_angle = TURN_ANGLE_RIGHT
+    else:
+        # If no arc, continue driving straight
+        steer_angle = SERVO_CENTER
+
+    return steer_angle
 
 # ===============================
 # CONTROL FLAGS & STORAGE
@@ -767,8 +821,6 @@ def robot_loop():
     bypass_steer_back = SERVO_CENTER
     bypass_cooldown_until = 0.0
 
-
-
     while True:
         current_ns = time.monotonic_ns()
         dt = (current_ns - last_ns) * 1e-9   # seconds
@@ -808,11 +860,11 @@ def robot_loop():
         robot.d_front_left = d_front_left
         robot.d_front_right = d_front_right
 
-      # Camera: Capture image and process it
+        #Camera: Capture image and process it
         img = picam2.capture_array()
         imgHSV = cv2.cvtColor(img, cv2.COLOR_RGB2HSV)
 
-        # Create masks for red and green boxes
+        # Create masks for red and green obstacles
         mask_red = cv2.bitwise_or(cv2.inRange(imgHSV, RED1_LO, RED1_HI), cv2.inRange(imgHSV, RED2_LO, RED2_HI))
         mask_green = cv2.inRange(imgHSV, GREEN_LO, GREEN_HI)
 
@@ -837,6 +889,17 @@ def robot_loop():
 
         prev_red_seen = red_seen
         prev_green_seen = green_seen
+
+        # ----------------------------
+        # Process obstacle position and control steering
+        # ----------------------------
+        action, avoid_color = process_obstacle_position(red_data, green_data, img_width)
+
+        # Control steering based on the detected action
+        steer_angle = control_steering(action, avoid_color, d_front)
+
+        # Apply the steering angle to the robot's servo
+        robot.set_servo(steer_angle)
 
         # ---- Narrow corridor detector (sum of side distances) ----
         if not hasattr(robot_loop, "_narrow_mode"):
