@@ -510,31 +510,38 @@ class RobotController:
         return alpha * new_val + (1 - alpha) * prev_val    
 
     def filtered_distance(self, sensor_obj, history, smooth_attr, sensor_type='us'):
+        # Fallback to use when ToF is invalid or too far (use US side max, in cm)
+        TOF_FALLBACK_CM = US_MAX_DISTANCE_SIDE * 100.0  # 1.2 m -> 120 cm
         try:
             if sensor_type == 'tof':
                 with I2C_LOCK:
-                    raw_mm = sensor_obj.range            # VL53L0X returns mm
-                d = raw_mm / 10.0 if raw_mm is not None else None  # -> cm
-    
-                # if ToF reading is >= 8 m, REPORT 999 but don't pollute the filter ---
-                invalid_far = (d is not None and d >= 800.0)
-                if invalid_far:
-                    d = None  # treat as invalid for filtering/median
+                    raw_mm = sensor_obj.range  # VL53L0X returns mm
+                d = (raw_mm / 10.0) if raw_mm is not None else None  # -> cm
+                invalid_far = (d is None) or (d >= 800.0)            # ≥ 8 m or None
+                d_for_history = None if invalid_far else d           # keep filter clean
             else:
                 d = sensor_obj.distance * 100.0   # meters -> cm
                 invalid_far = False
+                d_for_history = d
         except:
             d = None
-            invalid_far = False
+            invalid_far = (sensor_type == 'tof')
+            d_for_history = None
     
-        history.append(d)
+        # Update history with valid values only (for stable median/EMA)
+        history.append(d_for_history)
         valid = [x for x in history if x is not None]
+    
+        # If ToF is invalid/too far, immediately report the side max distance (120 cm)
+        if sensor_type == 'tof' and invalid_far:
+            return TOF_FALLBACK_CM
+    
         if not valid:
-            return 999
+            # No valid history yet -> for ToF use side max, else keep your sentinel
+            return TOF_FALLBACK_CM if sensor_type == 'tof' else 999
     
         median_val = np.median(valid)
-        avg_val = np.mean(valid)
-        # filtered_val = 0.7 * median_val + 0.3 * avg_val
+        # avg_val = np.mean(valid)  # unused
         filtered_val = median_val
     
         prev_val = getattr(self, smooth_attr)
@@ -543,13 +550,8 @@ class RobotController:
         smoothed_val = self.stable_filter(filtered_val, prev_val, alpha, max_jump)
     
         setattr(self, smooth_attr, smoothed_val)
-    
-        # If this specific ToF read was >= 8 m, return 999 now (while keeping the smoother clean)
-        if sensor_type == 'tof' and invalid_far:
-            return 999
-    
         return smoothed_val
-        
+
     def safe_straight_control(self, d_left, d_right):
         # Treat 999/None as no data
         d_left  = None if (d_left  is None or d_left  >= 900) else d_left
