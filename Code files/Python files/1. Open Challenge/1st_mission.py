@@ -38,7 +38,7 @@ CONFIG_FILE = os.path.join(BASE_DIR, "1st_mission_variables.json")
 
 # ---------- Initialization ----------
 USE_GUI = 0                   # 1 = Debugging mode (run with GUI), 0 = COMPETITION MODE (run headless, no GUI)
-DEBUG = 1                     # 1 = enable prints, 0 = disable all prints
+DEBUG = 0                     # 1 = enable prints, 0 = disable all prints
 USE_TOF_SIDES = 0             # Side sensors:  0 = Ultrasonic, 1 = ToF
 USE_TOF_FRONT = 0             # Front sensor:  0 = Ultrasonic, 1 = ToF
 USE_TOF_CORNERS = 0           # Front side sensor: 0 = disable, 1 = enable
