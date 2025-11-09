@@ -513,30 +513,43 @@ class RobotController:
         try:
             if sensor_type == 'tof':
                 with I2C_LOCK:
-                    d = sensor_obj.range / 10.0   # mm -> cm
+                    raw_mm = sensor_obj.range            # VL53L0X returns mm
+                d = raw_mm / 10.0 if raw_mm is not None else None  # -> cm
+    
+                # if ToF reading is >= 8 m, REPORT 999 but don't pollute the filter ---
+                invalid_far = (d is not None and d >= 800.0)
+                if invalid_far:
+                    d = None  # treat as invalid for filtering/median
             else:
                 d = sensor_obj.distance * 100.0   # meters -> cm
+                invalid_far = False
         except:
             d = None
-
+            invalid_far = False
+    
         history.append(d)
         valid = [x for x in history if x is not None]
         if not valid:
             return 999
-     
+    
         median_val = np.median(valid)
         avg_val = np.mean(valid)
-        #filtered_val = 0.7 * median_val + 0.3 * avg_val
+        # filtered_val = 0.7 * median_val + 0.3 * avg_val
         filtered_val = median_val
-     
+    
         prev_val = getattr(self, smooth_attr)
         alpha = FILTER_ALPHA_TOF if sensor_type == 'tof' else FILTER_ALPHA
         max_jump = FILTER_JUMP_TOF if sensor_type == 'tof' else FILTER_JUMP
         smoothed_val = self.stable_filter(filtered_val, prev_val, alpha, max_jump)
-     
+    
         setattr(self, smooth_attr, smoothed_val)
+    
+        # If this specific ToF read was >= 8 m, return 999 now (while keeping the smoother clean)
+        if sensor_type == 'tof' and invalid_far:
+            return 999
+    
         return smoothed_val
-
+        
     def safe_straight_control(self, d_left, d_right):
         # Treat 999/None as no data
         d_left  = None if (d_left  is None or d_left  >= 900) else d_left
