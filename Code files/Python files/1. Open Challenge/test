@@ -382,12 +382,12 @@ GREEN_HI = np.array([95, 255, 255], dtype=np.uint8)
 def get_largest_contour(mask, min_area=500):
     contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
     if not contours:
-        return None
+        return None  # No contours found, return None
     c = max(contours, key=cv2.contourArea)
     if cv2.contourArea(c) < min_area:
-        return None
+        return None  # If area is too small, return None
     x, y, w, h = cv2.boundingRect(c)
-    return c, (x, y), (x + w, y + h), w * h
+    return c, (x, y), (x + w, y + h), w * h  # Return the contour, bounding box, and area
 
 def boxes_intersect(a, b):
     ax1, ay1, ax2, ay2 = a
@@ -850,31 +850,38 @@ def robot_loop():
         elif state == RobotState.CRUISE:
             status_text = "Driving (cruise)"
 
-
+            # Check for obstacle detection (red/green box)
             if red_seen or green_seen:
                 # If obstacle detected, switch to avoidance behavior
-                status_text = f"Avoiding {avoid_color} obstacle"
                 avoid_color = "Red" if red_seen else "Green"
                 avoid_direction = "right" if avoid_color == "Green" else "left"
                 avoid_start_time = current_time
-
+                status_text = f"Avoiding {avoid_color} obstacle"
+        
                 # Perform avoidance maneuver
                 elapsed = current_time - avoid_start_time
                 if elapsed < 1.0:
-                    # Reverse and steer away from obstacle
-                    steer = compute_servo_angle(avoid_color, red_data[3] if red_seen else green_data[3])
+                    # Reverse and steer away from obstacle (only if valid data is available)
+                    if red_seen and red_data is not None:
+                        steer = compute_servo_angle(avoid_color, red_data[3])  # area of the red box
+                    elif green_seen and green_data is not None:
+                        steer = compute_servo_angle(avoid_color, green_data[3])  # area of the green box
+                    else:
+                        steer = SERVO_CENTER  # Default to center if no valid obstacle detected
+        
                     robot.set_servo(steer)
                     robot.rotate_motor(-SPEED_CRUISE)
                 else:
                     # Move forward and center after avoidance
                     robot.rotate_motor(SPEED_CRUISE)
                     robot.set_servo(90)  # Center servo
-
+        
                 # Once the obstacle is cleared, return to cruise
                 if not any(boxes_intersect(car_box, b[2]) for b in [(red_data if red_seen else green_data)]):
                     status_text = "Obstacle avoided, resuming cruise"
                     continue  # Skip the rest of the loop and return to cruise
-       
+        
+            # Normal cruising logic if no obstacle is detected
             robot.set_state_speed(state.name)
             robot.set_servo(SERVO_CENTER)  # Keep the servo centered
 
