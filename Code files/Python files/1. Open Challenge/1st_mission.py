@@ -7,6 +7,19 @@
 # IMPORTS                       
 # ===============================
 
+
+import os, sys
+
+VENV_PY = "/home/stem/env/bin/python"  # exact path to Python in your venv
+
+if sys.executable != VENV_PY and os.path.exists(VENV_PY):
+    print(f"[INFO] Relaunching under virtual environment: {VENV_PY}", flush=True)
+    os.execv(VENV_PY, [VENV_PY] + sys.argv)
+
+# --- your normal robot code below ---
+print(f"[INFO] Now running inside: {sys.executable}")
+
+
 import threading
 import time
 from collections import deque
@@ -16,7 +29,7 @@ import adafruit_mpu6050
 import csv
 from datetime import datetime
 import json
-import os
+
 import board
 import digitalio
 import adafruit_vl53l0x
@@ -1588,11 +1601,17 @@ def stop_loop(): #Stop the robot loop and motor
 if __name__ == "__main__":
     print(f"Starting VivaLaVida Autonomous Drive - GUI mode: {USE_GUI}")
     
+    # Force headless if no display variable is present
+    if os.environ.get("DISPLAY", "") == "":
+        USE_GUI = 0
+
     if USE_GUI:
-        launch_gui()
-    else: # Start the sensor reading thread
-        #RED_LED.on()
-        #GREEN_LED.off()
+        started = launch_gui()
+        if not started:
+            print("⚠️ GUI not available. Falling back to headless.")
+            USE_GUI = 0
+
+    if not USE_GUI: # Start the sensor reading thread
         sensor_thread = threading.Thread(target=sensor_reader, daemon=True)
         sensor_thread.start()
         print("Headless mode: waiting for START button...")
