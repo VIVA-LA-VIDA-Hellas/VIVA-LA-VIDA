@@ -408,9 +408,6 @@ def boxes_intersect(a, b):
     bx1, by1, bx2, by2 = b
     return not (ax2 < bx1 or ax1 > bx2 or ay2 < by1 or ay1 > by2)
 
-def compute_servo_angle(avoid_color: str, box_area: int) -> int:
-    return TURN_ANGLE_RIGHT if avoid_color == "Red" else TURN_ANGLE_LEFT
-
 def bbox_of(contour_data):
     """
     Convert get_largest_contour(...) result to a (x1,y1,x2,y2) box.
@@ -438,83 +435,72 @@ def servo_from_offset(offset_deg: int) -> int:
     """Absolute servo angle from center + offset, clamped to limits."""
     return max(SERVO_MIN_ANGLE, min(SERVO_MAX_ANGLE, SERVO_CENTER + offset_deg))
 
-# New distance threshold to trigger arc behavior
-ARC_TRIGGER_DISTANCE = 30  # cm: Distance to trigger the arc logic
 
 def process_obstacle_position(red_data, green_data, img_width, d_front, d_left, d_right):
     """
-    Determines the relative position of red and green obstacles and returns the action.
-    - red_data: Data about the red obstacle (x, y, width, height)
-    - green_data: Data about the green obstacle (x, y, width, height)
-    - img_width: Width of the camera image
-    - d_front: Distance to the front obstacle
-    - d_left: Distance to the left side obstacle
-    - d_right: Distance to the right side obstacle
     Returns:
-        action (str): "drive_towards", "arc_left", "arc_right", or "back_up"
-        avoid_color (str): "red" or "green"
+        action: one of {"none","arc_left","arc_right","back_up"}
+        avoid_color: "red"|"green"|None
     """
-    action = None
+    action = "none"
     avoid_color = None
 
-    # If red obstacle detected
-    if red_data is not None:
-        avoid_color = "red"
-        red_x_center = (red_data[1][0] + red_data[2][0]) // 2  # calculate center x of red obstacle
-        if d_front < STOP_THRESHOLD:
-            # Too close to the red obstacle, back up
-            action = "back_up"
-        elif red_x_center < img_width // 3:
-            # Red obstacle too far to the left, need to back up and retry
-            action = "back_up"
-        else:
-            action = "drive_towards"  # Continue towards red obstacle
+    # Prefer the larger visible obstacle if both exist
+    cand = []
+    if red_data is not None:   cand.append(("red", red_data))
+    if green_data is not None: cand.append(("green", green_data))
+    if not cand:
+        return action, avoid_color
 
-    # If green obstacle detected
-    elif green_data is not None:
-        avoid_color = "green"
-        green_x_center = (green_data[1][0] + green_data[2][0]) // 2  # calculate center x of green obstacle
-        if d_front < STOP_THRESHOLD:
-            # Too close to the green obstacle, back up
-            action = "back_up"
-        elif green_x_center > 2 * img_width // 3:
-            # Green obstacle too far to the right, need to back up and retry
-            action = "back_up"
-        else:
-            action = "drive_towards"  # Continue towards green obstacle
+    # choose larger area
+    avoid_color, data = max(cand, key=lambda kv: kv[1][3])
+    (x1,y1), (x2,y2) = data[1], data[2]
+    cx = (x1 + x2) // 2
+
+    # proximity gates
+    if d_front is not None and d_front < STOP_THRESHOLD:
+        return "back_up", avoid_color
+
+    # Decide arc direction
+    if avoid_color == "red":
+        # keep obstacle to your left → arc right
+        # also if obstacle center is left 1/3, it's already on left, arc right is consistent
+        action = "arc_right"
+    else:  # green
+        # keep obstacle to your right → arc left
+        action = "arc_left"
 
     return action, avoid_color
 
-def control_steering(action, avoid_color, d_front, d_left, d_right):
+
+def control_steering(action, avoid_color, d_front, d_left=None, d_right=None):
     """
-    Controls the robot's steering based on the desired action.
-    - action: "drive_towards", "arc_left", "arc_right", or "back_up"
-    - avoid_color: the color of the detected obstacle ("red", "green")
-    - d_front: current distance to the obstacle in front
-    - d_left: current distance to the left side
-    - d_right: current distance to the right side
+    Translate intent into a non-blocking command dict the FSM can consume.
+    Returns a dict, e.g.:
+      {
+        "steer_offset_deg": int (relative to SERVO_CENTER; positive = right),
+        "request_reverse": bool,
+        "hold_seconds": float (suggested pause window if reverse)
+      }
     """
+    cmd = {"steer_offset_deg": 0, "request_reverse": False, "hold_seconds": 0.0}
+
     if action == "back_up":
-        # If the action is to back up, drive backward for a short time (e.g., 0.5 seconds)
-        robot.rotate_motor(-SPEED_CRUISE)  # Reverse the robot at cruising speed
-        time.sleep(0.5)  # Move backward for 0.5 seconds
-        robot.rotate_motor(0)  # Stop the motors after moving backward
-        return SERVO_CENTER  # Keep the steering centered during backup
+        cmd["request_reverse"] = True
+        cmd["hold_seconds"] = 0.5
+        return cmd
 
-    # Arc logic triggered when the robot gets close to the obstacle (distance threshold)
-    if d_front is not None and d_front < ARC_TRIGGER_DISTANCE:
-        if action == "drive_towards":
-            if avoid_color == "green":
-                # Green obstacle: perform arc to the left (turn left)
-                steer_angle = TURN_ANGLE_LEFT
-            elif avoid_color == "red":
-                # Red obstacle: perform arc to the right (turn right)
-                steer_angle = TURN_ANGLE_RIGHT
-    else:
-        # If no arc, continue driving straight
-        steer_angle = SERVO_CENTER
+    # If close to obstacle, apply stronger arc; otherwise mild bias
+    near = (d_front is not None and d_front < ARC_TRIGGER_DISTANCE)
+    strong = 20 if near else 8
 
-    return steer_angle
+    if action == "arc_left":
+        cmd["steer_offset_deg"] = -strong   # left is negative
+    elif action == "arc_right":
+        cmd["steer_offset_deg"] = +strong
+
+    return cmd
+
 
 # ===============================
 # CONTROL FLAGS & STORAGE
@@ -884,35 +870,47 @@ def robot_loop():
         robot.d_front_left = d_front_left
         robot.d_front_right = d_front_right
 
-        #Camera: Capture image and process it
-        img = picam2.capture_array()
+        # --- Camera frame + masks ---
+        img = picam2.capture_array()                     # RGB from Picamera2
         imgHSV = cv2.cvtColor(img, cv2.COLOR_RGB2HSV)
-
-        # Create masks for red and green obstacles
-        mask_red = cv2.bitwise_or(cv2.inRange(imgHSV, RED1_LO, RED1_HI), cv2.inRange(imgHSV, RED2_LO, RED2_HI))
+        mask_red = cv2.bitwise_or(
+            cv2.inRange(imgHSV, RED1_LO, RED1_HI),
+            cv2.inRange(imgHSV, RED2_LO, RED2_HI)
+        )
         mask_green = cv2.inRange(imgHSV, GREEN_LO, GREEN_HI)
-
+        
         red_data = get_largest_contour(mask_red)
         green_data = get_largest_contour(mask_green)
-
-        # Determine if red or green box is detected
+        
+        # Edge prints
         red_seen = red_data is not None
         green_seen = green_data is not None
-
         if red_seen and not prev_red_seen:
-            area = red_data[3] if red_data else 0
-            dprint(f"🟥 Red obstacle DETECTED (area={area}) → steer right")
+            dprint(f"🟥 Red obstacle DETECTED (area={red_data[3]}) → prefer right")
         elif not red_seen and prev_red_seen:
             dprint("🟥 Red obstacle LOST")
-
         if green_seen and not prev_green_seen:
-            area = green_data[3] if green_data else 0
-            dprint(f"🟩 Green obstacle DETECTED (area={area}) → steer left")
+            dprint(f"🟩 Green obstacle DETECTED (area={green_data[3]}) → prefer left")
         elif not green_seen and prev_green_seen:
             dprint("🟩 Green obstacle LOST")
-
         prev_red_seen = red_seen
         prev_green_seen = green_seen
+        
+        # Compute image width
+        img_h, img_w = img.shape[:2]
+        
+        # Decide *intent* (no motor/servo writes here)
+        action, avoid_color = process_obstacle_position(
+            red_data, green_data, img_w, robot.d_front, robot.d_left, robot.d_right
+        )
+        
+        # Turn that intent into a *non-blocking* steering offset / request
+        steer_cmd = control_steering(
+            action, avoid_color, robot.d_front, robot.d_left, robot.d_right
+        )
+        
+        # NOTE: do NOT call robot.set_servo() here; let the FSM use steer_cmd later.
+
 
         # ----------------------------
         # Process obstacle position and control steering
@@ -1108,13 +1106,30 @@ def robot_loop():
             # Normal cruise servo control
             # Safe straight control active only after the 1st turn
             # -------------------------------
+            # --- Desired servo from wall-following (after first turn) ---
             if turn_count >= 1:
-                desired_servo_angle = robot.safe_straight_control(robot.d_left, robot.d_right)
+                wf_angle = robot.safe_straight_control(robot.d_left, robot.d_right) - SERVO_CENTER
             else:
-                desired_servo_angle = SERVO_CENTER
+                wf_angle = 0
             
-            robot.set_servo(desired_servo_angle)
-            robot.set_state_speed(state.name)        
+            # --- Add vision bias (from steer_cmd), clamp to limits, write once ---
+            vision_bias = 0
+            if 'steer_cmd' in locals() and steer_cmd:
+                vision_bias = steer_cmd.get("steer_offset_deg", 0)
+            
+            offset = wf_angle + vision_bias
+            desired = max(SERVO_MIN_ANGLE, min(SERVO_MAX_ANGLE, SERVO_CENTER + int(offset)))
+            robot.set_servo(desired)
+            robot.set_state_speed(state.name)
+            
+            # If vision asked for a brief reverse, do it *non-blocking* via STOPPED path
+            if steer_cmd and steer_cmd.get("request_reverse", False):
+                robot.rotate_motor(-SPEED_CRUISE)
+                obstacle_wait_deadline = current_time + steer_cmd.get("hold_seconds", 0.5)
+                stop_reason = "OBSTACLE"
+                state = RobotState.STOPPED
+                continue
+     
 
         elif state == RobotState.TURN_INIT:
             # Stay slow and keep wheels mostly straight while we wait for a side to open.
@@ -1341,11 +1356,15 @@ def launch_gui(): #Initialize Tkinter GUI, matplotlib plots, sliders, and status
         red_data = get_largest_contour(mask_red)
         green_data = get_largest_contour(mask_green)
     
-        # Draw bounding boxes around obstacles if detected
+        # img is RGB already; draw using RGB tuples and DO NOT convert BGR→RGB after
         if red_data is not None and red_data[3] >= BY_MIN_AREA:
-            cv2.rectangle(img, red_data[1], red_data[2], (0, 0, 255), 2)  # Red box
+            cv2.rectangle(img, red_data[1], red_data[2], (255, 0, 0), 2)  # red in RGB
         if green_data is not None and green_data[3] >= BY_MIN_AREA:
-            cv2.rectangle(img, green_data[1], green_data[2], (0, 255, 0), 2)  # Green box
+            cv2.rectangle(img, green_data[1], green_data[2], (0, 255, 0), 2)
+
+# No extra color swap needed:
+photo = ImageTk.PhotoImage(image=Image.fromarray(img))
+
     
         # Convert the image to RGB format (from BGR) for Tkinter compatibility
         img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
