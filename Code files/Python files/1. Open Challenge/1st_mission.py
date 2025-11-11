@@ -232,6 +232,8 @@ i2c = busio.I2C(board.SCL, board.SDA)
 START_BTN = Button(20, pull_up=True, bounce_time=0.03)
 GREEN_LED = LED(19)
 RED_LED   = LED(13)
+# ✅ Turn RED on as soon as the program starts
+RED_LED.on()
 
 # ---------- Ultrasonic sensor pins ----------
 TRIG_FRONT, ECHO_FRONT = 22, 23  # GPIO pins for front sensor
