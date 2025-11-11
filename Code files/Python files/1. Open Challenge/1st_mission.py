@@ -1627,6 +1627,10 @@ if __name__ == "__main__":
             readings_event.set() #readings_flag = True
             GREEN_LED.blink(on_time=0.1, off_time=0.1, background=True)
             RED_LED.off() 
+
+            while START_BTN.is_pressed:
+                time.sleep(0.01)
+            time.sleep(BTN_DEBOUNCE_S)  # use existing debounce constant
             
             #time.sleep(2)  # wait 2 seconds before starting loop
             #loop_event.set() #loop_flag = True
@@ -1640,8 +1644,9 @@ if __name__ == "__main__":
                 if all(v is not None and v != 999 for v in (f, l, r)):
                     break
                 sensor_tick.set()          # nudge the sensor thread
-                time.sleep(0.05)
-            
+                time.sleep(0.5)
+                
+            time.sleep(1.5)
             loop_event.set()
 
             GREEN_LED.on()  # running
