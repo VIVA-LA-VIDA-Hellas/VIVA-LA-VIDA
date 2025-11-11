@@ -1625,8 +1625,23 @@ if __name__ == "__main__":
             readings_event.set() #readings_flag = True
             GREEN_LED.blink(on_time=0.1, off_time=0.1, background=True)
             RED_LED.off() 
-            time.sleep(2)  # wait 2 seconds before starting loop
-            loop_event.set() #loop_flag = True
+            
+            #time.sleep(2)  # wait 2 seconds before starting loop
+            #loop_event.set() #loop_flag = True
+            # Warm-up: wait (max 2s) until front/left/right have at least one usable value
+            deadline = time.time() + 2.0
+            while time.time() < deadline:
+                with sensor_lock:
+                    f = sensor_data["front"]
+                    l = sensor_data["left"]
+                    r = sensor_data["right"]
+                if all(v is not None and v != 999 for v in (f, l, r)):
+                    break
+                sensor_tick.set()          # nudge the sensor thread
+                time.sleep(0.05)
+            
+            loop_event.set()
+
             GREEN_LED.on()  # running
             print("Starting main robot loop...")
             robot_loop() # Start robot loop in this thread (blocking)
