@@ -1,48 +1,27 @@
-INSTRUCTIONS - HOW TO ASSEMBLE THE MECHANICAL PARTS FROM SCRATCH!!!
+# INSTRUCTIONS - HOW TO ASSEMBLE THE 3D PRINTED MECHANICAL PARTS FROM SCRATCH
 
-
-It is quite remarkable to think that we can now construct a fully functional model car entirely from 3D-printed components
-an intricate machine designed not merely for display, but to perform two carefully defined missions with precision and reliability.
-What might first appear as a complex engineering task soon reveals itself to be an engaging and almost meditative process:
-assembling each meticulously printed part, aligning the structure, and witnessing how digital design transforms into mechanical reality.
-The beauty of 3D printing lies not only in its accuracy
-but in its capacity to bring conceptual design into tangible form, translating digital blueprints into perfectly fitted mechanical elements.
-As the car takes form, the experience becomes more than technical
-it is a thoughtful exercise in creativity and focus, a fusion of innovation and craftsmanship that culminates in a model built with purpose, precision, and intent.
-
-
-LET'S DO FIRST AN "HISTORICAL" REVIEW
+## OVERVIEW
 
   How were the 3D-printed parts designed?
   What tools are needed for the process? 
-  How is the car assembled step by step?
-
-THESE ARE SOME LOGICAL QUESTIONS THAT SOMEONE MIGHT HAVE
+  How can the car be assembled step by step?
 
 
--------------------------------------------------------------
+## DESIGN OF 3D PARTS
 
+All the 3D-printed components of the car were designed using Fusion 360, a powerful software that allows us precise modeling of every detail.
 
-DESIGN OF 3D PARTS
-
-All the 3D-printed components of the car were designed using Fusion 360, a powerful software that allowed precise modeling of every detail.
-
-
-
-[photo1]
-
+<img width="1917" height="958" alt="photo1" src="https://github.com/user-attachments/assets/570c3af9-7e92-44c4-8037-44911cb5193e" />
 
 
 Throughout the development process, each part was refined repeatedly, with multiple design
 iterations made to enhance efficiency, performance, and overall assembly compatibility.
 This continuous cycle of testing and improvement ensured that every printed element met
-the project’s functional requirements while maintaining structural accuracy and aesthetic quality.
+the project’s functional requirements while maintaining structural integrity.
 
-In the following photo you can see the whole progress of making a certain part of the car (motorbase) while also the differnce between each stage of the progress
+In the following photo you can see an overview of the creation process of the motorbase throughout our versioning.
 
-
-
-[photo2]
+<img width="431" height="502" alt="photo2" src="https://github.com/user-attachments/assets/34fea13b-383f-4624-b2b4-0c4daf70933e" />
 
 
 
@@ -52,9 +31,9 @@ These refinements not only reduced material waste and printing time but also ens
 Through this iterative process, the design evolved from a basic concept into a well-optimized model capable of delivering consistent and accurate results.
 
 
-
-[photo3,4,5]
-
+<img width="370" height="239" alt="photo5" src="https://github.com/user-attachments/assets/d32c25f0-21c5-42a9-82b7-13cd5a66ac14" />
+<img width="300" height="200" alt="photo4" src="https://github.com/user-attachments/assets/122b611f-95aa-4a98-8507-a539936a4af4" />
+<img width="270" height="207" alt="photo3" src="https://github.com/user-attachments/assets/d2589448-64c7-4384-961d-4b3999e8e9f4" />
 
 
 After a series of careful modifications and refinements, the final model demonstrates an optimal balance between design accuracy and functional performance.
@@ -62,19 +41,16 @@ Each individual change, however small, contributed to a more efficient structure
 The result is a precisely engineered model car that fulfills its intended missions with reliability and efficiency, reflecting the success of a thoughtful and well-executed design process.
 
 
-
----------------------------------------------------------
-
-
-
-
-TOOLS AND EQUIPEMENT
+## TOOLS AND EQUIPEMENT
 
 
 Using 3D printers to produce the car’s components was a logical and efficient choice, given the need for precision, customization, and consistency across all parts.
+It also helps us by eliminating the need for expensive replacements in the scenario of a broken part, since we can easily print a replica at a fraction of the cost.
 Additive manufacturing allowed each piece to be fabricated directly from the digital design, ensuring exact dimensions and reducing the possibility of human error.
-This method also made it possible to create complex geometries that would be difficult to achieve through traditional manufacturing,
-while maintaining full control over material usage and production time.
+This method also made it possible to create complex geometries that would be difficult to achieve through traditional manufacturing, while maintaining full control over material usage and production time.
+
+> **Note**
+> 
 The printers primarily used for this project were the Prusa i3 MK3S and the Prusa Mini, both known for their reliability, accuracy, and high-quality output.
 
 
