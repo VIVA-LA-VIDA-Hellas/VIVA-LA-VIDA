@@ -2,20 +2,22 @@
 
 ### Team photo
 
-![team 1](https://github.com/user-attachments/assets/a7775dac-e87c-41ef-a1ae-0edff288db7d)
+![team 1](https://github.com/user-attachments/assets/5cf50291-97a6-45b4-8136-48c8626af3d9)
+
 ### $${\color{blue}In \space order \space of \space Appearance}$$
 - Nikol Vasilopoulou (Programmer)
 - Panagiotis Mourmouris (3D prints and mechanical)
 - Giannis Charitoudis (Coach)
 - Thanos Karatsis (Electrical)
-- 
+
 ![Team 2](https://github.com/user-attachments/assets/d6d3b715-6a05-45c9-90cc-1c6ca400d981)
 
 
 
 ### Shirt photo
 
-![shirts back](https://github.com/user-attachments/assets/855ecb15-4fe3-469f-8901-6f762163157f)
+![shirts back](https://github.com/user-attachments/assets/651d125b-9b74-455f-ad10-44ef8a5af30d)
+
 
 ### Silly photos
 
