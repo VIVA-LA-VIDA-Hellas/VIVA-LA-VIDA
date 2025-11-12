@@ -58,11 +58,18 @@ This method also made it possible to create complex geometries that would be dif
 
 To assemble the individual 3D-printed components, a combination of **screws** and **nuts** was used to ensure durable and stable connections between parts.
 The assembly required the use of various hand tools, including
+>
 > Precision screwdrivers
+>
 > Allen keys
+>
 > Small wrenches
+>
 > Pliers
+>
 > Rulers, Measuring tapes and other measuring tools
+
+
 which allowed for accurate alignment and secure fastening without damaging the printed surfaces.
 This method provided both strength and flexibility, enabling easy disassembly for maintenance or adjustments when needed.
 Additionally, a few small modular elements (LEGO Components) were incorporated into certain sections,
@@ -82,17 +89,12 @@ providing flexibility and resilience that complemented the precision of the prin
 
 [photo 9,10]
 
-$${\color{green}INSTRUCTIONS}$$	              
-INSTRUCTIONS
+# $${\color{green}INSTRUCTIONS}$$	    
+
+## $${\color{lightgreen}How to succesfully replicate our robots 3d printed compartments}$$
 
 
-You’re about to assemble your own 3D printed model car - a sleek, precision-designed miniature vehicle that’s ready for you to bring to life.
-All the design and printing work has already been completed, so your task is focused on the fun part: putting the pieces together.
-With a few basic tools and some careful attention, you’ll be able to assemble the car step by step without any complex measuring or modifications.
-Each part has been engineered to fit precisely, making the build process simple, enjoyable, and rewarding.
-
-
-Step 1: Prepare Your 3D Printing Software
+## Step 1: Prepare Your 3D Printing Software
 
 Download PrusaSlicer or another 3D printer software of your choice, then upload each model file individually.
 
