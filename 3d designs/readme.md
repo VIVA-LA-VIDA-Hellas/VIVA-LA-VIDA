@@ -53,27 +53,27 @@ This method also made it possible to create complex geometries that would be dif
 > The printers primarily used for this project were the Prusa i3 MK3S and the Prusa Mini, both known for their reliability, accuracy, and high-quality output.
 
 
-
-
 [photo6,7]
 
 
-
-To assemble the individual 3D-printed components, a combination of screws and nuts was used to ensure durable and stable connections between parts.
-The assembly required the use of various hand tools, including precision screwdrivers, Allen keys, small wrenches, and pliers,
+To assemble the individual 3D-printed components, a combination of **screws** and **nuts** was used to ensure durable and stable connections between parts.
+The assembly required the use of various hand tools, including
+> Precision screwdrivers
+> Allen keys
+> Small wrenches
+> Pliers
+> Rulers, Measuring tapes and other measuring tools
 which allowed for accurate alignment and secure fastening without damaging the printed surfaces.
 This method provided both strength and flexibility, enabling easy disassembly for maintenance or adjustments when needed.
 Additionally, a few small modular elements (LEGO Components) were incorporated into certain sections,
 adding an extra layer of versatility and precision to the overall construction.
 
 
-
 [photo 8]
 
 
-
 In addition to the main 3D-printed and mechanical components, several secondary materials 
-such as rubber bands and small springs were incorporated to enhance the car’s overall stability and efficiency.
+such as **rubber bands** and **small springs** were incorporated to enhance the car’s overall stability and efficiency.
 These elements played a crucial role in absorbing vibrations, maintaining tension where needed, and ensuring smoother movement during operation.
 Though simple in nature, these materials contributed significantly to the model’s performance,
 providing flexibility and resilience that complemented the precision of the printed and assembled parts.
@@ -82,20 +82,8 @@ providing flexibility and resilience that complemented the precision of the prin
 
 [photo 9,10]
 
-
-
-
-------------------------------------------------------------------------------
-
-
-
-
+$${\color{green}INSTRUCTIONS}$$	              
 INSTRUCTIONS
-
-
-
-
-------------------------------------------------------------------------------
 
 
 You’re about to assemble your own 3D printed model car - a sleek, precision-designed miniature vehicle that’s ready for you to bring to life.
