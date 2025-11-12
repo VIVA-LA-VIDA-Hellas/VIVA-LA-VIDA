@@ -52,8 +52,7 @@ This method also made it possible to create complex geometries that would be dif
 > [!NOTE]
 > The printers primarily used for this project were the Prusa i3 MK3S and the Prusa Mini, both known for their reliability, accuracy, and high-quality output.
 
-
-[photo6,7]
+![6,7](https://github.com/user-attachments/assets/82c66e65-4464-43de-813e-fe120ce2afeb)
 
 
 To assemble the individual 3D-printed components, a combination of **screws** and **nuts** was used to ensure durable and stable connections between parts.
@@ -75,8 +74,7 @@ This method provided both strength and flexibility, enabling easy disassembly fo
 Additionally, a few small modular elements (LEGO Components) were incorporated into certain sections,
 adding an extra layer of versatility and precision to the overall construction.
 
-
-[photo 8]
+![8](https://github.com/user-attachments/assets/28e4670d-07ab-47a2-846b-e90243c5e9fa)
 
 
 In addition to the main 3D-printed and mechanical components, several secondary materials 
@@ -85,9 +83,9 @@ These elements played a crucial role in absorbing vibrations, maintaining tensio
 Though simple in nature, these materials contributed significantly to the model’s performance,
 providing flexibility and resilience that complemented the precision of the printed and assembled parts.
 
+![9](https://github.com/user-attachments/assets/cd887663-d230-45d2-af5f-6ba3997c45f6)
+![10](https://github.com/user-attachments/assets/ff2a1154-974f-4ee2-beb6-dff12f4873e3)
 
-
-[photo 9,10]
 
 # $${\color{green}INSTRUCTIONS}$$	    
 
@@ -107,9 +105,6 @@ Simply open the software, import each part file one at a time, and make sure all
 > You can find all the files you need to replicate our robot in the [3d schematics](https://github.com/VIVA-LA-VIDA-Hellas/VIVA-LA-VIDA/tree/main/3d%20designs/3d%20schematics) folder
 
 
-[photo 11,12]
-
-
 ## Step 2: Locate and Prepare the Model Files for Printing
 
 Open the provided folder and upload each part file into your slicer software. Some parts need to be printed multiple times.
@@ -125,13 +120,8 @@ Make sure to print the correct quantities for each component as listed below:
 - [ ] 1× Motor Gear
 - [ ] 3× Time of Flight (ToF) Sensor Bases
 
-
-[photo 13]
-
-
 Double-check that all parts are correctly oriented and fit within your printer’s build volume.
 Once everything looks ready, you can proceed to slicing and printing each part according to your printer’s material and settings.
-
 
 ## Step 3: Construct the Differential System
 
