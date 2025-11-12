@@ -91,7 +91,7 @@ providing flexibility and resilience that complemented the precision of the prin
 
 # $${\color{green}INSTRUCTIONS}$$	    
 
-## $${\color{lightgreen}How to succesfully replicate our robots 3d printed compartments}$$
+## $${\color{lightgreen}How/space to/space succesfully/space replicate/space our/space robots/space 3d /spaceprinted /spacecompartments}$$
 
 
 ## Step 1: Prepare Your 3D Printing Software
