@@ -49,9 +49,9 @@ It also helps us by eliminating the need for expensive replacements in the scena
 Additive manufacturing allowed each piece to be fabricated directly from the digital design, ensuring exact dimensions and reducing the possibility of human error.
 This method also made it possible to create complex geometries that would be difficult to achieve through traditional manufacturing, while maintaining full control over material usage and production time.
 
-> **Note**
-> 
-The printers primarily used for this project were the Prusa i3 MK3S and the Prusa Mini, both known for their reliability, accuracy, and high-quality output.
+> [!NOTE]
+> The printers primarily used for this project were the Prusa i3 MK3S and the Prusa Mini, both known for their reliability, accuracy, and high-quality output.
+
 
 
 
