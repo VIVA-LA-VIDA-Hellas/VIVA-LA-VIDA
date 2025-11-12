@@ -313,7 +313,7 @@ Using the above logic combined with an IMU for turning, we managed to make our [
 
 This straight-forward logic was ready to be implemented in the trials for the **second mission.**
 
-# First mission - Final proframm description
+# First mission - Final programm description
 <a id="top"></a>
 
 <!-- TOC -->
