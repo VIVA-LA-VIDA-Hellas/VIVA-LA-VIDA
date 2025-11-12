@@ -91,45 +91,39 @@ providing flexibility and resilience that complemented the precision of the prin
 
 # $${\color{green}INSTRUCTIONS}$$	    
 
-## $${\color{lightgreen}How/space to/space succesfully/space replicate/space our/space robots/space 3d /spaceprinted /spacecompartments}$$
+## $${\color{lightgreen}How \space to \space succesfully \space replicate \space our \space robots \space 3d \space printed \space compartments}$$
 
 
 ## Step 1: Prepare Your 3D Printing Software
 
-Download PrusaSlicer or another 3D printer software of your choice, then upload each model file individually.
-
+Download [**PrusaSlicer**](https://prusaslicer.net/) or another 3D printer software of your choice, then upload each model file individually.
+[Click here for installation help](https://help.prusa3d.com/article/install-prusaslicer_1903)
 
 Before assembly begins, you’ll need to prepare your parts for printing
 PrusaSlicer is a reliable and easy-to-use program that allows you to view, adjust, and slice your 3D files for printing.
 Simply open the software, import each part file one at a time, and make sure all components are correctly oriented and ready for your specific printer setup.
-Once uploaded, you can check print settings such as scale, infill, and support structures if necessary.
-This step ensures that all your car parts will print accurately and fit together perfectly during assembly.
 
-
+> [!TIP]
+> You can find all the files you need to replicate our robot in the [3d schematics](https://github.com/VIVA-LA-VIDA-Hellas/VIVA-LA-VIDA/tree/main/3d%20designs/3d%20schematics) folder
 
 
 [photo 11,12]
 
 
-
-
-Step 2: Locate and Prepare the Model Files for Printing
+## Step 2: Locate and Prepare the Model Files for Printing
 
 Open the provided folder and upload each part file into your slicer software. Some parts need to be printed multiple times.
 
-
-You will recieve a folder containing the 3d files for the car.
-Inside the folder you received, you’ll find all the 3D model files required to build your car.
 Each file has been carefully designed and tested for compatibility, so you won’t need to make any modifications.
-Simply open your slicer program (such as PrusaSlicer) and load the files one by one.
+Simply open your slicer program and load the files one by one.
 Make sure to print the correct quantities for each component as listed below:
 
-1× Chassis
-1× Camera Base
-1× Servo Base
-3× Distance Sensor Bases
-1× Motor Gear
-3× Time of Flight (ToF) Sensor Bases
+- [ ] 1× Chassis
+- [ ] 1× Camera Base
+- [ ] 1× Servo Base
+- [ ] 3× Distance Sensor Bases
+- [ ] 1× Motor Gear
+- [ ] 3× Time of Flight (ToF) Sensor Bases
 
 
 [photo 13]
@@ -139,14 +133,11 @@ Double-check that all parts are correctly oriented and fit within your printer�
 Once everything looks ready, you can proceed to slicing and printing each part according to your printer’s material and settings.
 
 
+## Step 3: Construct the Differential System
+
+Assemble the differential system using the **motor base, DC motor, motor gear**, and several **LEGO parts**, along with **tie-ups** and **screw**s to secure everything in place.
 
 
-
-Step 3: Construct the Differential System
-
-Assemble the differential system using the motor base, DC motor, motor gear, and several LEGO parts, along with tie-ups and screws to secure everything in place.
-
-.....need info.....
 
 
 
