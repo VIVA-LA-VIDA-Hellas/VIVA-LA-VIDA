@@ -1,6 +1,7 @@
 ## Photos of our robot
 
 $${\color{white}Front}$$
+
 ![front](https://github.com/user-attachments/assets/591d3e34-1546-439d-a79d-c7d343ed4cac)
 
 $${\color{white}Right}$$
