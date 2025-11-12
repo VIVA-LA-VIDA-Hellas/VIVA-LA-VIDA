@@ -449,24 +449,6 @@ All GUI slider changes can be saved and reloaded.
 
 ---
 
-## Mission Path Diagram <a id="mission-path-diagram"></a>
-```
-+----------------------------------------+
-|                                        |
-|   ←──────────── Lap 1 ────────────→    |
-|   |                               |    |
-|   |        +-----------+          |    |
-|   |        |  Center   |          |    |
-|   |        |  Obstacle |          |    |
-|   |        +-----------+          |    |
-|   |                               |    |
-|   ←──────────── Lap 2 ────────────→    |
-|                                        |
-+----------------------------------------+
-```
-
----
-
 ## Run Modes <a id="run-modes"></a>
 - **Debugging (GUI) Mode:**
   Set `USE_GUI = 1` and press Start Readings & Start Loop button.
