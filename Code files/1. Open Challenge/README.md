@@ -1,4 +1,4 @@
-# 🤖 VivaLaVida Autonomous Drive – WRO 2025 (1st Mission)
+# First mission - Final proframm description
 <a id="top"></a>
 
 <!-- TOC -->
@@ -12,16 +12,13 @@
 - [Mission Path Diagram](#mission-path-diagram)
 <!-- /TOC -->
 
-## 🧠 Project Overview <a id="project-overview"></a>
-This repository contains the control software for the **VivaLaVida** team’s autonomous robot competing in the **WRO 2025 Future Engineers** category. The robot performs the **1st Mission**: navigating a 3×3 m arena with a central obstacle area, completing three laps while avoiding collisions and adapting to dynamic wall configurations.
-
 The program runs on a **Raspberry Pi** and offers two operation modes:
 - **GUI Mode (Debug):** Visual interface with real-time plots and tuning sliders.
 - **Headless Mode (Competition):** Fully autonomous execution via physical start button.
 
 ---
 
-## 🚗 Core Functionality <a id="core-functionality"></a>
+## Core Functionality <a id="core-functionality"></a>
 - **Autonomous Navigation:**
   - Follows walls using ToF (VL53L0X) or Ultrasonic sensors.
   - Performs left/right turns based on open-space detection and front thresholds.
@@ -49,7 +46,7 @@ The program runs on a **Raspberry Pi** and offers two operation modes:
 
 ---
 
-## 🧩 Control Logic (high level) <a id="control-logic-high-level"></a>
+## Control Logic (high level) <a id="control-logic-high-level"></a>
 - **CRUISE:** Straight motion; after 1st turn, apply timed wall-following corrections if side distance < soft margin.
 - **TURN_INIT:** When `front < FRONT_TURN_TRIGGER` and lockout OK; keep straight (or gentle correction after 1st turn) while waiting for **exactly one** open side. Apply optional **direction lock** after the first decision.
 - **TURNING:** Set servo to the commanded (left/right) angle; integrate gyro Z and **stop when target yaw** is reached within tolerance. Guards: timeout and max yaw.
@@ -60,7 +57,7 @@ The program runs on a **Raspberry Pi** and offers two operation modes:
 
 ---
 
-## 🚀 Code Structure <a id="code-structure"></a>
+## Code Structure <a id="code-structure"></a>
 
 1. Imports
     - External Libraries
@@ -88,7 +85,7 @@ The program runs on a **Raspberry Pi** and offers two operation modes:
       
 ---
 
-## ⚙️ Hardware Setup <a id="hardware-setup"></a>
+## Hardware Setup <a id="hardware-setup"></a>
 | Component | Function |
 |------------|-----------|
 | Raspberry Pi | Core computing unit |
@@ -101,13 +98,13 @@ The program runs on a **Raspberry Pi** and offers two operation modes:
 
 ---
 
-## 📊 Configuration <a id="configuration"></a>
+## Configuration <a id="configuration"></a>
 Configuration values are defined in code but can be overridden using `1st_mission_variables.json`.
 All GUI slider changes can be saved and reloaded.
 
 ---
 
-## 🧱 System Architecture Diagram <a id="system-architecture-diagram"></a>
+## System Architecture Diagram <a id="system-architecture-diagram"></a>
 ```text
  ┌──────────────────────────────────────────┐
  │             SENSOR THREAD                │
@@ -135,34 +132,10 @@ All GUI slider changes can be saved and reloaded.
  └──────────────────────────────────────────┘
 ```
 
----
-
-## 📈 Mission Path Diagram <a id="mission-path-diagram"></a>
-```
-+----------------------------------------+
-|                                        |
-|   ←──────────── Lap 1 ────────────→    |
-|   |                               |    |
-|   |        +-----------+          |    |
-|   |        |  Center   |          |    |
-|   |        |  Obstacle |          |    |
-|   |        +-----------+          |    |
-|   |                               |    |
-|   ←──────────── Lap 2 ────────────→    |
-|                                        |
-+----------------------------------------+
-```
-
----
-
-## 🏁 Run Modes <a id="run-modes"></a>
+## Run Modes <a id="run-modes"></a>
 - **Debugging (GUI) Mode:**
   Set `USE_GUI = 1` and press Start Readings & Start Loop button.
 - **Competition (Headless) Mode:**
   Set `USE_GUI = 0` and press the hardware start button.
 
 ---
-
-## 👨‍💻 Authors <a id="authors"></a>
-**Team VivaLaVida** – WRO 2025 Future Engineers Project  
-Developed by the VivaLaVida Robotics Team.
