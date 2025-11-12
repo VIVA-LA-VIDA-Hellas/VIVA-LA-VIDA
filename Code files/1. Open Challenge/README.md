@@ -1,4 +1,4 @@
-# First mission - Final proframm description
+# First mission - Final programm description
 <a id="top"></a>
 
 <!-- TOC -->
