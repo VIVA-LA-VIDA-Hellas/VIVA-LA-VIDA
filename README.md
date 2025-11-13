@@ -1,4 +1,5 @@
-# **VIVA ΛA VIΔA** - $${\color{green}FUTURE \space ENGINEERS \space 2025}$$ 
+# **VIVA ΛA VIΔA** 
+# $${\color{green}FUTURE \space ENGINEERS \space 2025}$$ 
 ## <sup> *HELLENIC TEAM* </sup>
 
 ![viva la vida gif](https://github.com/user-attachments/assets/36726f9d-255d-4eb8-8d0d-65e10dfdeb90)
