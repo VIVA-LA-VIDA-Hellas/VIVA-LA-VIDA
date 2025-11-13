@@ -85,11 +85,11 @@
 Using python and opencv we created a program that detects red and green objects and outputs what the computer sees in the prossess.
 To do this, firstly we used colour dropping to <ins> find approximate HSV values  of obstacles and edit the ranges in our code </ins>
 
-> ### Red:
+### $${\color{red}Red:}$$
 
 ![image](https://github.com/user-attachments/assets/e6422d6a-328f-4d72-94b2-b9dd87e88be7)
 
-> ### Green:
+### $${\color{green}Green:}$$
 
 ![image](https://github.com/user-attachments/assets/ffb01507-7a3f-49a9-9f3a-950e10f9cfc4)
 
