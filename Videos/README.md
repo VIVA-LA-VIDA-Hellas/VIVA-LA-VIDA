@@ -2,7 +2,7 @@
 
 ## First mission
 
-### [Final attempt]([https://youtu.be/-V2u1jpKqV4](https://youtu.be/qEY1UPajjtA)
+### [Final attempt](https://youtu.be/qEY1UPajjtA)
 
 
 ### First mission trials
