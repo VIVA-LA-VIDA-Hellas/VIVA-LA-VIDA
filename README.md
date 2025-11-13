@@ -1,7 +1,8 @@
 # **VIVA ΛA VIΔA** - $${\color{green}FUTURE \space ENGINEERS \space 2025}$$ 
 ## <sup> *HELLENIC TEAM* </sup>
 
-![LOGO_450](https://github.com/user-attachments/assets/4a292dbd-1131-4ac2-b4f5-d45ed665847f)
+![viva la vida gif](https://github.com/user-attachments/assets/36726f9d-255d-4eb8-8d0d-65e10dfdeb90)
+
 
 ## <ins>*Find us on:*<ins/>
 [![Website](https://github.com/user-attachments/assets/fa1ad200-2d47-4041-9703-a8c66c8fa962)](https://www.viva-la-vida.gr/)
