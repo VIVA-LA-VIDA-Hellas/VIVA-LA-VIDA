@@ -1,4 +1,4 @@
-## Photos of our robot
+## Photos of our final robot
 
 ## $${\color{white}Front}$$
 
