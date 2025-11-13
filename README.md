@@ -1,8 +1,7 @@
 # **VIVA ΛA VIΔA**
 # $${\color{green}FUTURE \space ENGINEERS \space 2025}$$ 
-## ```diff
-## + HELLENIC TEAM
-## ```
+## <sup> HELLENIC TEAM </sup>
+
 ![LOGO_450](https://github.com/user-attachments/assets/4a292dbd-1131-4ac2-b4f5-d45ed665847f)
 
 ## <ins>*Find us on:*<ins/>
