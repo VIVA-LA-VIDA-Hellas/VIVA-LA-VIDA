@@ -701,7 +701,6 @@ def sensor_reader():
             sensor_data["front_left"] = front_left
             sensor_data["front_right"] = front_right
             
-        sensor_tick.set()  # Set the event
         #time.sleep(SENSOR_DELAY)
         sensor_tick.wait(SENSOR_DELAY)
         sensor_tick.clear()
@@ -741,25 +740,6 @@ def robot_loop():
         dt = (current_ns - last_ns) * 1e-9   # seconds
         last_ns = current_ns
         current_time = current_ns * 1e-9     # float seconds, used by UI/timers
-
-        sensor_tick.wait()  # Wait until the sensor data is updated
-        sensor_tick.clear()  # Clear the event after reading
-
-        # Now sensor data is available, process it
-        with sensor_lock:
-            d_front = sensor_data["front"]
-            d_left = sensor_data["left"]
-            d_right = sensor_data["right"]
-            d_front_left = sensor_data["front_left"]
-            d_front_right = sensor_data["front_right"]
-
-        
-        # Update robot attributes for plotting/logging and decision making
-        robot.d_front = d_front
-        robot.d_left = d_left
-        robot.d_right = d_right
-        robot.d_front_left = d_front_left
-        robot.d_front_right = d_front_right
 
         # --- Headless START button edge detection (press to PAUSE/RESUME) ---
         if not USE_GUI:
