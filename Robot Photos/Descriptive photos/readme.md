@@ -1,5 +1,6 @@
 ## Scroll or click the images above to view our descriptive images, showcasing all the compartments of our robot over photos of the final build
 
+## $${\color{purple}-------------------------------}$$
 ## $${\color{purple}Front \space view}$$
 
 <img width="1069" height="885" alt="1-front" src="https://github.com/user-attachments/assets/4e4bf525-7dac-4a3c-8872-158f72865b8f" />
