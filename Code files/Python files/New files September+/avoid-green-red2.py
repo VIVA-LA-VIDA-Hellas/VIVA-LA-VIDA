@@ -75,6 +75,22 @@ LINE_ORIENT_MIN_DEG = 25
 LINE_ORIENT_MAX_DEG = 65
 LINE_MASK_THICKNESS = 8
 
+# ==== COLOR HSV RANGES (calibrated) ====
+RED1_LO   = np.array([0,   140, 120], dtype=np.uint8)
+RED1_HI   = np.array([5,   255, 190], dtype=np.uint8)
+RED2_LO   = np.array([0,   140, 120], dtype=np.uint8)
+RED2_HI   = np.array([5,   255, 190], dtype=np.uint8)
+
+GREEN_LO  = np.array([65,   90,  90], dtype=np.uint8)
+GREEN_HI  = np.array([80,  255, 150], dtype=np.uint8)
+
+ORANGE_LO = np.array([6,  140, 180], dtype=np.uint8)
+ORANGE_HI = np.array([14, 200, 210], dtype=np.uint8)
+
+BLUE_LO   = np.array([112, 140, 120], dtype=np.uint8)
+BLUE_HI   = np.array([118, 230, 160], dtype=np.uint8)
+
+
 # dynamic turn/trigger tuning
 BLUE_Y_TRIGGER_FRAC = 0.78
 BLUE_MIN_LEN_PX = 70
