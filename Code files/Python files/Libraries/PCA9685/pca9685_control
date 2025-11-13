@@ -25,7 +25,7 @@ def set_servo_angle(channel, angle, min_us=500, max_us=2500, frequency=50):
 
 
 
-def set_motor_speed(channel_forward, channel_reverse, speed, frequency=1000):
+def set_motor_speed(channel_forward, channel_reverse, speed, frequency=50):
     """
     Control a DC motor using two channels.
     :param channel_forward: PCA9685 channel for forward
