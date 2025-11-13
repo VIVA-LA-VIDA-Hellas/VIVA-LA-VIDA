@@ -1,4 +1,4 @@
-# Scroll or click the images above to view our descriptive images, showcasing all the compartments of our robot over photos of the final build
+## Scroll or click the images above to view our descriptive images, showcasing all the compartments of our robot over photos of the final build
 
 ## $${\color{purple}Front \space view}$$
 
