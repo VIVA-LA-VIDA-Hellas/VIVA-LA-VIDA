@@ -52,7 +52,8 @@ This method also made it possible to create complex geometries that would be dif
 > [!NOTE]
 > The printers primarily used for this project were the Prusa i3 MK3S and the Prusa Mini, both known for their reliability, accuracy, and high-quality output.
 
-![6,7](https://github.com/user-attachments/assets/82c66e65-4464-43de-813e-fe120ce2afeb")
+![6n7](https://github.com/user-attachments/assets/a0dab1fa-12ae-4db0-99b7-238d1bdf164a)
+
 
 To assemble the individual 3D-printed components, a combination of **screws** and **nuts** was used to ensure durable and stable connections between parts.
 The assembly required the use of various hand tools, including
