@@ -145,10 +145,10 @@ For extra steadiness use lego end stops (you can use the ones given to you) (pho
 [photo4],[photo5]
 
 
-Take the two "biscuit" lego parts and grab yourself some **screws(3x12)**, a screw driver and a plier (photo6)
-Tight the 3 screws as shown in the picture below (photo6)
+Take the two "biscuit" lego parts and grab yourself some **screws(3x12)**, a screw driver and a plier (photo6.1)
+Tight the 3 screws as shown in the picture below (photo6.2)
 
-[photo6]
+[photo6.1],[photo6.2]
 
 
 Do the same thing in the other side, the outcome should be identical (or at least similar) to the one in the photo below (photo7)
@@ -163,7 +163,7 @@ For extra stability pass the tire-ups through the holes that are specifically ma
 [photo8],[photo9]
 
 
-Grab the 3d printed motor gaer and attach it to the motor gear (photo10)
+Grab the 3d printed motor gear and attach it to the motor (photo10)
 
 [photo10]
 
