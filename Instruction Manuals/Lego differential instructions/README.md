@@ -6,5 +6,6 @@
 ## Parts needed:
 
 <img width="1684" height="1192" alt="differential parts" src="https://github.com/user-attachments/assets/d29566d6-acc5-4fab-9e74-0b047c6ee690" />
+
 > [!TIP]
 > Ensure you have all necessary parts before beginning construction
