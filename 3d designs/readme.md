@@ -129,7 +129,7 @@ Assemble the differential system using the **motor base, DC motor, motor gear**,
 
 The lego parts used in the differential system are shown in the photo below
 
-
+[photo0]
 
 Firstly take the motor base and the **lego technic liftarm (64179)** (photo1).
 Insert the lego part through the hole shown in (photo2). 
