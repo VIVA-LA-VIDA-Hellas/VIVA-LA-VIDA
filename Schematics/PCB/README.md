@@ -1,4 +1,4 @@
-# Final PCB design layout using [EasyEDA](https://easyeda.com/)
+# Final PCB design layout 
 
 ## Top and bottom compartments of the PCB
 <img width="1182" height="902" alt="top side PCB" src="https://github.com/user-attachments/assets/51546350-a171-45d5-9358-2726e9d88052" />
@@ -12,6 +12,10 @@
 
 ## Combined top and bottom layer
 <img width="1182" height="902" alt="PCB Mixed top and bottom" src="https://github.com/user-attachments/assets/b8b7cf1b-bc22-4838-9aa7-3c6753ecab2e" />
+
+> [!NOTE]
+> ## These designs were created entirely by us with the use of EasyEDA.
+> ## [Click here to go to their website and find out more](https://easyeda.com/)
 
 
 # First PCB design layout using [EasyEDA](https://easyeda.com/)
