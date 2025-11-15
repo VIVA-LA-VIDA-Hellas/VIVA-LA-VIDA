@@ -7,3 +7,5 @@
 <img width="1684" height="1192" alt="ackerman parts 2" src="https://github.com/user-attachments/assets/9bacc972-eef6-421d-9255-fc260b16a88e" />
 <img width="1684" height="1192" alt="ackerman parts 1" src="https://github.com/user-attachments/assets/deca5563-2287-4c7d-a400-7b3af557e253" />
 
+> [!TIP]
+> Ensure you have all necessary parts before beginning construction
