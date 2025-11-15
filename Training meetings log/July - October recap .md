@@ -31,9 +31,6 @@
 
 ### We also changed our motor to a more powerfull one, editing the bases to match the new and improved version.
 
-> Old motor ->
->
-> New motor ->
 
 ### On the programming side there were many updates to the previously working code for the first mission, mostly changes due to different libraries being used for the new servo. Specifically, we replaced the previous adafruit servokit and motorkit libraries for the adafruit pca9685, combining the movement of the two.
 
