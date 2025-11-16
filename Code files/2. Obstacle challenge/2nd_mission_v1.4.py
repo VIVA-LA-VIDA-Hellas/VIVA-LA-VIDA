@@ -46,7 +46,6 @@ LEFT_FAR        = 105       # Steering angle for a far red box (mild left)
 LEFT_NEAR       = 120       # Steering angle for a near red box (strong left)
 RIGHT_FAR       = 75        # Steering angle for a far green box (mild right)
 RIGHT_NEAR      = 60        # Steering angle for a near green box (strong right)
-new_servo_angle = 90        # Helper variable used in blue-backward servo updates
 LEFT_COLLIDE_ANGLE = 120    # Steering angle on left side collision correctio
 RIGHT_COLLIDE_ANGLE = 60    # Steering angle on right side collision correctio
 
@@ -75,6 +74,10 @@ POST_TURN_LINE_IGNORE_S  = 10.0    # Time to ignore blue/orange lines after back
 
 # ---- Blue-backward escape (box very close to front) ----
 BLUE_BACK_DURATION = 1.0   # How long to reverse in blue-backward mode (seconds)
+
+# NEW: small steering while reversing away from the obstacle
+BLUE_BACK_STEER_RED   = 105   # steer slightly RIGHT when red (left) obstacle is too close
+BLUE_BACK_STEER_GREEN = 75  # steer slightly LEFT when green (right) obstacle is too close
 
 # ---- Obstacle avoidance (non-blue-backward) ----
 AVOID_BACK_DURATION = 1.7  # Reverse duration in normal avoidance (seconds)
@@ -610,6 +613,7 @@ emergency_direction = None  # "left" or "right"
 
 blue_backward_start = None
 in_blue_backward = False
+blue_back_steer_angle = None
 
 lines_blue = 0
 lines_orange = 0
@@ -1085,63 +1089,70 @@ try:
                 # skip the rest of your normal logic this frame
                 continue
 
-
         # ==== BLUE-BACKWARD LOGIC (immediate if intersect) ====
         if not in_blue_backward and not turn_active and not emergency_mode:
             now_ts = time.time()
+        
+            # RED box very close
             if red_data and boxes_intersect(car_box, (*red_data[1], *red_data[2])):
                 if now_ts - last_turn_end_time >= POST_TURN_GRACE_RED_S:
                     in_blue_backward = True
                     blue_backward_start = now_ts
-                    target_angle = LEFT_NEAR
+        
+                    # reverse with a small LEFT steering (your requirement)
+                    blue_back_steer_angle = BLUE_BACK_STEER_RED
+                    back_follow_angle     = LEFT_NEAR      # keep your existing forward bias
+        
+                    set_servo_angle(SERVO_CHANNEL, blue_back_steer_angle)
+                    current_servo_angle = blue_back_steer_angle
                     set_motor_speed(MOTOR_FWD, MOTOR_REV, -BLUE_BACK_SPEED)
+        
                     set_run_state("red obstacle found – blue-backward escape")
-                    # Center while reversing and remember follow direction
-                    back_follow_angle = LEFT_NEAR
-                    set_servo_angle(SERVO_CHANNEL, CENTER_ANGLE)
-                    current_servo_angle = CENTER_ANGLE
+        
+            # GREEN box very close
             elif green_data and boxes_intersect(car_box, (*green_data[1], *green_data[2])):
                 if now_ts - last_turn_end_time >= POST_TURN_GRACE_GREEN_S:
                     in_blue_backward = True
                     blue_backward_start = now_ts
-                    target_angle = RIGHT_NEAR
+        
+                    # reverse with a small RIGHT steering
+                    blue_back_steer_angle = BLUE_BACK_STEER_GREEN
+                    back_follow_angle     = RIGHT_NEAR     # keep your existing forward bias
+        
+                    set_servo_angle(SERVO_CHANNEL, blue_back_steer_angle)
+                    current_servo_angle = blue_back_steer_angle
                     set_motor_speed(MOTOR_FWD, MOTOR_REV, -BLUE_BACK_SPEED)
+        
                     set_run_state("green obstacle found – blue-backward escape")
-                    # Center while reversing and remember follow direction
-                    back_follow_angle = RIGHT_NEAR
-                    set_servo_angle(SERVO_CHANNEL, CENTER_ANGLE)
-                    current_servo_angle = CENTER_ANGLE
 
         if in_blue_backward:
-            # Hold CENTER while reversing
-            current_servo_angle = CENTER_ANGLE
-            set_servo_angle(SERVO_CHANNEL, CENTER_ANGLE)
-
-            new_servo_angle += CENTER_ANGLE - current_servo_angle
-            set_servo_angle(SERVO_CHANNEL, new_servo_angle)
-            set_servo_angle(SERVO_CHANNEL, current_servo_angle)
-
+            steer = blue_back_steer_angle if blue_back_steer_angle is not None else CENTER_ANGLE
+            set_servo_angle(SERVO_CHANNEL, steer)
+            current_servo_angle = steer
+        
+            set_motor_speed(MOTOR_FWD, MOTOR_REV, -BLUE_BACK_SPEED)
+        
             if time.time() - blue_backward_start >= BLUE_BACK_DURATION:
                 with yaw_lock:
-                    yaw = 0.0 
+                    yaw = 0.0
+        
                 in_blue_backward = False
-                new_servo_angle = CENTER_ANGLE
-                new_servo_angle += CENTER_ANGLE - current_servo_angle
-                set_servo_angle(SERVO_CHANNEL, new_servo_angle)
+                blue_back_steer_angle = None
+        
                 settle_until_ts = time.time() + SETTLE_DURATION
                 motor_speed = NORMAL_SPEED
                 set_motor_speed(MOTOR_FWD, MOTOR_REV, motor_speed)
                 set_run_state("cruise")
-                # Follow the remembered box direction for a short window
+        
+                # short forward bias in the chosen direction
                 if back_follow_angle is not None:
                     set_servo_angle(SERVO_CHANNEL, back_follow_angle)
                     current_servo_angle = back_follow_angle
                     post_back_follow_until = time.time() + POST_BACK_FOLLOW_S
-            else:
-                set_motor_speed(MOTOR_FWD, MOTOR_REV, -BLUE_BACK_SPEED)
-                if cv2.waitKey(1) in [27, ord('q')]:
-                    break
-                continue
+        
+            if cv2.waitKey(1) in [27, ord('q')]:
+                break
+            continue
 
         # ==== AVOIDANCE LOGIC (boxes) ====
         # Only run avoidance when we are NOT turning, NOT blue-backing
