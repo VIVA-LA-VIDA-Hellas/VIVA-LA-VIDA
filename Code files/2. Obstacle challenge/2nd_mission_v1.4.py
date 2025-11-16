@@ -7,6 +7,17 @@
 # =========================
 # IMPORTS
 # =========================
+
+import os, sys
+
+VENV_PY = "/home/stem/env/bin/python"  # exact path to Python in your venv
+
+if sys.executable != VENV_PY and os.path.exists(VENV_PY):
+    print(f"[INFO] Relaunching under virtual environment: {VENV_PY}", flush=True)
+    os.execv(VENV_PY, [VENV_PY] + sys.argv)
+    
+print(f"[INFO] Now running inside: {sys.executable}")
+
 import cv2
 import numpy as np
 from picamera2 import Picamera2
