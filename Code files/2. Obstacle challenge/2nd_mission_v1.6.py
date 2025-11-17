@@ -127,7 +127,6 @@ BLUE_MIN_LEN_PX     = 70    # Minimal Hough line length (blue/orange) to trigger
 # ---- Post-reverse / settling behavior ----
 SETTLE_DURATION      = 0.0  # Seconds to force CENTER_ANGLE after certain events
 settle_until_ts      = 0.0  # Timestamp until which settle is active
-POST_BACK_FOLLOW_S   = 0.7  # Time to bias steering toward box after blue-backward
 
 # ---- Extra IMU gain near boxes ----
 BOX_YAW_GAIN_MIN = 1.5  # Minimum yaw gain when box just appears
@@ -554,7 +553,6 @@ avoid_phase_start        = 0.0
 avoid_direction          = None   # "left" or "right" during reverse
 
 # Turn / line detection & gating
-line_seen_streak         = 0
 blue_gate_streak         = 0
 last_turn_end_time       = -1.0
 next_turn_allowed_time   = 0.0
@@ -977,7 +975,7 @@ try:
         else:
             desired = target_angle
 
-        current_servo_angle = int(max(65, min(115, desired)))
+        current_servo_angle = int(max(60, min(120, desired)))
         set_servo_angle(SERVO_CHANNEL, current_servo_angle)
 
         # Optional: if you still want ESC to stop the program:
