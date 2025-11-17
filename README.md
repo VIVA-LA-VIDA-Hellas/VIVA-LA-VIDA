@@ -461,7 +461,7 @@ All GUI slider changes can be saved and reloaded.
 
 ---
 
-# BOM Build of materials all prices for our robot compartments
+# BOM Bill of materials all prices for our robot compartments
 
 ## Core System
 | Material                         | Amount | Price  |
@@ -525,7 +525,7 @@ All GUI slider changes can be saved and reloaded.
 | M3×30mm Flat Head      | 2      | 0.15  |
 | M3×50mm                | 2      | 0.70  |
 
-# Complete list of all materials
+# Complete list of all materials amounts and prices
 
 | All Materials                                 | Amount | Price  |
 |-----------------------------------------------|--------|--------|
