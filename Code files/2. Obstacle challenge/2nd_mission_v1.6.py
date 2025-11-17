@@ -937,10 +937,10 @@ try:
 
                     if obstacle_lock_color == "Red":
                         # Red: obstacle should end up on the RIGHT of the robot
-                        target_angle = max(60, min(130, int(base_angle + current_yaw * yaw_gain)))
+                        target_angle = max(60, min(120, int(base_angle + current_yaw * yaw_gain)))
                     else:
                         # Green: obstacle should end up on the LEFT of the robot
-                        target_angle = max(60, min(130, int(base_angle - current_yaw * yaw_gain)))
+                        target_angle = max(60, min(120, int(base_angle - current_yaw * yaw_gain)))
                 else:
                     # Locked obstacle not seen this frame – drive roughly straight
                     target_angle = imu_center_servo(
