@@ -525,4 +525,4 @@ All GUI slider changes can be saved and reloaded.
 | M3×30mm Flat Head      | 2      | 0.15  |
 | M3×50mm                | 2      | 0.70  |
 
-# [Complete list of all materials amounts and prices](https://github.com/VIVA-LA-VIDA-Hellas/VIVA-LA-VIDA/blob/main/Instruction%20Manuals/Materials%20needed%20and%20BOM.md)
+##  [Complete list of all materials amounts and prices](https://github.com/VIVA-LA-VIDA-Hellas/VIVA-LA-VIDA/blob/main/Instruction%20Manuals/Materials%20needed%20and%20BOM.md)
