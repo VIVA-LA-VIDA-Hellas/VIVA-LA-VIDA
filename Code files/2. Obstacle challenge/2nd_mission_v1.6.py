@@ -78,7 +78,7 @@ POST_TURN_BACK_CLEAR_CM  = 20.0   # Back ToF distance target after a normal line
 POST_TURN_BACK_TIMEOUT_S = 2.0    # Safety timeout so we don't reverse forever
 POST_TURN_LINE_IGNORE_S  = 4.0    # Time to ignore blue/orange lines after backing (sec)
 
-# ---- Obstacle avoidance (non-blue-backward) ----
+# ---- Obstacle avoidance ----
 AVOID_BACK_DURATION = 0.7  # Reverse duration in normal avoidance (seconds)
 
 # ---- Line-turn (shape / Hough based) ----
@@ -322,9 +322,6 @@ def get_right_ultra_cm():
 run_state = None
 
 def set_run_state(new_state: str):
-    """
-    Print state changes only when the label actually changes.
-    """
     global run_state
     if new_state != run_state:
         run_state = new_state
