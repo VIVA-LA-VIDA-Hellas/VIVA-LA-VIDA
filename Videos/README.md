@@ -1,8 +1,12 @@
 # Below you will find videos throughout the preparation phase!
 
-# First mission
+# First mission - Open challenge
 
 ## [Final attempt (click here)](https://youtu.be/qEY1UPajjtA)
+
+# Second mission - Obstacle challenge
+
+## [Final attempt (click here)](https://youtu.be/k25_KGx6__c)
 
 
 ### First mission trials
