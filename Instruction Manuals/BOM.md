@@ -4,7 +4,7 @@
 | Raspberry Pi Micro SD Card 64GB               | 1      | 9.50  |
 | Active Cooler for Raspberry Pi 5              | 1      | 6.40  |
 | Camera Arducam IMX219 fisheye lens            | 1      | 18.92 |
-| PCB Prototype                                 | 5      | 26.25 | *Note - Could only order a minimum of 5. Only 1 is needed
+| PCB Prototype*                                | 5      | 26.25 | Note - Could only order a minimum of 5. Only 1 is needed
 | Battery Holder 1x18650 for PCB                | 3      | 2.70  |
 | Li-ion Battery Charger Protection Module      | 1      | 3.40  |
 | Fuse 4A                                       | 1      | 0.71  |
@@ -34,3 +34,6 @@
 | M3×20mm flat head                             | 14     | 0.97  |
 | M3×30mm flat head                             | 2      | 0.15  |
 | M3×50mm                                       | 2      | 0.70  |
+
+> [!NOTE]
+> About PCB prototype - Could only order a minimum of 5. Only 1 is needed
