@@ -1,0 +1,4 @@
+3. Actuation Electronics – DRV8871 Motor Driver and PCA9685 Servo Driver
+The PCB has two main blocks for actuation: one for the DC drive motor and one for the steering servo(s).
+•	The DRV8871 is a single-channel DC motor driver. It can handle the higher currents that our drive motor needs and includes over-current and over-temperature protection. The Raspberry Pi controls it with one PWM signal (speed) and one direction signal. The motor connects through a separate terminal block, so it can be replaced quickly during testing or at a competition.
+•	The PCA9685 is a 16-channel I²C PWM driver. It generates precise servo pulses so the Raspberry Pi doesn’t have to do real-time timing. With 16 channels we can control the main steering servo and still have plenty of outputs for future mechanisms. The PCA9685 uses 3.3 V logic but can drive servos from the 5 V rail.
