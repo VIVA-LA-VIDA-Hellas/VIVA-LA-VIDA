@@ -1,4 +1,8 @@
-# 2nd mission
+#-----------------------------------------------------------------------------------------------------------------------
+# 2nd Mission WRO 2025 FE - VivaLaVida
+# Final Version
+#-----------------------------------------------------------------------------------------------------------------------
+
 # v1.1: add state print, add turn/lap count and stop after 3 laps, variables cleanup
 #       add ultrasonic for side checks during cruise
 # v1.2: add backwards drive after turning, unpark in both directions
@@ -6,6 +10,9 @@
 # v1.4-v1.5: did not work
 # v1.6: restructuring with FSM
 
+# =========================
+# IMPORTS
+# =========================
 
 import os, sys
 
@@ -18,9 +25,6 @@ if sys.executable != VENV_PY and os.path.exists(VENV_PY):
 # --- your normal robot code below ---
 print(f"[INFO] Now running inside: {sys.executable}")
 
-# =========================
-# IMPORTS
-# =========================
 import cv2
 import numpy as np
 from picamera2 import Picamera2
