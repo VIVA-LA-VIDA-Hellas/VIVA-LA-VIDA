@@ -17,6 +17,7 @@
 ### Panagiotis Mourmouris (user: Panos1431)
 ### Thanos Karatsis (user: thkaratsis)
 
+*Disclaimer: we did not use these accounts in the creation of this repository. Instead we created a new email and github account specificaly for our team, which we all have access to and utilise across all platforms. 
 
 # INDEX
 ### *Use the index for an easy navigation of our github or, continue bellow to view our creation process, as well as an overview on everything about the robot.*
