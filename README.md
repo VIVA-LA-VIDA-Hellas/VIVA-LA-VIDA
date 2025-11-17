@@ -461,11 +461,14 @@ All GUI slider changes can be saved and reloaded.
 
 ---
 
+
 | Material  | Ammount | Price |
 | ------------- | ------------- |
-| Raspberry Pi 5 8GB | 1 | 96.50
+| Raspberry Pi 5 8GB | 1 | 96.50 |
 | Raspberry Pi Micro SD Card 64GB | 1 |	9.50 |
 | Active Cooler for Raspberry Pi 5 | 1	| 6.40 |
+
+
 | Camera Arducam IMX219 fisheye lens			1	18.92
 | PCB Prototype 						5	26.25
 | Battery Holder 1x18650 for PCB				3	2.70
