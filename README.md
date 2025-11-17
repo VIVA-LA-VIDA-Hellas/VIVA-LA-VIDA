@@ -527,7 +527,9 @@ All GUI slider changes can be saved and reloaded.
 
 # Complete list of all materials amounts and prices
 
-<div style="background:#e8f5e9; padding:20px; border-radius:8px;">
+<table>
+<tr>
+<td style="background:#e8f5e9; padding:20px; border-radius:8px;">
     
 | All Materials                                 | Amount | Price  |
 |-----------------------------------------------|--------|--------|
@@ -566,4 +568,6 @@ All GUI slider changes can be saved and reloaded.
 | M3×30mm flat head                             | 2      | 0.15  |
 | M3×50mm                                       | 2      | 0.70  |
 
-</div>
+</td>
+</tr>
+</table>
