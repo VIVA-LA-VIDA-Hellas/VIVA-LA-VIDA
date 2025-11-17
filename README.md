@@ -461,8 +461,73 @@ All GUI slider changes can be saved and reloaded.
 
 ---
 
+# BOM Build of materials all prices for our robot compartments
 
-| Material                                      | Amount | Price  |
+## Core System
+| Material                         | Amount | Price  |
+|----------------------------------|--------|--------|
+| Raspberry Pi 5 8GB               | 1      | 96.50 |
+| Raspberry Pi Micro SD 64GB       | 1      | 9.50  |
+| Active Cooler for Raspberry Pi 5 | 1      | 6.40  |
+| GPIO Ribbon Cable 40P            | 1      | 2.00  |
+| IDC Connector 2x20 Pin Male      | 1      | 0.45  |
+
+## Sensors
+| Material                                      | Amount | Price |
+|-----------------------------------------------|--------|-------|
+| Camera Arducam IMX219 fisheye lens            | 1      | 18.92 |
+| Ultrasonic Sensor HC-SR04                     | 3      | 5.40  |
+| Laser Sensor - VL53L0X                        | 6      | 28.80 |
+| Triple Axis Gyroscope & Accelerometer MPU6050 | 1      | 3.60  |
+
+## Power & Protection
+| Material                                | Amount | Price |
+|-----------------------------------------|--------|-------|
+| Battery Holder 1x18650 for PCB          | 3      | 2.70  |
+| Battery Lithium 18650 3.6V 3400mAh      | 3      | 17.40 |
+| Li-ion Battery Charger Protection Board | 1      | 3.40  |
+| Fuse 4A                                 | 1      | 0.71  |
+| Main Power Switch                       | 1      | 2.23  |
+| DC Power Jack 5.5×2.1mm                 | 1      | 0.20  |
+| Step-Down Converter LM2596S             | 1      | 2.90  |
+
+## Motors & Motion
+| Material                                | Amount | Price |
+|-----------------------------------------|--------|-------|
+| Metal Gearmotor 25mm – 210RPM 9–12V     | 1      | 6.80  |
+| DC Motor Driver Board DRV8871           | 1      | 10.80 |
+| Standard Servo MG996R                   | 1      | 8.90  |
+| 16-Channel PWM/Servo Driver PCA9685     | 1      | 6.80  |
+
+## Wiring & Connectors
+| Material                           | Amount | Price |
+|------------------------------------|--------|-------|
+| Jumper Wires 30cm 5-Pin            | 6      | 2.50  |
+| Molex KF2510 Jumper Wire 4-Pin     | 3      | 1.20  |
+| Flexible Flat Cable 0.5mm 22-Pin   | 1      | 2.90  |
+
+## PCB & Prototyping
+| Material        | Amount | Price |
+|-----------------|--------|-------|
+| PCB Prototype   | 5      | 26.25 |
+| Tact Switch SMD | 1      | 0.08  |
+| LED 0805 SMD    | 3      | 0.36  |
+| Resistor 0805   | 12     | 0.24  |
+
+## Fasteners & Hardware
+| Material               | Amount | Price |
+|------------------------|--------|-------|
+| M2 Plastic F/F L20mm   | 2      | 0.30  |
+| M2×8mm                 | 8      | 0.47  |
+| M3×12mm Flat Head      | 2      | 0.11  |
+| M3×16mm Flat Head      | 20     | 1.15  |
+| M3×20mm Flat Head      | 14     | 0.97  |
+| M3×30mm Flat Head      | 2      | 0.15  |
+| M3×50mm                | 2      | 0.70  |
+
+# Complete list of all materials
+
+| All Materials                                 | Amount | Price  |
 |-----------------------------------------------|--------|--------|
 | Raspberry Pi 5 8GB                            | 1      | 96.50 |
 | Raspberry Pi Micro SD Card 64GB               | 1      | 9.50  |
