@@ -1,4 +1,4 @@
-| Material                                      | Amount | Price  |
+| Material                                      | Amount | Price in Euros |
 |-----------------------------------------------|--------|--------|
 | Raspberry Pi 5 8GB                            | 1      | 96.50 |
 | Raspberry Pi Micro SD Card 64GB               | 1      | 9.50  |
