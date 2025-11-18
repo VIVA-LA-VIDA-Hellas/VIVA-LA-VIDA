@@ -115,9 +115,6 @@ Therefore:
 
 # **We chose Li-ion 18650 cells (3S pack) for our vehicle.**
 
-> [!IMPORTANT]  
-> Although Li-ion was ideal for our design, **different builds may require different chemistries** (e.g., LiPo for extreme current demands).
-
 ---
 
 # 3 Electrical Characteristics and Protection System
