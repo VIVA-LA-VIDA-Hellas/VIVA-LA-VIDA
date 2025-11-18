@@ -1,10 +1,10 @@
-# 6. Sensors – Why This Combination
+# Sensors – Why This Combination
 
 The selected sensor suite is engineered to provide the robot with **robust, real-time spatial awareness** under the constraints of the WRO 2025 FE environment. Each sensor category contributes different strengths: short-range precision, long-range detection, and orientation stability. Together, they form a redundant, multi-modal perception system that enables reliable autonomous navigation even in unpredictable wall placements and obstacle scenarios.
 
 ---
 
-## 6.1 Distance Metering Sensors
+## 1 Distance Metering Sensors
 
 ---
 
@@ -73,7 +73,7 @@ Using both categories produces a robust hybrid sensing model:
 
 ---
 
-## 6.2 Acceleration and Rotation Sensors
+## 2 Acceleration and Rotation Sensors
 
 ---
 
@@ -105,7 +105,7 @@ The IMU provides essential orientation data that replaces wheel encoders. The ro
 
 ---
 
-## 6.3 Optional / “Not Used” Sensors
+## 3 Optional / “Not Used” Sensors
 
 The PCB includes footprints for possible expansion modules:
 
@@ -120,7 +120,7 @@ These are currently **NOT USED**, but the PCB layout supports future features su
 
 ---
 
-## 6.4 Final Outcome – Sensor Roles in the Final Design
+## Final Outcome – Sensor Roles in the Final Design
 
 After extensive testing:
 
@@ -148,7 +148,7 @@ After extensive testing:
 
 ---
 
-## 6.5 Alternative Sensors Considered
+## Alternative Sensors Considered
 
 Several alternative sensing technologies were evaluated but not selected due to cost or complexity.
 
