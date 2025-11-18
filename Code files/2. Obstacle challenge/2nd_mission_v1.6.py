@@ -69,6 +69,9 @@ MIN_AREA          = 1500    # Minimum contour area to accept as a box
 MAX_AREA          = 18000   # Area at which box is considered "very close"
 COLOR_HOLD_FRAMES = 2       # Frames the same color must persist to be “locked”
 OBSTACLE_CLEAR_FRAMES = 10     # Frames without red/green to "forget" obstacle
+# X-position aware steering (normalized [-1..1] offset from image center)
+XPOS_GAIN_DEG   = 12.0   # how many degrees we add/subtract for full offset
+XPOS_MAX_OFFSET = 0.7    # clamp |offset|, treat anything beyond as 0.7
 
 # ---- ToF thresholds (general) ----
 SIDE_COLLIDE_CM       = 30.0  # If side < this, we steer away to avoid collision
@@ -705,15 +708,28 @@ try:
             chosen_area  = 0
             chosen_box   = None
 
-        # Update color streak used for locking obstacle
+        # Horizontal position of chosen box (for x-aware steering)
+        if chosen_box is not None:
+            x1, y1, x2, y2 = chosen_box
+            box_center_x   = 0.5 * (x1 + x2)
+            # offset in [-1..1]; >0 means box is to the RIGHT of image center
+            box_offset_norm = (box_center_x - center_x) / float(center_x)
+        else:
+            box_center_x   = None
+            box_offset_norm = 0.0
+
+        # Update color streak used for locking obstacle (decay instead of hard reset)
         if chosen_color is not None:
             if chosen_color == last_color:
-                color_hold_streak += 1
+                # seeing the same color again -> build up confidence
+                color_hold_streak = min(color_hold_streak + 1, 12)
             else:
+                # switched color (Red <-> Green) -> don't nuke, but reduce
                 last_color = chosen_color
-                color_hold_streak = 1
+                color_hold_streak = max(1, color_hold_streak - 1)
         else:
-            color_hold_streak = 0
+            # nothing seen this frame -> slowly decay
+            color_hold_streak = max(0, color_hold_streak - 1)
 
         # Which is “closer”: line or obstacle?
         closest_obstacle_y = chosen_box[3] if chosen_box is not None else -1
@@ -735,6 +751,22 @@ try:
                 line_closer = True
             elif (not line_trigger_raw) and closest_obstacle_y >= 0:
                 obstacle_closer = True
+            # --- DEBUG: what do we see & who wins, line or obstacle? ---
+            if chosen_box is not None or line_trigger_raw:
+                if chosen_box is not None:
+                    x1, y1, x2, y2 = chosen_box
+                    cx = 0.5 * (x1 + x2)
+                    off_norm = (cx - center_x) / float(center_x)  # [-1..1], >0 = box on right
+                else:
+                    cx = None
+                    off_norm = 0.0
+        
+                dbg(
+                    f"DETECT: color={chosen_color} area={chosen_area} "
+                    f"streak={color_hold_streak} cx={cx} off={off_norm:.2f} "
+                    f"line_trig={line_trigger_raw} line_y={line_y_for_turn} "
+                    f"line_closer={line_closer} obs_closer={obstacle_closer}"
+                )
 
         # ===== DISTANCES (ToF + ultrasonic) =====
         f_cm = tof_cm(sensors["front"])
@@ -791,6 +823,13 @@ try:
             elif r_side < SIDE_COLLIDE_CM and l_side >= SIDE_COLLIDE_CM:
                 target_angle = RIGHT_COLLIDE_ANGLE
 
+            # --- DEBUG: why are we staying in CRUISE? ---
+            dbg(
+                f"CRUISE: color={chosen_color} streak={color_hold_streak} "
+                f"line_closer={line_closer} obs_closer={obstacle_closer} "
+                f"f_ultra={f_ultra:.1f} yaw={current_yaw:.1f} state={fsm_state}"
+            )
+            
             # ---- Priority: lock obstacle -> AVOID state ----
             if (chosen_color is not None and
                 color_hold_streak >= COLOR_HOLD_FRAMES and
@@ -927,17 +966,40 @@ try:
                     # Obstacle still visible – follow around it
                     area       = chosen_area
                     base_angle = compute_servo_angle(obstacle_lock_color, area)
-
+            
+                    # --- X-position bias: use horizontal position to bend path ---
+                    x1, y1, x2, y2 = chosen_box
+                    cx = 0.5 * (x1 + x2)
+                    offset_norm = (cx - center_x) / float(center_x)   # [-1..1], >0 = right
+                    offset_norm = max(-XPOS_MAX_OFFSET, min(XPOS_MAX_OFFSET, offset_norm))
+            
+                    if obstacle_lock_color == "Red":
+                        # Red should end up on the RIGHT of the robot:
+                        # - if it's to the RIGHT (offset>0), steer more LEFT
+                        # - if it's to the LEFT (offset<0), steer a bit less LEFT
+                        base_angle += offset_norm * XPOS_GAIN_DEG
+                    else:
+                        # Green should end up on the LEFT of the robot:
+                        # - if it's to the LEFT (offset<0), steer more RIGHT
+                        # - if it's to the RIGHT (offset>0), steer a bit less RIGHT
+                        base_angle -= offset_norm * XPOS_GAIN_DEG
+            
+                    # --- Area-based closeness + yaw correction (as before) ---
                     norm_area  = max(MIN_AREA, min(MAX_AREA, area))
                     closeness  = (norm_area - MIN_AREA) / float(MAX_AREA - MIN_AREA + 1e-6)
                     yaw_gain   = BOX_YAW_GAIN_MIN + closeness * (BOX_YAW_GAIN_MAX - BOX_YAW_GAIN_MIN)
-
+            
                     if obstacle_lock_color == "Red":
-                        # Red: obstacle should end up on the RIGHT of the robot
-                        target_angle = max(60, min(120, int(base_angle + current_yaw * yaw_gain)))
+                        target_angle = max(60, min(130, int(base_angle + current_yaw * yaw_gain)))
                     else:
-                        # Green: obstacle should end up on the LEFT of the robot
-                        target_angle = max(60, min(120, int(base_angle - current_yaw * yaw_gain)))
+                        target_angle = max(60, min(130, int(base_angle - current_yaw * yaw_gain)))
+                     # --- DEBUG: AVOID forward steering details ---
+                    dbg(
+                        f"AVOID FWD: color={obstacle_lock_color} cx={cx:.1f} "
+                        f"off={offset_norm:.2f} area={area} yaw={current_yaw:.1f} "
+                        f"angle={target_angle}"
+                    )
+
                 else:
                     # Locked obstacle not seen this frame – drive roughly straight
                     target_angle = imu_center_servo(
