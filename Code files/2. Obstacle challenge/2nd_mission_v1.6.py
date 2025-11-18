@@ -70,7 +70,7 @@ MAX_AREA          = 18000   # Area at which box is considered "very close"
 COLOR_HOLD_FRAMES = 2       # Frames the same color must persist to be “locked”
 OBSTACLE_CLEAR_FRAMES = 10     # Frames without red/green to "forget" obstacle
 # X-position aware steering (normalized [-1..1] offset from image center)
-XPOS_GAIN_DEG   = 12.0   # how many degrees we add/subtract for full offset
+XPOS_GAIN_DEG   = 20.0   # how many degrees we add/subtract for full offset
 XPOS_MAX_OFFSET = 0.7    # clamp |offset|, treat anything beyond as 0.7
 SERVO_XPOS_SIGN = 1.0  #X-position steering sign 1, -1
 #  +1 works for most setups; if in tests the robot turns TOWARDS the obstacle
