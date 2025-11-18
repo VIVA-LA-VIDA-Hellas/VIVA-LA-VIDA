@@ -8,7 +8,7 @@
 # v1.2: add backwards drive after turning, unpark in both directions
 # v1.3: give priority to object that is closer [line or obstacle]
 # v1.4-v1.5: did not work
-# v1.6: restructuring with FSM
+# v1.6: restructuring with FSM, lock object logic, unpark alternstive in open space
 
 # =========================
 # IMPORTS
