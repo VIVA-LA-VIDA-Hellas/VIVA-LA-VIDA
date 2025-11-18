@@ -1,69 +1,211 @@
-# For our power system we chose: Li-ion batteries
-Firstly, we compared the characteristics of Lithium, Lithium-Ion, Lipo and Alkaline batteries
+# Power System – Li-ion Batteries (3S Configuration)
 
-### Lithium batteries
->Lithium batteries are one of the most commonly used battery types. They offer the highest energy density of any other battery cell, meaning they store more energy than other batteries, such as alkaline. Lithium batteries are only sold in AA, AAA, and 9V sizes; however, their mAh ratings exceed every other non-rechargeable battery. One AA lithium battery ranges from 2,700-3,400 mAh, and will last a long time, even under heavy-use.
-<ins> Pros </ins>
-<ins>**Last up to 4x longer compared to other battery types
-Light-weight for portable devices
-Ideal for heavy-use**</ins>
-Function well even in extreme temperatures, working well in outdoor devices like flashlights
-Shelf life is 10-12 years; great for use in emergency devices, as the batteries will not leak or explode
-<ins> Cons </ins>
-Much more expensive than other battery types
-<ins>**Highly flammable; require special disposal at specified locations and cannot be thrown away
-Don’t come in bigger battery sizes like C or D**</ins>
+The robot’s power system is based on **three (3) Li-ion 18650 cells connected in series (3S)**. This configuration provides a nominal voltage of **11.1 V** and a fully charged voltage of **12.6 V**, matching the requirements of the motor driver, servo system, and DC-DC converter.
 
-### Lithium-ion batteries 
-> Lithium-ion batteries (Li-ion) are <ins>**highly efficient, with a long cycle life, high energy and power density, and fast discharge capabilities**</ins>, making them ideal for portable electronics. They can last up to 15 years, significantly longer than lead-acid batteries, reducing replacement costs. These batteries typically offer 500-7000 discharge cycles before needing replacement, depending on the chemistry used. The specific energy of Li-ion batteries ranges from 100–265 Wh/kg, with an energy density of 250–693 Wh/L. Characterizing the state of charge involves extensive experiments to evaluate parameters like voltage, current, temperature, capacity, and impedance. Li-ion batteries consist of four main components: cathode, anode, electrolyte, and separator, all essential for their function. Unlike lithium cells, <ins>**Li-ion cells are rechargeable, with lifespans averaging 2-3 years or 300-500 charge cycles.** </ins>
+Before selecting Li-ion as our solution, we compared multiple battery technologies commonly used in robotics.
 
+---
 
-### Lipo batteries
->The advantages of Lipo batteries are<ins> **small volume, huge capacity, light weight, non-pollution, high voltage of single cell, low self-discharging rate, more cycle times**</ins>, but its price is comparatively high.
-A Lipo battery is constructed from separate cells, all connected to form the specific battery. One Lipo cell has a nominal voltage of 3.7V. When connecting these in series, the voltage increases, meaning you get 7.4V for a 2 cell battery, 11.1V for a 3 cell battery, 14.8V for a 4 cell battery etc.
-Enhanced Power Density: LiPo batteries offer a slightly higher power density, which means they can deliver a burst of power more quickly. This characteristic is valuable in scenarios where immediate, high-energy output is necessary.
-How long does a 5,000mAh LiPo battery last? About 25–30 minutes on full discharge. Depending on what you are using it for. A batter such as this on a remote RC car being pushed at full throttle will last about 25 minutes.
-<ins> **Its chemistry leads to fire when the LiPo battery is punctured. Lithium polymer battery requires special care during charging, discharging, and storage. Li polymer battery is expensive. The cost is almost double that Li-Ion battery.** </ins>
-It is commonly accepted that the preferred way to dispose of a model LiPo pack is to immerse it in a container of salt water for an extended period 
+# 1 Comparison of Battery Technologies
 
-### Alkaline batteries
->Alkaline batteries are economical, easy to dispose of, and extremely popular. They normally have a<ins> **capacity rating of over 2,500 mAh**</ins>, great for moderate to heavy-use devices. Unlike lithium batteries, almost every standard size battery offers an alkaline construction, making it perfect for most devices.
-<ins> Pros </ins>
-Great price for quality
-<ins>**Last longer due to potassium hydroxide construction**</ins>
-Shelf life is 5-10 years
-Function well even in extreme temperatures, working well in outdoor devices like flashlights
-Lead, mercury, and cadmium-free is good for the environment, and the batteries don't need to be disposed of in a specific way
-<ins> Cons </ins>
-<ins>**Heavy and bulky, without additional voltage
-May not work well in high drain devices
-Will sometimes leak, causing the device to become unusable**</ins>
+---
 
-### In the end we found that:
-"If you are looking for the highest voltage under load (punch or top speed) then choose a LiPo. If you are looking for the highest capacity for the weight (energy density), choose Li-ion. If safety is a big concern, then choose Li-ion."
-Additionally, they offer us the required voltage, they have a capacity of 2500-3500mAh and are safer than Li-Po
-**And therefore we chose <ins>Li-ion</ins> for our vehicle.**
+## a) Lithium Batteries (Primary / Non-Rechargeable)
 
-> [!IMPORTANT]
-> ### Just because the Li-ion batteries were the best fit for us, doesn't neccessarily mean they'll be the best fit for everyone.
-> ### Depending on your builds requirements and needs, you can utilize any of the above batteries as <ins>alternatives</ins>.
+Lithium primary cells are known for **very high energy density**, long shelf life, and excellent temperature tolerance. They come mainly in **AA, AAA, and 9 V** formats.
 
-*Characteristics*
->The system is powered using three (3) Li-ion 18650 batteries connected in series (3S), that offer us up to 12.6V when fully charged. This layout ensures an abundance of electrical power for the operation of our system.
->
->For **protection** we utilised a Charger Protection Module 3S 10A which offers us:
->- Overcharge protection (Stops from overloading)
->- Over-discharge protection (Interrupts sudden voltage drops that might hurt the batteries)
->- Short-circuit protection (As the name suggests, stops the system and batteries in case of short-circuiting)
->This specific module can provide a maximum continuous flow of 6-8A, an amount suitable for safe power distribution to the Raspberry Pi 5 and its peripherals.
->We also used a DC-DC Converter module Step-Down (5V/3A), based on the LM2596S. It has a voltage range of 3.2V - 40V (Input) and 1.3V - 35V output with a maximum of 3A.
->All of the above combined with the small size of the placket make it ideally suitable for our build
+### Pros
+- **2,700–3,400 mAh per AA cell** (highest among disposable cells)  
+- Up to **4× longer life** than alkaline batteries  
+- Very **lightweight**  
+- Excellent performance under **high-drain** and **low-temperature** conditions  
+- **10–12 year** shelf life  
+- Low risk of leakage during storage
 
-*Compatability*
->An external power jack lets us power or charge the robot without opening the chassis or disconnecting the battery, which makes
-maintenance much easier
+### Cons
+- Significantly more expensive  
+- **Highly flammable** and require special disposal  
+- Not available in larger formats (C, D, etc.)  
+- Not rechargeable → unsuitable for robotics
 
-*Requirements*
-> We used 3 18650 Li-ion cells in series (3S), a BMS, a main switch, a 4 A fuse and an LM2596 buck converter that generates a stable 5 V rail
-> It was necessary to keep the batteries contained in a plastic sealed box when not in use to avoid danger due to flamability.
+---
 
+## b) Lithium-Ion (Li-ion) Batteries (Rechargeable)
+
+Li-ion cells provide **high energy density**, **high discharge capability**, and **long cycle life**, making them ideal for portable electronics and robotics.
+
+### Technical Characteristics
+- **Specific energy:** 100–265 Wh/kg  
+- **Energy density:** 250–693 Wh/L  
+- **Cycle life:** 300–500 charge cycles (typical), depending on chemistry  
+- **Discharge cycles:** up to 500–7000 across chemistries  
+- **Components:** cathode, anode, electrolyte, separator  
+- Rechargeable and stable under controlled conditions
+
+### Pros
+- **High energy and power density**  
+- **Rechargeable**, long service life  
+- Good efficiency under high load  
+- Suitable for 3S, 4S, or multi-cell packs  
+- Chooseable mAh capacity (typically 2,500–3,500+ mAh)
+
+### Cons
+- Moderate flammability (requires BMS protection)  
+- Requires safe charging and storage practices  
+- Slightly heavier than LiPo for equivalent capacity
+
+---
+
+## c) Lithium Polymer (LiPo) Batteries (Rechargeable)
+
+LiPo batteries are widely used in RC models due to their **high discharge rates** and **extremely high power density**.
+
+### Pros
+- **Very high discharge rate** (burst current capability)  
+- **Lightweight** and compact  
+- **Low self-discharge**  
+- **High voltage per cell:** 3.7 V nominal (11.1 V for 3S)
+
+### Cons
+- **Prone to fire** when punctured, overcharged, or damaged  
+- More expensive than Li-ion  
+- Require strict handling: storage bags, balance charging  
+- Disposal requires salt-water neutralization  
+- Lower mechanical robustness
+
+---
+
+## d) Alkaline Batteries (Primary)
+
+Alkaline cells are common and inexpensive, but not suitable for high-drain robotics applications.
+
+### Pros
+- Widely available, low cost  
+- **2,500 mAh+** per AA cell  
+- Good shelf life (5–10 years)  
+- Leak-free under normal conditions  
+- Easy disposal
+
+### Cons
+- **Heavy and bulky**  
+- Poor performance in **high-drain** applications  
+- Voltage sag under load  
+- Not rechargeable  
+- Potential for leakage in long-term use  
+
+---
+
+# 2 Final Evaluation and Selection
+
+A summary rule-of-thumb from the comparison:
+
+> **For highest voltage under load → choose LiPo**  
+> **For highest energy density per weight → choose Li-ion**  
+> **For better safety → choose Li-ion**
+
+For our robot, **Li-ion 18650 cells were the optimal choice** because:
+
+- They provide **high capacity (2500–3500 mAh)**  
+- They deliver **sufficient discharge current** for the motor and servo  
+- They are **safer** and more stable than LiPo  
+- 3S configuration provides a **perfect voltage match** for the drivetrain and electronics  
+- They have long cycle life and predictable discharge behavior
+
+Therefore:
+
+# **We chose Li-ion 18650 cells (3S pack) for our vehicle.**
+
+> [!IMPORTANT]  
+> Although Li-ion was ideal for our design, **different builds may require different chemistries** (e.g., LiPo for extreme current demands).
+
+---
+
+# 3 Electrical Characteristics and Protection System
+
+The power subsystem includes the following components:
+
+---
+
+## a) Battery Pack (3 × 18650 Li-ion Cells in Series – 3S)
+- **Nominal voltage:** 11.1 V  
+- **Fully charged voltage:** 12.6 V  
+- **Capacity:** 2500–3500 mAh  
+- **Continuous current capability:** depends on cell type (typically 10–20 A)
+
+This provides ample power for the motor, servo, Pi, and sensors.
+
+---
+
+## b) 3S Li-ion Battery Management System (BMS) – 10 A
+
+The robot uses a **3S 10A BMS module** providing:
+
+### Protection Features
+- **Overcharge protection**  
+- **Over-discharge cutoff**  
+- **Short-circuit protection**  
+- **Cell balancing** (important for multi-cell packs)
+
+### Output Characteristics
+- Continuous current: **6–8 A**  
+- Peak: up to **10 A**  
+
+This ensures safe operation and extends cell lifespan.
+
+---
+
+## c) DC-DC Step-Down Converter (LM2596S – 5 V / 3 A)
+
+Generates the regulated **5 V rail** for:
+
+- Raspberry Pi 5  
+- ToF sensors  
+- PCA9685 servo driver  
+- Ultrasonic sensors  
+- Indicators and buttons
+
+### LM2596S Specs
+- **Input voltage:** 3.2–40 V  
+- **Output voltage:** 1.3–35 V  
+- **Max current:** 3 A  
+- High efficiency (~80–90%)  
+
+Provides a stable low-noise supply for all logic and peripherals.
+
+---
+
+# 4 Mechanical & Maintenance Considerations
+
+### External Power Jack
+An external DC jack allows:
+- Charging the battery without opening the robot  
+- Running the robot from an external supply during testing  
+- Easier maintenance and safer charging workflow  
+
+### Safety Handling
+- Li-ion cells must be stored in a **sealed, fire-resistant container**  
+- Avoid mechanical damage or reverse polarity  
+- Charge only using protected circuits or dedicated chargers  
+
+---
+
+# 5 System Requirements Summary
+
+The final power system includes:
+
+- **3 × 18650 Li-ion cells (3S)**  
+- **3S BMS module (10 A)**  
+- **Main power switch**  
+- **4 A system fuse** (protects wiring and electronics)  
+- **LM2596 buck converter (5 V/3 A)**  
+- **External power jack**  
+
+This setup provides a safe, robust, and high-density power platform suitable for the entire robot.
+
+---
+
+# Summary
+
+The selected **Li-ion 18650 3S system** offers the best balance between **safety**, **energy density**, **voltage compatibility**, and **current delivery** for our WRO robot. With proper BMS protection, fused power distribution, and a regulated 5 V rail, the system supports stable and efficient performance across all missions.
+
+---
