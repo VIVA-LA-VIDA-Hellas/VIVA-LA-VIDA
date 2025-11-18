@@ -20,12 +20,10 @@ Time-of-Flight sensors are used for **high-precision, short-range** distance mea
 
 ### Hardware & Positioning
 Six (6) **VL53L0X** modules are mounted around the chassis:
-
-       Front
+        Front
 Left-Front Right-Front
 Left             Right
-       Back
-
+        Back
 
 ### VL53L0X Technical Specifications
 - **Sensor type:** Time-of-Flight (laser ranging, VCSEL)
@@ -50,10 +48,8 @@ Ultrasonic sensors provide **long-range detection** using acoustic pulses, compl
 
 ### Hardware & Positioning
 Three (3) **HC-SR04** units are mounted:
-
-       Front
- Left         Right
-
+        Front
+Left             Right
 
 ### HC-SR04 Technical Specifications
 - **Sensor type:** ultrasonic (40 kHz)
