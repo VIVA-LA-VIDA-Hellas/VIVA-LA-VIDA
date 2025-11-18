@@ -46,7 +46,7 @@ Additionally, they offer us the required voltage, they have a capacity of 2500-3
 
 > [!IMPORTANT]
 > ### Just because the Li-ion batteries were the best fit for us, doesn't neccessarily mean they'll be the best fit for everyone.
-> ### Depending on your builds requirements and needs, you can utilize any of the above batteries as **alternatives**.
+> ### Depending on your builds requirements and needs, you can utilize any of the above batteries as <ins>alternatives</ins>.
 
 *Characteristics*
 >The system is powered using three (3) Li-ion 18650 batteries connected in series (3S), that offer us up to 12.6V when fully charged. This layout ensures an abundance of electrical power for the operation of our system.
