@@ -44,7 +44,7 @@ Will sometimes leak, causing the device to become unusable**</ins>
 Additionally, they offer us the required voltage, they have a capacity of 2500-3500mAh and are safer than Li-Po
 **And therefore we chose <ins>Li-ion</ins> for our vehicle.**
 
-> ### [!IMPORTANT]
+> [!IMPORTANT]
 > ### Just because the Li-ion batteries were the best fit for us, doesn't neccessarily mean they'll be the best fit for everyone.
 > ### Depending on your builds requirements and needs, you can utilize any of the above batteries as **alternatives**.
 
