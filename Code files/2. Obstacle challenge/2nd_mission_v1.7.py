@@ -9,7 +9,6 @@
 # v1.3: give priority to object that is closer [line or obstacle]
 # v1.4-v1.5: did not work
 # v1.6: restructuring with FSM, lock object logic, tbd unpark alternstive in open space
-# v1.7: improvements
 
 # =========================
 # IMPORTS
@@ -243,8 +242,8 @@ current_servo_angle = CENTER_ANGLE
 
 # ---- CAMERA SETUP ----
 picam2 = Picamera2()
-picam2.configure(picam2.create_preview_configuration(main={"size": (960, 480)})) #(main={"size": (640, 480)}))
-picam2.set_controls({"FrameRate": 15})
+picam2.configure(picam2.create_preview_configuration(main={"size": (1280, 960)})) #(main={"size": (640, 480)}))
+picam2.set_controls({"FrameRate": 12})
 picam2.start()
 time.sleep(1.0)
 #picam2.set_controls({"AwbEnable": False})
