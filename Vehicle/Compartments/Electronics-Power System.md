@@ -54,7 +54,7 @@ Additionally, they offer us the required voltage, they have a capacity of 2500-3
 >For **protection** we utilised a Charger Protection Module 3S 10A which offers us:
 >- Overcharge protection (Stops from overloading)
 >- Over-discharge protection (Interrupts sudden voltage drops that might hurt the batteries)
-- Short-circuit protection (As the name suggests, stops the system and batteries in case of short-circuiting)
+>- Short-circuit protection (As the name suggests, stops the system and batteries in case of short-circuiting)
 >This specific module can provide a maximum continuous flow of 6-8A, an amount suitable for safe power distribution to the Raspberry Pi 5 and its peripherals.
 >We also used a DC-DC Converter module Step-Down (5V/3A), based on the LM2596S. It has a voltage range of 3.2V - 40V (Input) and 1.3V - 35V output with a maximum of 3A.
 >All of the above combined with the small size of the placket make it ideally suitable for our build
