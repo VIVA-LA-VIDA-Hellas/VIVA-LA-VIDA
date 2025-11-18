@@ -629,14 +629,14 @@ try:
 
         img = picam2.capture_array()
 
-        # --- use only bottom half of the image ---
+        # --- use only bottom 2/3 of the image ---
         h_full, w_full = img.shape[:2]
-        h_mid = h_full // 2
+        h_mid = h_full // 3
 
-        # Crop: from middle to bottom
+        # Crop: keep bottom 2/3
         roi = img[h_mid:, :]
 
-        # Now do all processing on ROI (bottom half only)
+        # Now do all processing on ROI (bottom 2/3)
         img_bgr = cv2.cvtColor(roi, cv2.COLOR_RGB2BGR)
         imgHSV  = cv2.cvtColor(roi, cv2.COLOR_RGB2HSV)
         h_img, w_img = img_bgr.shape[:2]
