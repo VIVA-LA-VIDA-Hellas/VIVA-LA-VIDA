@@ -8,7 +8,7 @@
 # v1.2: add backwards drive after turning, unpark in both directions
 # v1.3: give priority to object that is closer [line or obstacle]
 # v1.4-v1.5: did not work
-# v1.6: restructuring with FSM, lock object logic, unpark alternstive in open space
+# v1.6: restructuring with FSM, lock object logic, tbd unpark alternstive in open space
 
 # =========================
 # IMPORTS
@@ -45,7 +45,7 @@ Device.pin_factory = LGPIOFactory()
 # =========================
 
 # ---- Speed settings ----
-NORMAL_SPEED          = 13   # Base forward cruising speed during normal driving
+NORMAL_SPEED          = 12   # Base forward cruising speed during normal driving
 AVOID_SPEED           = 13   # Reverse speed when doing obstacle-avoidance backup
 TURN_MOTOR_SPEED      = 15   # Motor speed while performing a 90° line-based turn
 UNPARK_STRAIGHT_SPEED = 18   # Speed used during smart unpark phases
@@ -72,6 +72,8 @@ OBSTACLE_CLEAR_FRAMES = 10     # Frames without red/green to "forget" obstacle
 # X-position aware steering (normalized [-1..1] offset from image center)
 XPOS_GAIN_DEG   = 12.0   # how many degrees we add/subtract for full offset
 XPOS_MAX_OFFSET = 0.7    # clamp |offset|, treat anything beyond as 0.7
+SERVO_XPOS_SIGN = 1.0  #X-position steering sign 1, -1
+#  +1 works for most setups; if in tests the robot turns TOWARDS the obstacle
 
 # ---- ToF thresholds (general) ----
 SIDE_COLLIDE_CM       = 30.0  # If side < this, we steer away to avoid collision
@@ -961,45 +963,47 @@ try:
 
             elif avoid_phase == "forward":
                 set_motor_speed(MOTOR_FWD, MOTOR_REV, NORMAL_SPEED)
-
+    
                 if locked_seen and chosen_box is not None:
                     # Obstacle still visible – follow around it
                     area       = chosen_area
                     base_angle = compute_servo_angle(obstacle_lock_color, area)
-            
-                    # --- X-position bias: use horizontal position to bend path ---
+    
+                    # --- X-position of the box in the image ---
                     x1, y1, x2, y2 = chosen_box
                     cx = 0.5 * (x1 + x2)
-                    offset_norm = (cx - center_x) / float(center_x)   # [-1..1], >0 = right
+                    offset_norm = (cx - center_x) / float(center_x)   # [-1..1], >0 = box on RIGHT
                     offset_norm = max(-XPOS_MAX_OFFSET, min(XPOS_MAX_OFFSET, offset_norm))
-            
+    
+                    # --- Desired side of the camera for each color ---
+                    # "Pass red from right"  -> keep red on RIGHT side of the image
+                    # "Pass green from left" -> keep green on LEFT side of the image
                     if obstacle_lock_color == "Red":
-                        # Red should end up on the RIGHT of the robot:
-                        # - if it's to the RIGHT (offset>0), steer more LEFT
-                        # - if it's to the LEFT (offset<0), steer a bit less LEFT
-                        base_angle += offset_norm * XPOS_GAIN_DEG
+                        target_offset = +0.45   # red box should sit on right half
                     else:
-                        # Green should end up on the LEFT of the robot:
-                        # - if it's to the LEFT (offset<0), steer more RIGHT
-                        # - if it's to the RIGHT (offset>0), steer a bit less RIGHT
-                        base_angle -= offset_norm * XPOS_GAIN_DEG
-            
-                    # --- Area-based closeness + yaw correction (as before) ---
-                    norm_area  = max(MIN_AREA, min(MAX_AREA, area))
-                    closeness  = (norm_area - MIN_AREA) / float(MAX_AREA - MIN_AREA + 1e-6)
-                    yaw_gain   = BOX_YAW_GAIN_MIN + closeness * (BOX_YAW_GAIN_MAX - BOX_YAW_GAIN_MIN)
-            
-                    if obstacle_lock_color == "Red":
-                        target_angle = max(60, min(130, int(base_angle + current_yaw * yaw_gain)))
-                    else:
-                        target_angle = max(60, min(130, int(base_angle - current_yaw * yaw_gain)))
-                     # --- DEBUG: AVOID forward steering details ---
+                        target_offset = -0.45   # green box should sit on left half
+    
+                    # Position error in normalized units
+                    err = target_offset - offset_norm
+    
+                    # Use XPOS_GAIN_DEG as a proportional gain on this error.
+                    # SERVO_XPOS_SIGN lets you flip direction if needed.
+                    correction_deg = SERVO_XPOS_SIGN * XPOS_GAIN_DEG * err
+    
+                    # Combine: base color-based curve + x-position correction
+                    target_angle = int(base_angle + correction_deg)
+    
+                    # Clamp for safety
+                    target_angle = max(60, min(120, target_angle))
+    
+                    # --- DEBUG: AVOID forward steering details ---
                     dbg(
                         f"AVOID FWD: color={obstacle_lock_color} cx={cx:.1f} "
-                        f"off={offset_norm:.2f} area={area} yaw={current_yaw:.1f} "
+                        f"off={offset_norm:.2f} t_off={target_offset:.2f} "
+                        f"err={err:.2f} base={base_angle} yaw={current_yaw:.1f} "
                         f"angle={target_angle}"
                     )
-
+    
                 else:
                     # Locked obstacle not seen this frame – drive roughly straight
                     target_angle = imu_center_servo(
@@ -1008,14 +1012,14 @@ try:
                         YAW_KP_BASE,
                         SERVO_CORR_LIMIT_BASE
                     )
-
+    
                 # Hysteresis: we only exit AVOID when the locked color is
                 # missing for OBSTACLE_CLEAR_FRAMES consecutive frames.
                 if locked_seen:
                     obstacle_clear_streak = 0
                 else:
                     obstacle_clear_streak += 1
-
+    
                 if obstacle_clear_streak >= OBSTACLE_CLEAR_FRAMES:
                     dbg(f"AVOID done: color={obstacle_lock_color}, clear_streak={obstacle_clear_streak}")
                     obstacle_lock_color   = None
@@ -1026,6 +1030,7 @@ try:
                     settle_until_ts       = time.time() + SETTLE_DURATION
                     dbg("FSM AVOID -> CRUISE (obstacle cleared)")
                     set_run_state("cruise")
+
 
         # ==== SERVO OUTPUT (direct angle with optional settle) ====
         if (time.time() < settle_until_ts and
