@@ -23,17 +23,14 @@
 ### *Use the index for an easy navigation of our github or, continue bellow to view our creation process, as well as an overview on everything about the robot.*
 
 ## 1. Mobility management
-####        1.1 Motor
+####        1.1 [Motor](https://github.com/VIVA-LA-VIDA-Hellas/VIVA-LA-VIDA/blob/main/Vehicle/Compartments/Electronics-DC-Motor.md)
 ####        1.2 [Ackerman](https://github.com/VIVA-LA-VIDA-Hellas/VIVA-LA-VIDA/blob/main/Vehicle/Compartments/Ackerman%20Steering.md)
-####        1.3 Chassis
-####        1.4 Servo
-####        1.5 Servo and motor 3d Bases
-####        1.6 Photos
+####        1.3 [Servo](https://github.com/VIVA-LA-VIDA-Hellas/VIVA-LA-VIDA/blob/main/Vehicle/Compartments/Electronics-Servo-Motor.md)
+####        1.4 [Servo and motor 3d Bases]https://github.com/VIVA-LA-VIDA-Hellas/VIVA-LA-VIDA/tree/main/3d%20designs/3d%20schematics
 
 ## 2. Power Management
 ####        2.1 [Batteries](https://github.com/VIVA-LA-VIDA-Hellas/VIVA-LA-VIDA/blob/main/Vehicle/Compartments/Batteries.md)
 ####        2.2 [PCB circuit designs and schematics](https://github.com/VIVA-LA-VIDA-Hellas/VIVA-LA-VIDA/tree/main/Schematics/PCB)
-####        2.3 Wiring and wiring managment 
 
 ## 3. Sensors
 ####        2.1 Distance sensors
@@ -43,13 +40,9 @@
 ####        2.5 Colour sensor
 ####        2.6 3d sensor bases
 
-## 4. Obstacle Management 
-####        4.0 [Flowchart](https://github.com/VIVA-LA-VIDA-Hellas/VIVA-LA-VIDA/tree/main/Code%20files/Flowcharts)
-####        4.1 Wall sensing
-####        4.2 Direction recognition
-####        4.3 [Red/Green differentiation](https://github.com/VIVA-LA-VIDA-Hellas/VIVA-LA-VIDA/blob/main/Code%20files/Python%20files/Obstacle_detection_base.py)
-####        4.4 Turning and turn count tracking
-####        4.5 Unparking / Parking
+## 4. 3D Prints
+####        4.1 [3D schematics](https://github.com/VIVA-LA-VIDA-Hellas/VIVA-LA-VIDA/tree/main/3d%20designs/3d%20schematics)
+####        4.2 [Photos of 3D printed parts](https://github.com/VIVA-LA-VIDA-Hellas/VIVA-LA-VIDA/tree/main/3d%20designs/3d%20printed%20part%20photos)
 
 ## 5. Pictures 
 ####        5.1 [Team photos](https://github.com/VIVA-LA-VIDA-Hellas/VIVA-LA-VIDA/tree/main/Team%20photos)
@@ -62,9 +55,10 @@
 ## 7. Daily entries
 ####        7.1 [Logs](https://github.com/VIVA-LA-VIDA-Hellas/VIVA-LA-VIDA/tree/main/Training%20meetings%20log)
 
-## 8. 3D Prints
-####        8.1 [3D schematics](https://github.com/VIVA-LA-VIDA-Hellas/VIVA-LA-VIDA/tree/main/3d%20designs/3d%20schematics)
-####        8.2 [Photos of 3D printed parts](https://github.com/VIVA-LA-VIDA-Hellas/VIVA-LA-VIDA/tree/main/3d%20designs/3d%20printed%20part%20photos)
+## 8. Code files
+####        8.1 [Open Challenge](https://github.com/VIVA-LA-VIDA-Hellas/VIVA-LA-VIDA/tree/main/Code%20files/1.%20Open%20Challenge)
+####        8.2 [Obstacle Challenge](https://github.com/VIVA-LA-VIDA-Hellas/VIVA-LA-VIDA/tree/main/Code%20files/2.%20Obstacle%20challenge)
+####        8.3 [Colour Calibration](https://github.com/VIVA-LA-VIDA-Hellas/VIVA-LA-VIDA/blob/main/Code%20files/Python%20files/New%20files%20September%2B/Colour_picker.py)
 
 ## 9. Manuals
 ####        9.1 [Instruction manuals](https://github.com/VIVA-LA-VIDA-Hellas/VIVA-LA-VIDA/tree/main/Instruction%20Manuals)
