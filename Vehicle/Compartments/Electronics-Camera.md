@@ -2,7 +2,7 @@
 
 ## Why we chose it
 
-###Characteristics
+##Characteristics
 The IMX219 is a powerful camera module that offers:
   - Wide-angle fisheye lens
   - High resolution of 8 MP
@@ -10,7 +10,7 @@ The IMX219 is a powerful camera module that offers:
 
 ---
 
-###Compatibility
+##Compatibility
 The IMX219 integrates easily with:
   - Raspberry Pi 5 
   - Python, using libraries such as OpenCV
@@ -18,7 +18,7 @@ The IMX219 integrates easily with:
 
 ---
 
-###Alternatives
+##Alternatives
 Raspberry Pi Camera Module V3
 Pros
   - Better compatibility with the Raspberry Pi 5
