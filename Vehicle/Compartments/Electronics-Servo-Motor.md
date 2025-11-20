@@ -96,11 +96,6 @@ This architecture protects the controller while maintaining precise steering beh
 - **Pros:** simple speed control  
 - **Cons:** cannot hold an angle → unsuitable for steering mechanisms  
 
-### 4. **Stepper-Based Steering (NEMA 14/17)**
-- **Pros:** extremely accurate  
-- **Cons:** heavy, power-hungry, requires drivers, slow  
-- Overkill for a small, fast robot
-
 ---
 
 ## Summary
