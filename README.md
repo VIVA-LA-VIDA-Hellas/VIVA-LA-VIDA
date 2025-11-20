@@ -38,12 +38,10 @@
 ####        2.2 [PCB circuit designs and schematics](https://github.com/VIVA-LA-VIDA-Hellas/VIVA-LA-VIDA/tree/main/Schematics/PCB)
 
 ## 3. Sensors
-####        2.1 Distance sensors
-####        2.2 Accelerometre / Gyro
-####        2.3 Buttons
-####        2.4 Camera
-####        2.5 Colour sensor
-####        2.6 3d sensor bases
+####        2.1 [Distance sensors](https://github.com/VIVA-LA-VIDA-Hellas/VIVA-LA-VIDA/blob/main/Vehicle/Compartments/Electronics-Sensors-Distance.md)
+####        2.2 [Accelerometre / Gyro](https://github.com/VIVA-LA-VIDA-Hellas/VIVA-LA-VIDA/blob/main/Vehicle/Compartments/Electronics-Sensors-Gyro.md)
+####        2.3 Camera
+####        2.4 [Buttons & Leds](https://github.com/VIVA-LA-VIDA-Hellas/VIVA-LA-VIDA/blob/main/Vehicle/Compartments/Electronics-Interface-and-Debugging.md)
 
 ## 4. 3D Prints
 ####        4.1 [3D schematics](https://github.com/VIVA-LA-VIDA-Hellas/VIVA-LA-VIDA/tree/main/3d%20designs/3d%20schematics)
