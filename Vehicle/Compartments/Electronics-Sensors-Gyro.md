@@ -55,8 +55,8 @@ These are currently **NOT USED**, but the PCB layout supports future features su
 
 Several alternative sensing technologies were evaluated but not selected due to cost or complexity.
 
-### 1. IMU with Magnetometer (MPU9250)
-- Pros: absolute north-based heading  
+### 1. IMU with Magnetometer (LSM6DS3)
+- Pros: absolute north-based heading
 - Cons: indoor magnetic interference makes it unreliable on metal-frame competition tables
 
 ---
