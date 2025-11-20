@@ -12,12 +12,17 @@
 [![Instagram](https://github.com/user-attachments/assets/1af99f41-1ca3-42ba-8c58-24f4023c03de)](https://www.instagram.com/viva_la_vida_gr/)
 [![TikTok](https://github.com/user-attachments/assets/efb356f7-1a95-40ec-9479-392f2e362c01)](https://www.tiktok.com/@viva_la_vida_gr)
 
+
+
 ## TEAM MEMBERS:
 ### Nikol Vasilopoulou (user: Quart0xe)
 ### Panagiotis Mourmouris (user: Panos1431)
 ### Thanos Karatsis (user: thkaratsis)
 
 *Disclaimer: we did not use these accounts in the creation of this repository. Instead we created a new email and github account specificaly for our team, which we all have access to and utilise across all platforms. 
+
+
+
 
 # INDEX
 ### *Use the index for an easy navigation of our github or, continue bellow to view our creation process, as well as an overview on everything about the robot.*
