@@ -1,4 +1,4 @@
-# Sensors – Why This Combination
+# Gyroscope
 
 The selected sensor suite is engineered to provide the robot with **robust, real-time spatial awareness** under the constraints of the WRO 2025 FE environment. Each sensor category contributes different strengths: short-range precision, long-range detection, and orientation stability. Together, they form a redundant, multi-modal perception system that enables reliable autonomous navigation even in unpredictable wall placements and obstacle scenarios.
 
