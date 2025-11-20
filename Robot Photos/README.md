@@ -1,5 +1,5 @@
 ## Photos of our final robot
-> We recomment taking a look at the descriptive photos for a more in depth view of our build.
+> We recomment taking a look at the [descriptive photos](https://github.com/VIVA-LA-VIDA-Hellas/VIVA-LA-VIDA/tree/main/Robot%20Photos/Descriptive%20photos) for a more in depth view of our build.
 ## $${\color{white}Front}$$
 
 ![front](https://github.com/user-attachments/assets/591d3e34-1546-439d-a79d-c7d343ed4cac)
