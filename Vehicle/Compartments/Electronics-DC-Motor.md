@@ -107,3 +107,7 @@ This design provides:
 The **25 mm 210 RPM DC gearmotor** provides the ideal combination of speed, torque, voltage compatibility, and physical size for this robot. Its electrical profile matches the DRV8871 driver and system fuse ratings, while its mechanical form factor integrates cleanly with the chassis, resulting in a powerful and reliable drivetrain.
 
 ---
+
+## Alternative
+For this project, any type of DC motor can be used as long as it can be driven with 9–12 V.
+The only difference will be in the code, since different motors have different gear ratios and speed characteristics.
