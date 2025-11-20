@@ -3,7 +3,7 @@
 ## Why we chose it
 
 *Characteristics*
->The Raspberry Pi 5 is an overall compact but exceptionally speedy microcontroller, with large computational power and the >ability to run the full Linux operating system which is the default OS for RasPis.
+>The Raspberry Pi 5 is an overall compact but exceptionally speedy SBC(Single Board Computer), with large computational power and the >ability to run the full Linux operating system which is the default OS for RasPis.
 
 *Compatability*
 >We wanted to use python to programm our robot and since Linux is able to run OpenCV and our other needed libraries through programms such as Thonny or VScode, it was an easy option. 
