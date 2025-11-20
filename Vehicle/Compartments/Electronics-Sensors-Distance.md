@@ -124,7 +124,7 @@ Several alternative sensing technologies were evaluated but not selected due to 
 - Pros: cheap, wide availability  
 - Cons: poor performance in ambient light, reflective-surface errors
 
-### 2. 2D LIDAR (e.g., RPLIDAR A1/A2)
+### 2. [Lidar](https://github.com/VIVA-LA-VIDA-Hellas/VIVA-LA-VIDA/blob/main/Vehicle/Compartments/Lidar.md)
 - Pros: full 360° mapping, excellent accuracy  
 - Cons: too large, too heavy, not allowed or impractical for WRO FE robot dimensions
 
