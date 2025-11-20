@@ -34,13 +34,13 @@
 ####        1.4 [Servo and motor 3d Bases](https://github.com/VIVA-LA-VIDA-Hellas/VIVA-LA-VIDA/tree/main/3d%20designs/3d%20schematics)
 
 ## 2. Power Management
-####        2.1 [Batteries](https://github.com/VIVA-LA-VIDA-Hellas/VIVA-LA-VIDA/blob/main/Vehicle/Compartments/Batteries.md)
+####        2.1 [Batteries](https://github.com/VIVA-LA-VIDA-Hellas/VIVA-LA-VIDA/blob/main/Vehicle/Compartments/Electronics-Power%20System.md)
 ####        2.2 [PCB circuit designs and schematics](https://github.com/VIVA-LA-VIDA-Hellas/VIVA-LA-VIDA/tree/main/Schematics/PCB)
 
 ## 3. Sensors
 ####        2.1 [Distance sensors](https://github.com/VIVA-LA-VIDA-Hellas/VIVA-LA-VIDA/blob/main/Vehicle/Compartments/Electronics-Sensors-Distance.md)
 ####        2.2 [Accelerometre / Gyro](https://github.com/VIVA-LA-VIDA-Hellas/VIVA-LA-VIDA/blob/main/Vehicle/Compartments/Electronics-Sensors-Gyro.md)
-####        2.3 Camera
+####        2.3 [Camera](https://github.com/VIVA-LA-VIDA-Hellas/VIVA-LA-VIDA/blob/main/Vehicle/Compartments/Electronics-Camera.md)
 ####        2.4 [Buttons & Leds](https://github.com/VIVA-LA-VIDA-Hellas/VIVA-LA-VIDA/blob/main/Vehicle/Compartments/Electronics-Interface-and-Debugging.md)
 
 ## 4. 3D Prints
@@ -65,8 +65,8 @@
 
 ## 9. Manuals
 ####        9.1 [Instruction manuals](https://github.com/VIVA-LA-VIDA-Hellas/VIVA-LA-VIDA/tree/main/Instruction%20Manuals)
-####        9.2 [Lego ackerman instructions](https://github.com/VIVA-LA-VIDA-Hellas/VIVA-LA-VIDA/blob/main/Instruction%20Manuals/Lego%20ackerman%20instructions.pdf)
-####        9.3 [Lego differential instructions](https://github.com/VIVA-LA-VIDA-Hellas/VIVA-LA-VIDA/blob/main/Instruction%20Manuals/Lego%20differential%20instructions.pdf)
+####        9.2 [Lego ackerman instructions](https://github.com/VIVA-LA-VIDA-Hellas/VIVA-LA-VIDA/tree/main/Instruction%20Manuals/Lego%20ackerman%20instructions)
+####        9.3 [Lego differential instructions](https://github.com/VIVA-LA-VIDA-Hellas/VIVA-LA-VIDA/tree/main/Instruction%20Manuals/Lego%20differential%20instructions)
 ####        9.4 [Build details](https://github.com/VIVA-LA-VIDA-Hellas/VIVA-LA-VIDA/tree/main/Robot%20Photos/Descriptive%20photos)
 ####        9.5 [Full instructions](https://github.com/VIVA-LA-VIDA-Hellas/VIVA-LA-VIDA/tree/main/Instruction%20Manuals/Full%20robot%20instructions)
 
