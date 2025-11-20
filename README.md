@@ -26,7 +26,7 @@
 ####        1.1 [Motor](https://github.com/VIVA-LA-VIDA-Hellas/VIVA-LA-VIDA/blob/main/Vehicle/Compartments/Electronics-DC-Motor.md)
 ####        1.2 [Ackerman](https://github.com/VIVA-LA-VIDA-Hellas/VIVA-LA-VIDA/blob/main/Vehicle/Compartments/Ackerman%20Steering.md)
 ####        1.3 [Servo](https://github.com/VIVA-LA-VIDA-Hellas/VIVA-LA-VIDA/blob/main/Vehicle/Compartments/Electronics-Servo-Motor.md)
-####        1.4 [Servo and motor 3d Bases]https://github.com/VIVA-LA-VIDA-Hellas/VIVA-LA-VIDA/tree/main/3d%20designs/3d%20schematics
+####        1.4 [Servo and motor 3d Bases](https://github.com/VIVA-LA-VIDA-Hellas/VIVA-LA-VIDA/tree/main/3d%20designs/3d%20schematics)
 
 ## 2. Power Management
 ####        2.1 [Batteries](https://github.com/VIVA-LA-VIDA-Hellas/VIVA-LA-VIDA/blob/main/Vehicle/Compartments/Batteries.md)
