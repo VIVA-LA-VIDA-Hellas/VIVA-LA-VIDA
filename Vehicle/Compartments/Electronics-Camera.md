@@ -4,7 +4,7 @@
 
 ###Characteristics
 The IMX219 is a powerful camera module that offers:
-  *Wide-angle fisheye lens
+  *Wide-angle fisheye lens*
   *High resolution of 8 MP
   *Good low-noise performance for a small camera module
 
