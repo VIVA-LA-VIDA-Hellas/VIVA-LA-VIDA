@@ -65,6 +65,7 @@
 ####        9.2 [Lego ackerman instructions](https://github.com/VIVA-LA-VIDA-Hellas/VIVA-LA-VIDA/blob/main/Instruction%20Manuals/Lego%20ackerman%20instructions.pdf)
 ####        9.3 [Lego differential instructions](https://github.com/VIVA-LA-VIDA-Hellas/VIVA-LA-VIDA/blob/main/Instruction%20Manuals/Lego%20differential%20instructions.pdf)
 ####        9.4 [Build details](https://github.com/VIVA-LA-VIDA-Hellas/VIVA-LA-VIDA/tree/main/Robot%20Photos/Descriptive%20photos)
+####        9.5 [Full instructions](https://github.com/VIVA-LA-VIDA-Hellas/VIVA-LA-VIDA/tree/main/Instruction%20Manuals/Full%20robot%20instructions)
 
 ## 10. Extra material
 ####        10.1 [Team logo](https://github.com/VIVA-LA-VIDA-Hellas/VIVA-LA-VIDA/tree/main/Team%20-%20Extras/Logo)
