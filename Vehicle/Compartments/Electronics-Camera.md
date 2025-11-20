@@ -19,11 +19,11 @@ The IMX219 integrates easily with:
 ---
 
 ## Alternatives
-Raspberry Pi Camera Module V3
-**Pros:**
+Raspberry Pi Camera Module V3:
+- **Pros:**
   - Better compatibility with the Raspberry Pi 5
   - Newer autofocus system
-**Cons:**
+- **Cons:**
    -Lower resolution compared to the IMX219
   - Narrower field of view than the fisheye IMX219
 
