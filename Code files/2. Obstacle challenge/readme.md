@@ -338,38 +338,38 @@ To retune the robot for a different venue or lighting:
 
 ```text
  ┌──────────────────────────────────────────┐
- │              VISION MODULE              │
- │  - Camera capture (Picamera2)           │
- │  - HSV + masks (red/green/orange/blue)  │
- │  - Diagonal line masking                │
- │  - Hough line detection                 │
- │  - Obstacle contour & box extraction    │
+ │              VISION MODULE               │
+ │  - Camera capture (Picamera2)            │
+ │  - HSV + masks (red/green/orange/blue)   │
+ │  - Diagonal line masking                 │
+ │  - Hough line detection                  │
+ │  - Obstacle contour & box extraction     │
  └──────────────────────────────────────────┘
                     │
                     ▼
  ┌──────────────────────────────────────────┐
- │           SENSOR FUSION BLOCK           │
- │  - ToF readings (VL53L0X)              │
- │  - Ultrasonic distances                │
- │  - Gyro (MPU6050) → yaw integration    │
+ │           SENSOR FUSION BLOCK            │
+ │  - ToF readings (VL53L0X)                │
+ │  - Ultrasonic distances                  │
+ │  - Gyro (MPU6050) → yaw integration      │
  └──────────────────────────────────────────┘
                     │
                     ▼
  ┌──────────────────────────────────────────┐
- │           FSM / CONTROL CORE            │
- │  SMART UNPARK → CRUISE → TURN →         │
- │  POST_TURN → AVOID (+ blue-backward)    │
- │  - Obstacle lock / priority logic       │
- │  - Line trigger & turn cooldowns        │
- │  - Lap & turn counting                  │
+ │           FSM / CONTROL CORE             │
+ │  SMART UNPARK → CRUISE → TURN →          │
+ │  POST_TURN → AVOID (+ blue-backward)     │
+ │  - Obstacle lock / priority logic        │
+ │  - Line trigger & turn cooldowns         │
+ │  - Lap & turn counting                   │
  └──────────────────────────────────────────┘
                     │
                     ▼
  ┌──────────────────────────────────────────┐
- │          ACTUATION LAYER                │
- │  - Servo steering (PCA9685)             │
- │  - Motor speed and direction            │
- │  - Status LEDs                          │
+ │          ACTUATION LAYER                 │
+ │  - Servo steering (PCA9685)              │
+ │  - Motor speed and direction             │
+ │  - Status LEDs                           │
  └──────────────────────────────────────────┘
 ```
 
