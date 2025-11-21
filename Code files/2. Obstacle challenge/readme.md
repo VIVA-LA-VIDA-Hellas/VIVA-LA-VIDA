@@ -402,4 +402,3 @@ To retune the robot for a different venue or lighting:
 
 ---
 
-You can drop this file as `README.md` next to `2nd_mission_v2.4(1).py` so anyone opening the repository quickly understands how the 2nd mission program works and how to tune it.
