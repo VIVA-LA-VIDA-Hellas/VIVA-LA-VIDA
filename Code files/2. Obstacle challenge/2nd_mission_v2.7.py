@@ -83,7 +83,7 @@ RIGHT_COLLIDE_ANGLE = 75    # Steering angle on right side collision correction
 # ---- Obstacle detection (vision) ----
 MIN_AREA          = 3000    # Minimum contour area to accept as a box
 MAX_AREA          = 20000   # Area at which box is considered "very close"
-MAX_AREA_TURNING  = 32000   # Area to stop turning if obstacle is in front
+MAX_AREA_TURNING  = 25000   # Area to stop turning if obstacle is in front or start avoid
 COLOR_HOLD_FRAMES = 3       # Frames the same color must persist to be “locked”
 OBSTACLE_CLEAR_FRAMES = 10     # Frames without red/green to "forget" obstacle
 # X-position aware steering (normalized [-1..1] offset from image center)
@@ -95,7 +95,6 @@ SERVO_XPOS_SIGN = 1.0  #X-position steering sign 1, -1
 
 # ---- Obstacle lock (vision only) ----
 # Only start avoidance when the box is visually close enough
-OBSTACLE_LOCK_AREA_MIN = 9000   # area threshold to consider "close"
 OBSTACLE_LOCK_Y_FRAC   = 0.50    # bottom of box must be below 60% of image height
 
 
@@ -573,7 +572,7 @@ STATE_CRUISE    = "cruise"
 STATE_TURN      = "turn"
 STATE_POST_TURN = "post_turn"
 STATE_AVOID     = "avoid_obstacle"
-STATE_FINISH    = "finish" 
+#STATE_FINISH    = "finish" 
 
 fsm_state        = STATE_CRUISE
 state_start_time = time.time()
@@ -595,6 +594,10 @@ post_turn_line_ignore_until = 0.0
 
 turn_dir                 = None   # "Left" or "Right"
 post_turn_start_time     = 0.0
+turn_from_line           = False  # True while completing a 90° line turn (even if interrupted by AVOID)
+avoid_in_this_turn       = False  # True if this 90° turn had an AVOID in the middle
+
+
 
 # Lap & turn counters
 turn_count = 0
@@ -609,6 +612,8 @@ color_hold_streak  = 0
 current_servo_angle = CENTER_ANGLE
 last_time           = time.time()
 settle_until_ts     = 0.0  # already defined above, we just make sure it exists
+
+
 
 
 # ---- Simple debug helper ----
@@ -1063,16 +1068,19 @@ try:
             elif (line_confirmed and
                   (turn_count < TOTAL_TURNS) and
                   not obstacle_closer) and f_ultra < FRONT_TRIGGER:
-
+                
                 fsm_state        = STATE_TURN
                 state_start_time = now
-                turn_dir = "Left" if direction == "left" else "Right"
+                turn_dir         = "Left" if direction == "left" else "Right"
+                turn_from_line   = True      # we are starting a 90° line-based turn
+                avoid_in_this_turn = False   # no avoid yet in this turn
 
+            
                 # --- COUNT TURN AT ENTRY ---
                 turn_count += 1
                 turn_in_lap = ((turn_count - 1) % TURNS_PER_LAP) + 1
                 lap_count   = (turn_count - 1) // TURNS_PER_LAP + 1
-
+            
                 trig_color = "blue" if blue_trigger and not orange_trigger else \
                              "orange" if orange_trigger and not blue_trigger else \
                              "both"
@@ -1080,19 +1088,20 @@ try:
                     f"FSM CRUISE -> TURN (dir={turn_dir}, trig={trig_color}, "
                     f"f_ultra={f_ultra:.1f}, turn_count={turn_count}, lap={lap_count})"
                 )
-
+            
                 print(f"[LAP] turn {turn_in_lap} / lap {lap_count}", flush=True)
-
+            
                 if blue_trigger and not orange_trigger:
                     set_run_state(f"blue line – turn {turn_dir.lower()}")
                 elif orange_trigger and not blue_trigger:
                     set_run_state(f"orange line – turn {turn_dir.lower()}")
                 else:
                     set_run_state(f"line – turn {turn_dir.lower()}")
-
-                # Reset yaw for the turn
+            
+                # Reset yaw for the turn (0° = start of the 90°)
                 with yaw_lock:
                     yaw = 0.0
+
 
 
         elif fsm_state == STATE_TURN:
@@ -1104,40 +1113,48 @@ try:
 
             set_motor_speed(MOTOR_FWD, MOTOR_REV, TURN_MOTOR_SPEED)
 
-           
-            # ===== IMMEDIATE: any obstacle seen WHILE TURNING -> go to AVOID =====
+        
+            # ===== CLOSE obstacle seen WHILE TURNING -> go to AVOID (same gates as CRUISE) =====
             if chosen_color is not None and chosen_box is not None:
-                obstacle_lock_color     = chosen_color
-                obstacle_lock_last_area = chosen_area
-                obstacle_lock_last_box  = chosen_box
-                obstacle_clear_streak   = 0
-                avoid_phase             = "back_off"
-                avoid_phase_start       = now
-                avoid_direction         = "left" if obstacle_lock_color == "Red" else "right"
+                x1, y1, x2, y2 = chosen_box
+                area_ok = (chosen_area >= MAX_AREA_TURNING)
+                y_ok    = (y2 >= obstacle_lock_y_min)
+            
+                if color_hold_streak >= COLOR_HOLD_FRAMES and area_ok and y_ok:
+                    obstacle_lock_color     = chosen_color
+                    obstacle_lock_last_area = chosen_area
+                    obstacle_lock_last_box  = chosen_box
+                    obstacle_clear_streak   = 0
+                    avoid_phase             = "back_off"
+                    avoid_phase_start       = now
+                    avoid_direction         = "left" if obstacle_lock_color == "Red" else "right"
+                    avoid_in_this_turn      = True   # remember that this turn had an avoid segment
 
-                # Reset yaw when interrupting a turn with avoidance
-                with yaw_lock:
-                    yaw = 0.0
-                    current_yaw = 0.0
+                    # IMPORTANT: do NOT reset yaw here.
+                    # We want yaw to continue measuring total turn since the line turn started.
+            
+                    dbg(
+                        f"IMMEDIATE: TURN -> AVOID (lock {obstacle_lock_color}, "
+                        f"area={chosen_area}, box={chosen_box}, dir={avoid_direction}, "
+                        f"y2={y2}, y_thr={obstacle_lock_y_min})"
+                    )
+            
+                    fsm_state        = STATE_AVOID
+                    state_start_time = now
+                    set_run_state(f"avoid lock – {obstacle_lock_color.lower()}")
+            
+                    # Start immediate reverse with steering away from obstacle
+                    set_motor_speed(MOTOR_FWD, MOTOR_REV, -AVOID_SPEED)
+                    target_angle = LEFT_NEAR if avoid_direction == "left" else RIGHT_NEAR
+            
+                    continue
+            
 
-                dbg(
-                    f"IMMEDIATE: TURN -> AVOID (lock {obstacle_lock_color}, "
-                    f"area={chosen_area}, box={chosen_box}, dir={avoid_direction})"
-                )
-
-                fsm_state        = STATE_AVOID
-                state_start_time = now
-                set_run_state(f"avoid lock – {obstacle_lock_color.lower()}")
-
-                # Start immediate reverse with steering away from obstacle
-                set_motor_speed(MOTOR_FWD, MOTOR_REV, -AVOID_SPEED)
-                target_angle = LEFT_NEAR if avoid_direction == "left" else RIGHT_NEAR
-
-                continue
 
 
             # Stop rule: yaw-based (failsafe)
             if abs(current_yaw) >= TURN_FAILSAFE_MAX_DEG:
+                turn_from_line = False   # 90° turn is complete (including any avoid segment)
                 # Set yaw to a small offset after turn
                 with yaw_lock:
                     if turn_dir == "Left":
@@ -1153,31 +1170,53 @@ try:
 
                 # If all laps done -> switch to final straight state
                 if turn_count >= TOTAL_TURNS:
-                    print("[LAP] All laps completed. Driving straight then stopping.", flush=True)
-                    set_servo_angle(SERVO_CHANNEL, CENTER_ANGLE)
-                    set_motor_speed(MOTOR_FWD, MOTOR_REV, NORMAL_SPEED)
-
-                    fsm_state = STATE_FINISH
-                    finish_start_time = time.time()
+                    print("[LAP] All laps completed. Final straight with cruise/avoid active.", flush=True)
+                
+                    # Start final-straight timer (if not already started)
+                    if finish_start_time is None:
+                        finish_start_time = now
+                
+                    # Go back to CRUISE so normal cruise/avoid logic continues
+                    fsm_state        = STATE_CRUISE
+                    state_start_time = now
                     set_run_state("final_straight")
-                    continue  # let FSM handle the rest
+                
+                    # Drive forward; CRUISE + AVOID logic will keep running
+                    set_motor_speed(MOTOR_FWD, MOTOR_REV, NORMAL_SPEED)
+                    continue         
 
+                else:
+                    # Not final lap – decide if we need POST_TURN reverse
+                    if avoid_in_this_turn:
+                        # This 90° turn had an AVOID in the middle:
+                        # → skip post-turn reverse, go straight to CRUISE.
+                        avoid_in_this_turn = False
+                        last_turn_end_time     = now
+                        next_turn_allowed_time = now + TURN_COOLDOWN_SEC
+                        post_turn_line_ignore_until = now + POST_TURN_LINE_IGNORE_S
+                        settle_until_ts        = time.time() + SETTLE_DURATION
+            
+                        set_motor_speed(MOTOR_FWD, MOTOR_REV, NORMAL_SPEED)
+                        fsm_state        = STATE_CRUISE
+                        state_start_time = now
+                        dbg("FSM TURN (after avoid) -> CRUISE (no post-turn reverse)")
+                        set_run_state("cruise")
+                    else:
+                        # Normal clean line turn → keep the old POST_TURN reverse behaviour
+                        fsm_state              = STATE_POST_TURN
+                        state_start_time       = now
+                        post_turn_start_time   = now
+                        last_turn_end_time     = now
+                        next_turn_allowed_time = now + TURN_COOLDOWN_SEC
+                        post_turn_line_ignore_until = now + POST_TURN_LINE_IGNORE_S
+                        settle_until_ts        = time.time() + SETTLE_DURATION
+                        dbg("FSM TURN -> POST_TURN (start reverse)")
+                        set_run_state("post-turn reverse")
+            
+                        target_angle = CENTER_ANGLE
+                        set_motor_speed(MOTOR_FWD, MOTOR_REV, -POST_TURN_BACK_SPEED)
 
-
-                # Otherwise go into post-turn reverse state
-                fsm_state              = STATE_POST_TURN
-                state_start_time       = now
-                post_turn_start_time   = now
-                last_turn_end_time     = now
-                next_turn_allowed_time = now + TURN_COOLDOWN_SEC
-                post_turn_line_ignore_until = now + POST_TURN_LINE_IGNORE_S
-                settle_until_ts        = time.time() + SETTLE_DURATION
-                dbg("FSM TURN -> POST_TURN (start reverse)")
-                set_run_state("post-turn reverse")
-
-                target_angle = CENTER_ANGLE
-                set_motor_speed(MOTOR_FWD, MOTOR_REV, -POST_TURN_BACK_SPEED)
-
+                    
         elif fsm_state == STATE_POST_TURN:
             # ---- POST_TURN: back up straight a bit ----
             target_angle = CENTER_ANGLE
@@ -1277,26 +1316,26 @@ try:
                     obstacle_lock_color   = None
                     obstacle_clear_streak = 0
                     avoid_phase           = None
-                    fsm_state             = STATE_CRUISE
                     state_start_time      = now
                     settle_until_ts       = time.time() + SETTLE_DURATION
-                    dbg("FSM AVOID -> CRUISE (obstacle cleared)")
-                    set_run_state("cruise")
+                
+                    if turn_from_line:
+                        # We were in the middle of a 90° line turn when avoidance started.
+                        # Resume that turn until yaw reaches TURN_FAILSAFE_MAX_DEG.
+                        fsm_state = STATE_TURN
+                        dbg("FSM AVOID -> TURN (resume 90° turn after obstacle)")
+                        set_run_state("resume turn after avoid")
+                    else:
+                        fsm_state = STATE_CRUISE
+                        dbg("FSM AVOID -> CRUISE (obstacle cleared)")
+                        set_run_state("cruise")
 
-
-        elif fsm_state == STATE_FINISH:
-            # Keep driving straight for TIME_TO_STOP seconds, then stop and exit
-            set_servo_angle(SERVO_CHANNEL, CENTER_ANGLE)
-            set_motor_speed(MOTOR_FWD, MOTOR_REV, NORMAL_SPEED)
-
-            if finish_start_time is None:
-                finish_start_time = time.time()
-
+        # ==== FINAL STRAIGHT TIMER (active after last turn) ====
+        if finish_start_time is not None:
             if time.time() - finish_start_time >= TIME_TO_STOP:
                 print("[LAP] Final straight complete. Stopping robot.", flush=True)
                 set_motor_speed(MOTOR_FWD, MOTOR_REV, STOP_SPEED)
-                break  # exit main loop
-
+                break
 
         # ==== SERVO OUTPUT (direct angle with optional settle) ====
         # After blue-backward, briefly bias steering toward the box direction
